@@ -50,6 +50,7 @@ import com.ratsey.thelist.ui.components.RenameDialog
 import com.ratsey.thelist.ui.components.SettingsDialog
 import com.ratsey.thelist.ui.components.ShoppingList
 import com.ratsey.thelist.ui.components.SyncDialog
+import com.ratsey.thelist.ui.components.UsualsSheet
 import java.io.File
 
 private const val TAB_TO_BUY = 0
@@ -60,6 +61,7 @@ private const val TAB_PRICES = 2
 fun TheListRoot(viewModel: ListViewModel) {
     val activeItems by viewModel.activeItems.collectAsStateWithLifecycle()
     val basketItems by viewModel.basketItems.collectAsStateWithLifecycle()
+    val usualsItems by viewModel.usualsItems.collectAsStateWithLifecycle()
     val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
     val productDetail by viewModel.productDetail.collectAsStateWithLifecycle()
     val scanState by viewModel.scan.collectAsStateWithLifecycle()
@@ -78,6 +80,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     var renameTarget by remember { mutableStateOf<Item?>(null) }
     var confirmClearBasket by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showUsuals by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showSync by remember { mutableStateOf(false) }
     var pendingPhotoPath by remember { mutableStateOf<String?>(null) }
@@ -154,6 +157,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                             addFocusRequester.requestFocus()
                         }
                     },
+                    onOpenUsuals = { showUsuals = true },
                     focusRequester = addFocusRequester,
                 )
             }
@@ -179,6 +183,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                     onTabSelected = { selectedTab = it },
                     onCheckForUpdates = { viewModel.checkForUpdates(userInitiated = true) },
                     onClearBasket = { confirmClearBasket = true },
+                    onOpenUsuals = { showUsuals = true },
                     onOpenSettings = { showSettings = true },
                     onAbout = { showAbout = true },
                     onStartUpdate = viewModel::startUpdate,
@@ -276,6 +281,15 @@ fun TheListRoot(viewModel: ListViewModel) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },
+        )
+    }
+
+    if (showUsuals) {
+        UsualsSheet(
+            items = usualsItems,
+            onAdd = viewModel::addFromUsuals,
+            onForget = viewModel::forgetUsual,
+            onDismiss = { showUsuals = false },
         )
     }
 

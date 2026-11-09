@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Bookmarks
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -45,6 +46,7 @@ fun AddItemBar(
     value: String,
     onValueChange: (String) -> Unit,
     onAdd: () -> Unit,
+    onOpenUsuals: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
@@ -61,6 +63,22 @@ fun AddItemBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            FilledIconButton(
+                onClick = onOpenUsuals,
+                shape = RoundedCornerShape(16.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = colors.surfaceVariant,
+                    contentColor = colors.onSurfaceVariant,
+                ),
+                modifier = Modifier.size(54.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Bookmarks,
+                    contentDescription = stringResource(R.string.usuals_open),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = colors.surfaceVariant,

@@ -56,6 +56,7 @@ fun HomeHeader(
     onTabSelected: (Int) -> Unit,
     onCheckForUpdates: () -> Unit,
     onClearBasket: () -> Unit,
+    onOpenUsuals: () -> Unit,
     onOpenSettings: () -> Unit,
     onAbout: () -> Unit,
     onStartUpdate: () -> Unit,
@@ -142,6 +143,13 @@ fun HomeHeader(
                             },
                         )
                     }
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.usuals_open)) },
+                        onClick = {
+                            menuOpen = false
+                            onOpenUsuals()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.menu_settings)) },
                         onClick = {

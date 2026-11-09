@@ -9,7 +9,7 @@
     <string name="add_item">Add item</string>
 
     <string name="empty_active_title">Your list is empty</string>
-    <string name="empty_active_body">Add what you need below. When you\'ve got something, swipe it right and it moves to your basket.</string>
+    <string name="empty_active_body">Add what you need below, or tap the bookmark to pick from your usuals. Swipe right when you\'ve got something and it moves to your basket.</string>
     <string name="empty_basket_title">Nothing in your basket yet</string>
     <string name="empty_basket_body">Swipe an item once you\'ve got it. It waits here so you can add it back next time.</string>
     <string name="empty_subtitle">Nothing to pick up</string>
@@ -28,13 +28,23 @@
     <string name="action_close">Close</string>
     <string name="action_undo">Undo</string>
 
+    <string name="usuals_title">Your usuals</string>
+    <string name="usuals_open">Add from your usuals</string>
+    <string name="usuals_subtitle">Everything you\'ve bought before, one tap away</string>
+    <string name="usuals_filter">Filter</string>
+    <string name="usuals_empty_title">Nothing here yet</string>
+    <string name="usuals_empty_body">Clear your basket after a shop and everything in it waits here, so next week\'s list takes taps instead of typing.</string>
+    <string name="usuals_no_matches">Nothing matches that</string>
+    <string name="usuals_add">Add “%1$s” to your list</string>
+    <string name="usuals_forget">Forget</string>
+
     <string name="menu_check_updates">Check for updates</string>
     <string name="menu_clear_basket">Clear basket</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_about">About</string>
 
     <string name="clear_basket_title">Clear basket?</string>
-    <string name="clear_basket_body">Every item in your basket is removed. Your current list stays as it is.</string>
+    <string name="clear_basket_body">Everything in your basket moves to your usuals, ready to add back in a tap. Your current list stays as it is.</string>
     <string name="clear_basket_confirm">Clear</string>
 
     <string name="settings_title">Settings</string>
@@ -73,7 +83,8 @@
     <string name="msg_moved_basket">Moved to your basket</string>
     <string name="msg_moved_active">Back on the list</string>
     <string name="msg_deleted">Deleted</string>
-    <string name="msg_basket_cleared">Basket cleared</string>
+    <string name="msg_basket_cleared">Moved to your usuals</string>
+    <string name="msg_forgotten">Removed from your usuals</string>
     <string name="msg_renamed">Renamed</string>
 
     <string name="section_today">Today</string>
@@ -159,5 +170,9 @@
     <plurals name="basket_count">
         <item quantity="one">%d item in your basket</item>
         <item quantity="other">%d items in your basket</item>
+    </plurals>
+    <plurals name="usuals_count">
+        <item quantity="one">%d item saved</item>
+        <item quantity="other">%d items saved</item>
     </plurals>
 </resources>

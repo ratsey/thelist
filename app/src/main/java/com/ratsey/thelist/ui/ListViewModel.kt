@@ -115,6 +115,10 @@ class ListViewModel(
     val basketItems: StateFlow<List<Item>> = repository.observeBasket()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** The background list of things bought before, off the list and one tap from going back. */
+    val usualsItems: StateFlow<List<Item>> = repository.observeUsuals()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** Whether a scan moves the items it matched out of the list. Set by the user in Settings. */
     val scanMovesItems: StateFlow<Boolean> = settings.scanMovesItems
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
@@ -236,6 +240,25 @@ class ListViewModel(
             if (removed.isEmpty()) return@launch
             lastUndo = Undo.ClearedBasket(removed)
             _messages.send(UiMessage(R.string.msg_basket_cleared, undoable = true))
+            scheduleSync()
+        }
+    }
+
+    fun addFromUsuals(item: Item) {
+        viewModelScope.launch {
+            repository.bringBack(item)
+            _hintVisible.value = false
+            _messages.send(UiMessage(R.string.msg_readded))
+            scheduleSync()
+        }
+    }
+
+    /** Forgetting is a real delete: usuals only grow, so there has to be a way to prune them. */
+    fun forgetUsual(item: Item) {
+        viewModelScope.launch {
+            repository.delete(item)
+            lastUndo = Undo.Deleted(item)
+            _messages.send(UiMessage(R.string.msg_forgotten, undoable = true))
             scheduleSync()
         }
     }

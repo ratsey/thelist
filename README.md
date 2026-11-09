@@ -5,10 +5,12 @@ scanner that turns a photo into price history.
 
 - **To buy** — everything you still need.
 - **Basket** — everything you have already picked up.
+- **Usuals** — everything you have bought before, off the list and one tap away.
 - **Prices** — every price you have paid for each item, as a list or a chart.
 
 Swipe a row right to move it to the other list (or tap its circle). Swipe left to delete, with
-undo. Tap a row for rename and delete. Tap the camera to scan a receipt.
+undo. Tap a row for rename and delete. Tap the camera to scan a receipt. Tap the bookmark by the
+add bar to fill the list from what you bought last time.
 
 Native Android: Kotlin, Jetpack Compose, Material 3, Room, ML Kit. No account, no Play
 Services, no cloud you did not choose.
@@ -35,6 +37,26 @@ Anything the parser is unsure about stays empty or editable — it never invents
 OCR runs fully offline, which is why the APK is ~45 MB: ML Kit's recognition model ships
 once per CPU architecture inside the app rather than being downloaded from Play Services.
 Per-ABI split APKs (roughly 11–18 MB each) are the obvious next size win.
+
+## Usuals
+
+Clearing the basket throws nothing away: every item in it moves to **usuals**, the background
+list of things you have bought before. The bookmark beside the add bar (also in the menu) opens
+it — tap a name to put it straight back on the list, or swipe one left to forget it.
+
+That is the whole point of a third state. Next week's list is mostly last week's, the row already
+knows how you spell the name and what the thing cost, and it comes back as the same item rather
+than a second "milk". No categorising, no saving step: the shop you just did is the shortlist.
+
+Underneath it is still one `items` row: `onList = false` means a usual, `onList` with
+`completedAt` set means the basket, `onList` with no `completedAt` means to buy. One flag and one
+timestamp instead of three tables, so every move is a single row update that syncs like any other
+edit. Adding a name that is already saved as a usual revives that row rather than creating a new
+one, and forgetting a usual is a real delete with undo, so the list can be pruned.
+
+Because `onList` arrived after the first schema, it is an added column with a default of `1`:
+the v2 → v3 migration is one `ALTER TABLE`, and a sync payload that predates the flag is read as
+"on the list", which is the only thing an older writer could have meant.
 
 ## Price history
 
@@ -230,6 +252,7 @@ These are cheap now and expensive once phones and a relay hold real data, so the
 | Conflicts | last-write-wins on `updatedAt`, incoming wins ties | works offline; switching to server ordering later would need dual support |
 | Lists | one per device, though every row already carries `listId` | adding lists later means populating a column on live data |
 | Naming | the picked-up list is the **basket**; "history" only ever means price history | a screen name lives in every hint, message and screenshot, so it is hardest to change |
+| Usuals | clearing the basket archives its rows instead of deleting them | the spelling and the price history follow the row, not a copied name |
 | Duplicate names | merged on add (case/space only), not a DB constraint | a unique index would turn a simultaneous add on two phones into a sync failure |
 | Invite code | 8 chars, 32-symbol alphabet | changing it strands every code already shared |
 | Member token | 24 random bytes, hex | same |

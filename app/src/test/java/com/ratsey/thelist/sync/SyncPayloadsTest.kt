@@ -118,6 +118,30 @@ class SyncPayloadsTest {
     }
 
     @Test
+    fun `a usual stays off the list across the wire`() {
+        val usual = Item(
+            id = "item-3",
+            name = "Milk",
+            completedAt = 2_000L,
+            updatedAt = 3_000L,
+            onList = false,
+        )
+
+        val decoded = SyncPayloads.itemFromJson(SyncPayloads.itemJson(usual))
+
+        assertFalse(decoded.onList)
+        assertEquals(usual, decoded)
+    }
+
+    @Test
+    fun `a payload without the usuals flag is on the list`() {
+        val json = JSONObject(SyncPayloads.itemJson(Item(id = "i", name = "Milk")))
+        json.remove("onList")
+
+        assertTrue(SyncPayloads.itemFromJson(json.toString()).onList)
+    }
+
+    @Test
     fun `last write wins uses updatedAt with incoming winning ties`() {
         assertTrue(SyncPayloads.shouldApply(remoteUpdatedAt = 10L, localUpdatedAt = null))
         assertTrue(SyncPayloads.shouldApply(remoteUpdatedAt = 10L, localUpdatedAt = 9L))

@@ -10,16 +10,23 @@ import kotlinx.coroutines.flow.Flow
 interface ItemDao {
 
     @Query(
-        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND completedAt IS NULL " +
-            "ORDER BY createdAt ASC",
+        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 1 " +
+            "AND completedAt IS NULL ORDER BY createdAt ASC",
     )
     fun observeActive(listId: String): Flow<List<Item>>
 
     @Query(
-        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND completedAt IS NOT NULL " +
-            "ORDER BY completedAt DESC",
+        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 1 " +
+            "AND completedAt IS NOT NULL ORDER BY completedAt DESC",
     )
     fun observeBasket(listId: String): Flow<List<Item>>
+
+    /** The background list: bought before, off the list now, alphabetical so it can be scanned. */
+    @Query(
+        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 0 " +
+            "ORDER BY name COLLATE NOCASE ASC",
+    )
+    fun observeUsuals(listId: String): Flow<List<Item>>
 
     @Query("SELECT * FROM items WHERE id = :id")
     suspend fun byId(id: String): Item?
@@ -37,15 +44,21 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE listId = :listId")
     suspend fun all(listId: String): List<Item>
 
-    @Query("SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND completedAt IS NULL ORDER BY createdAt ASC")
+    @Query(
+        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 1 " +
+            "AND completedAt IS NULL ORDER BY createdAt ASC",
+    )
     suspend fun activeNow(listId: String): List<Item>
 
-    @Query("SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND completedAt IS NOT NULL ORDER BY completedAt DESC")
+    @Query(
+        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 1 " +
+            "AND completedAt IS NOT NULL ORDER BY completedAt DESC",
+    )
     suspend fun basketSnapshot(listId: String): List<Item>
 
     /** Items swiped since [since]. Bounded so an old pickup can't claim a fresh receipt line. */
     @Query(
-        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL " +
+        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 1 " +
             "AND completedAt IS NOT NULL AND completedAt >= :since ORDER BY completedAt DESC",
     )
     suspend fun pickedUpSince(listId: String, since: Long): List<Item>
@@ -64,6 +77,14 @@ interface ItemDao {
 
     @Query("UPDATE items SET completedAt = NULL, updatedAt = :now WHERE id = :id")
     suspend fun restore(id: String, now: Long)
+
+    /** Clears an item off the list into usuals without deleting it. */
+    @Query("UPDATE items SET onList = 0, updatedAt = :now WHERE id = :id")
+    suspend fun archive(id: String, now: Long)
+
+    /** Puts a usual back on the list, reusing the row so its name and history stay put. */
+    @Query("UPDATE items SET onList = 1, completedAt = NULL, updatedAt = :now WHERE id = :id")
+    suspend fun bringBack(id: String, now: Long)
 
     @Query("UPDATE items SET deletedAt = :now, updatedAt = :now WHERE id = :id")
     suspend fun softDelete(id: String, now: Long)

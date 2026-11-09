@@ -17,6 +17,8 @@ class ItemRepository(private val db: AppDatabase) {
 
     fun observeBasket(): Flow<List<Item>> = dao.observeBasket(Item.DEFAULT_LIST_ID)
 
+    fun observeUsuals(): Flow<List<Item>> = dao.observeUsuals(Item.DEFAULT_LIST_ID)
+
     /** What an add actually did, so the UI can say "already on your list" instead of nothing. */
     enum class AddOutcome { Added, Readded, AlreadyListed }
 
@@ -31,10 +33,13 @@ class ItemRepository(private val db: AppDatabase) {
         val now = System.currentTimeMillis()
         val existing = dao.findByName(Item.DEFAULT_LIST_ID, ItemNames.key(trimmed))
 
-        if (existing != null && existing.completedAt == null) return AddOutcome.AlreadyListed
+        // A usual is off the list with no completion time, so the state check needs both flags.
+        if (existing != null && existing.onList && existing.completedAt == null) {
+            return AddOutcome.AlreadyListed
+        }
 
         if (existing != null) {
-            val revived = existing.copy(completedAt = null, updatedAt = now)
+            val revived = existing.copy(onList = true, completedAt = null, updatedAt = now)
             db.withTransaction {
                 dao.upsert(revived)
                 enqueue(revived)
@@ -94,18 +99,32 @@ class ItemRepository(private val db: AppDatabase) {
         }
     }
 
-    /** Returns everything that was removed so the action can be undone. */
+    /**
+     * Empties the basket into usuals instead of deleting it: what you just bought is next week's
+     * list, and the row already knows how you spell it and what it cost. Returns the rows as they
+     * were, so the clear can be undone.
+     */
     suspend fun clearBasket(): List<Item> {
-        val removed = dao.basketSnapshot(Item.DEFAULT_LIST_ID)
-        if (removed.isEmpty()) return emptyList()
+        val bought = dao.basketSnapshot(Item.DEFAULT_LIST_ID)
+        if (bought.isEmpty()) return emptyList()
 
         val now = System.currentTimeMillis()
-        val tombstones = removed.map { it.copy(deletedAt = now, updatedAt = now) }
+        val archived = bought.map { it.copy(onList = false, updatedAt = now) }
         db.withTransaction {
-            removed.forEach { dao.softDelete(it.id, now) }
-            enqueueAll(tombstones)
+            bought.forEach { dao.archive(it.id, now) }
+            enqueueAll(archived)
         }
-        return removed
+        return bought
+    }
+
+    /** A usual tapped in the sheet: back on the list, to buy, same row. */
+    suspend fun bringBack(item: Item) {
+        val now = System.currentTimeMillis()
+        val updated = item.copy(onList = true, completedAt = null, updatedAt = now)
+        db.withTransaction {
+            dao.bringBack(item.id, now)
+            enqueue(updated)
+        }
     }
 
     suspend fun all(): List<Item> = dao.all(Item.DEFAULT_LIST_ID)

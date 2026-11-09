@@ -24,6 +24,9 @@ object SyncPayloads {
         put("completedAt", item.completedAt ?: JSONObject.NULL)
         put("updatedAt", item.updatedAt)
         put("deletedAt", item.deletedAt ?: JSONObject.NULL)
+        // Additive: a payload without it means "on the list", which is what an older writer
+        // can only have meant, so the version number stays where it is.
+        put("onList", item.onList)
     }.toString()
 
     fun itemFromJson(payload: String): Item {
@@ -36,6 +39,7 @@ object SyncPayloads {
             completedAt = json.optLongOrNull("completedAt"),
             updatedAt = json.optLong("updatedAt", 0L),
             deletedAt = json.optLongOrNull("deletedAt"),
+            onList = json.optBoolean("onList", true),
         )
     }
 

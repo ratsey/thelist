@@ -1,16 +1,22 @@
 package com.ratsey.thelist.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.UUID
 
 /**
- * A single list entry.
+ * A single list entry, in one of three places:
  *
- * [completedAt] is the only state switch: null means "still to buy", a timestamp means
- * "picked up" and places the item in the basket. [deletedAt] is a tombstone so deletions can
- * travel to other devices instead of silently reappearing on the next sync.
+ * - on the list, [completedAt] null: still to buy;
+ * - on the list, [completedAt] set: picked up, waiting in the basket;
+ * - off the list, [onList] false: a **usual**, the background record of something bought before
+ *   so it can go back on the list in one tap instead of being retyped.
+ *
+ * One flag plus one timestamp rather than three tables, so moving between the states is a single
+ * row update that syncs like any other edit. [deletedAt] is a tombstone so deletions travel to
+ * other devices instead of silently reappearing on the next sync.
  */
 @Entity(
     tableName = "items",
@@ -24,8 +30,14 @@ data class Item(
     val completedAt: Long? = null,
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
+    /**
+     * True while the item belongs to the shopping list; false once it has been cleared from the
+     * basket and kept as a usual. Defaulted in the schema so the v2 → v3 migration is one
+     * `ALTER TABLE` and existing rows stay on the list.
+     */
+    @ColumnInfo(defaultValue = "1") val onList: Boolean = true,
 ) {
-    val isActive: Boolean get() = completedAt == null
+    val isActive: Boolean get() = onList && completedAt == null
 
     companion object {
         const val DEFAULT_LIST_ID = "groceries"
