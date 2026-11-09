@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- DownloadManager writes updates to getExternalFilesDir(DIRECTORY_DOWNLOADS)/updates -->
+    <external-files-path
+        name="updates"
+        path="Download/updates/" />
+</paths>
