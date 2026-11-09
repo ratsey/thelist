@@ -1,58 +1,65 @@
 #!/usr/bin/env bash
-# Bumps the one version number in gradle.properties and prints the derived versionCode.
+# Moves the deliberate part of the version. The build number is the git commit count and looks
+# after itself, so an ordinary commit needs no bump at all.
 #
-#   ./scripts/bump-version.sh patch     # 0.2.0 -> 0.2.1
-#   ./scripts/bump-version.sh minor     # 0.2.1 -> 0.3.0
-#   ./scripts/bump-version.sh major     # 0.3.0 -> 1.0.0
-#   ./scripts/bump-version.sh 1.4.2     # explicit
+#   ./scripts/bump-version.sh            # show the version the next build will carry
+#   ./scripts/bump-version.sh minor      # 0.2.x -> 0.3.x
+#   ./scripts/bump-version.sh major      # 0.2.x -> 1.0.x
+#   ./scripts/bump-version.sh 1.4        # explicit major.minor
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-
-kind="${1:-patch}"
 file="gradle.properties"
 
-current=$(grep -E '^appVersionName=' "$file" | head -1 | cut -d= -f2 | tr -d '[:space:]')
-if [ -z "$current" ]; then
-  echo "appVersionName is missing from $file" >&2
+major=$(grep -E '^appVersionMajor=' "$file" | head -1 | cut -d= -f2 | tr -d '[:space:]')
+minor=$(grep -E '^appVersionMinor=' "$file" | head -1 | cut -d= -f2 | tr -d '[:space:]')
+if [ -z "$major" ] || [ -z "$minor" ]; then
+  echo "appVersionMajor and appVersionMinor are missing from $file" >&2
   exit 1
 fi
 
-new=$(python3 - "$current" "$kind" <<'PY'
+build=$(git rev-list --count HEAD 2>/dev/null || echo 0)
+kind="${1:-show}"
+
+if [ "$kind" = "show" ]; then
+  echo "$major.$minor.$build"
+  exit 0
+fi
+
+set -- $(python3 - "$major" "$minor" "$kind" <<'PY'
 import sys
 
-current, kind = sys.argv[1], sys.argv[2]
-parts = (current.split(".") + ["0", "0"])[:3]
-try:
-    major, minor, patch = (int(p) for p in parts)
-except ValueError:
-    sys.exit(f"current version {current!r} is not x.y.z")
+major, minor = int(sys.argv[1]), int(sys.argv[2])
+kind = sys.argv[3]
 
 if kind == "major":
-    major, minor, patch = major + 1, 0, 0
+    major, minor = major + 1, 0
 elif kind == "minor":
-    minor, patch = minor + 1, 0
-elif kind == "patch":
-    patch += 1
-elif kind.count(".") == 2:
+    minor += 1
+elif kind.count(".") == 1:
     try:
-        major, minor, patch = (int(p) for p in kind.split("."))
+        target = tuple(int(part) for part in kind.split("."))
     except ValueError:
         sys.exit(f"not a version: {kind}")
+    if target <= (major, minor):
+        sys.exit(f"refusing {major}.{minor} -> {kind}: a new version must be higher")
+    major, minor = target
 else:
-    sys.exit(f"usage: bump-version.sh patch|minor|major|x.y.z (got {kind})")
+    sys.exit(f"usage: bump-version.sh [show|major|minor|x.y] (got {kind})")
 
-if (major, minor, patch) <= tuple(int(p) for p in parts):
-    sys.exit(f"refusing {current} -> {major}.{minor}.{patch}: a new version must be higher")
-
-print(f"{major}.{minor}.{patch}")
+print(major, minor)
 PY
 )
+major=$1
+minor=$2
+code=$(( major * 1000000 + minor * 10000 + build ))
 
-code=$(( $(echo "$new" | cut -d. -f1) * 10000 + $(echo "$new" | cut -d. -f2) * 100 + $(echo "$new" | cut -d. -f3) ))
-
-sed -i.bak "s/^appVersionName=.*/appVersionName=$new/" "$file"
+sed -i.bak \
+  -e "s/^appVersionMajor=.*/appVersionMajor=$major/" \
+  -e "s/^appVersionMinor=.*/appVersionMinor=$minor/" \
+  "$file"
 rm -f "$file.bak"
 
-echo "$current -> $new (versionCode $code)"
-echo "Next: git commit -am \"Release $new\" && git push"
+echo "$major.$minor.$build (versionCode $code)"
+echo "Next: git commit -am \"Release $major.$minor\" && git push"
+echo "CI tags v$major.$minor.$build itself; the build number moves with every commit."

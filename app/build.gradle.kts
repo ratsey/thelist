@@ -7,16 +7,29 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// gradle.properties holds the only version number in the project. versionCode is derived from
-// it so a release never needs two numbers kept in step: major * 10000 + minor * 100 + patch.
-val appVersionName = (findProperty("appVersionName") as String?) ?: "0.1.0"
-val appVersionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: run {
-    val parts = appVersionName.split('.')
-    val major = parts.getOrNull(0)?.toIntOrNull() ?: 0
-    val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
-    val patch = parts.getOrNull(2)?.toIntOrNull() ?: 0
-    major * 10_000 + minor * 100 + patch
+// The version is major.minor.build. The first two parts are set in gradle.properties; the build
+// number is the git commit count, so every commit is already a new version and there is no number
+// to remember. versionCode is derived from all three, never stored, so it cannot drift.
+val versionMajor = (findProperty("appVersionMajor") as String?)?.toIntOrNull() ?: 0
+val versionMinor = (findProperty("appVersionMinor") as String?)?.toIntOrNull() ?: 0
+val versionBuildFallback = (findProperty("appVersionBuild") as String?)?.toIntOrNull() ?: 0
+
+/** `git rev-list --count HEAD`, or null when this tree has no usable git history. */
+fun gitCommitCount(): Int? = runCatching {
+    val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+        .directory(rootProject.projectDir)
+        .redirectErrorStream(true)
+        .start()
+    val text = process.inputStream.bufferedReader().use { it.readText() }.trim()
+    if (process.waitFor() == 0) text.toIntOrNull() else null
+}.getOrNull()
+
+val versionBuild = gitCommitCount()?.takeIf { it > 0 } ?: versionBuildFallback
+require(versionBuild < 10_000) {
+    "Build $versionBuild does not fit the versionCode layout; bump appVersionMinor and start again."
 }
+val appVersionName = "$versionMajor.$versionMinor.$versionBuild"
+val appVersionCode = versionMajor * 1_000_000 + versionMinor * 10_000 + versionBuild
 val githubOwner = (findProperty("githubOwner") as String?) ?: "your-github-username"
 val githubRepo = (findProperty("githubRepo") as String?) ?: "thelist"
 // Left empty until the relay in deploy/kamatera is live; the share dialog then asks for a URL.
