@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.BuildConfig
@@ -319,8 +320,9 @@ fun AboutDialog(version: String, onDismiss: () -> Unit) {
 }
 
 /**
- * Where an item lives: which shop, and where in it. Both halves are optional — a corner shop has no
- * aisles, and a note like "the freezer" is as useful as "A6".
+ * What the shopper knows about an item: which shop and aisle it lives in, how much to buy and what
+ * it should cost. Every field is optional — a corner shop has no aisles, a list in the kitchen has
+ * no amounts yet, and "the freezer" is as useful as "A6".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -328,13 +330,25 @@ fun PlacementDialog(
     item: Item,
     stores: List<Store>,
     onDismiss: () -> Unit,
-    onSave: (storeId: String?, newStoreName: String?, location: String) -> Unit,
+    onSave: (
+        storeId: String?,
+        newStoreName: String?,
+        location: String,
+        amount: String?,
+        price: Double?,
+    ) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedStoreId by remember { mutableStateOf(item.storeId) }
     var location by remember { mutableStateOf(item.location.orEmpty()) }
+    var amount by remember { mutableStateOf(item.amount.orEmpty()) }
+    var price by remember { mutableStateOf(item.price?.let(::formatPriceField).orEmpty()) }
     var addingStore by remember { mutableStateOf(false) }
     var newStoreName by remember { mutableStateOf("") }
+
+    val priceValue = price.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    // A price typed wrong is a price silently lost, so it has to be a number or nothing at all.
+    val priceValid = price.isBlank() || priceValue != null
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -423,6 +437,33 @@ fun PlacementDialog(
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.placement_amount)) },
+                    placeholder = { Text(stringResource(R.string.placement_amount_hint)) },
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    singleLine = true,
+                    isError = !priceValid,
+                    label = { Text(stringResource(R.string.placement_price)) },
+                    placeholder = { Text(stringResource(R.string.placement_price_hint)) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
@@ -432,9 +473,11 @@ fun PlacementDialog(
                             if (addingStore) null else selectedStoreId,
                             newStoreName.takeIf { addingStore },
                             location,
+                            amount.trim().takeIf { it.isNotEmpty() },
+                            priceValue,
                         )
                     },
-                    enabled = !(addingStore && newStoreName.isBlank()),
+                    enabled = !(addingStore && newStoreName.isBlank()) && priceValid,
                 ) {
                     Text(stringResource(R.string.action_save))
                 }
@@ -567,6 +610,10 @@ fun StoresSheet(
         )
     }
 }
+
+/** Prices are edited as typed: 3.5 rather than 3.50, and a whole number stays whole. */
+private fun formatPriceField(value: Double): String =
+    if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
 
 @Composable
 fun ConfirmDialog(

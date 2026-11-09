@@ -38,14 +38,19 @@
     <string name="shelf_empty_body">Swipe an item left to put it away, or clear your basket after a shop, and it waits here so next week\'s list takes a swipe instead of typing.</string>
     <string name="shelf_no_matches">Nothing matches that</string>
 
-    <string name="action_placement">Where it is</string>
-    <string name="placement_title">Where it is</string>
+    <string name="action_placement">Where and how much</string>
+    <string name="placement_title">Where and how much</string>
     <string name="placement_store">Store</string>
     <string name="placement_no_store">No store</string>
     <string name="placement_new_store">New store…</string>
     <string name="placement_new_store_hint">Store name</string>
     <string name="placement_location">Aisle or shelf</string>
     <string name="placement_location_hint">A6</string>
+    <string name="placement_amount">Amount</string>
+    <string name="placement_amount_hint">1 L, 5 lb, ¼</string>
+    <string name="placement_price">Price</string>
+    <string name="placement_price_hint">3.50</string>
+    <string name="group_no_location">No aisle</string>
 
     <string name="shop_pill_all">All shops</string>
     <string name="shop_pill_label">Shop you are in</string>

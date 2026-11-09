@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.Storefront
@@ -344,6 +345,11 @@ fun ShoppingList(
         return
     }
 
+    // The list follows the walk: aisles in order, then everything with no aisle. Headers only
+    // appear when at least one row actually knows where it lives.
+    val locationGroups = remember(items) { groupByLocation(items) }
+    val grouped = locationGroups.size > 1 || locationGroups.firstOrNull()?.label != null
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
@@ -354,31 +360,111 @@ fun ShoppingList(
                 SwipeHint(onDismiss = onDismissHint)
             }
         }
-        items(items, key = { it.id }) { item ->
-            ItemRow(
-                item = item,
-                meta = itemMeta(
+        if (grouped) {
+            locationGroups.forEach { group ->
+                item(key = "aisle-${group.label.orEmpty()}") {
+                    LocationHeader(label = group.label, count = group.items.size)
+                }
+                items(group.items, key = { it.id }) { item ->
+                    ShoppingRow(
+                        item = item,
+                        storeNames = storeNames,
+                        summaries = summaries,
+                        currentStoreId = currentStoreId,
+                        onToggle = onToggle,
+                        onPutAway = onPutAway,
+                        onOpenPrices = onOpenPrices,
+                        onOpenActions = onOpenActions,
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+            }
+        } else {
+            items(items, key = { it.id }) { item ->
+                ShoppingRow(
                     item = item,
                     storeNames = storeNames,
-                    summary = summaries[ItemMatcher.productKey(item.name)],
+                    summaries = summaries,
                     currentStoreId = currentStoreId,
-                ),
-                swipeRight = SwipeAction(
-                    label = R.string.swipe_got_it,
-                    icon = Icons.Rounded.Check,
-                    onClick = { onToggle(item) },
-                ),
-                swipeLeft = SwipeAction(
-                    label = R.string.swipe_put_away,
-                    icon = Icons.Rounded.Archive,
-                    onClick = { onPutAway(item) },
-                    muted = true,
-                ),
-                onOpenPrices = { onOpenPrices(item) },
-                onOpenActions = { onOpenActions(item) },
-                modifier = Modifier.animateItem(),
-            )
+                    onToggle = onToggle,
+                    onPutAway = onPutAway,
+                    onOpenPrices = onOpenPrices,
+                    onOpenActions = onOpenActions,
+                    modifier = Modifier.animateItem(),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun ShoppingRow(
+    item: Item,
+    storeNames: Map<String, String>,
+    summaries: Map<String, PriceSummary>,
+    currentStoreId: String?,
+    onToggle: (Item) -> Unit,
+    onPutAway: (Item) -> Unit,
+    onOpenPrices: (Item) -> Unit,
+    onOpenActions: (Item) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ItemRow(
+        item = item,
+        meta = itemMeta(
+            item = item,
+            storeNames = storeNames,
+            summary = summaries[ItemMatcher.productKey(item.name)],
+            currentStoreId = currentStoreId,
+        ),
+        swipeRight = SwipeAction(
+            label = R.string.swipe_got_it,
+            icon = Icons.Rounded.Check,
+            onClick = { onToggle(item) },
+        ),
+        swipeLeft = SwipeAction(
+            label = R.string.swipe_put_away,
+            icon = Icons.Rounded.Archive,
+            onClick = { onPutAway(item) },
+            muted = true,
+        ),
+        onOpenPrices = { onOpenPrices(item) },
+        onOpenActions = { onOpenActions(item) },
+        modifier = modifier,
+    )
+}
+
+/** An aisle band: small enough that a whole shop of aisles costs a row or two of height. */
+@Composable
+private fun LocationHeader(label: String?, count: Int) {
+    val colors = MaterialTheme.colorScheme
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, top = 8.dp, bottom = 1.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Place,
+            contentDescription = null,
+            tint = colors.outline,
+            modifier = Modifier.size(13.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = label ?: stringResource(R.string.group_no_location),
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.outline,
+        )
     }
 }
 

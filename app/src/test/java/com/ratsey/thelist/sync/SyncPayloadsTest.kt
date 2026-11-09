@@ -180,6 +180,35 @@ class SyncPayloadsTest {
     }
 
     @Test
+    fun `amount and planned price survive a round trip`() {
+        val item = Item(
+            id = "item-5",
+            name = "Milk",
+            updatedAt = 6_000L,
+            amount = "2 L",
+            price = 1.15,
+        )
+
+        val decoded = SyncPayloads.itemFromJson(SyncPayloads.itemJson(item))
+
+        assertEquals("2 L", decoded.amount)
+        assertEquals(1.15, decoded.price!!, 0.0001)
+        assertEquals(item, decoded)
+    }
+
+    @Test
+    fun `an item payload from before amounts reads as nothing set`() {
+        val json = JSONObject(SyncPayloads.itemJson(Item(id = "i", name = "Milk")))
+        json.remove("amount")
+        json.remove("price")
+
+        val decoded = SyncPayloads.itemFromJson(json.toString())
+
+        assertNull(decoded.amount)
+        assertNull(decoded.price)
+    }
+
+    @Test
     fun `a store survives a round trip`() {
         val store = Store(id = "store-1", name = "Walmart", updatedAt = 1_234L)
 

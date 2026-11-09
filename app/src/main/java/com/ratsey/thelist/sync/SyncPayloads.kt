@@ -32,6 +32,10 @@ object SyncPayloads {
         // so the version number stays put and an old writer's rows stay understood.
         put("storeId", item.storeId ?: JSONObject.NULL)
         put("location", item.location ?: JSONObject.NULL)
+        // Additive in the same way: absent means "not set", which is all an older writer can have
+        // meant, so a payload from before amounts still reads correctly.
+        put("amount", item.amount ?: JSONObject.NULL)
+        put("price", item.price ?: JSONObject.NULL)
     }.toString()
 
     fun itemFromJson(payload: String): Item {
@@ -47,6 +51,8 @@ object SyncPayloads {
             onList = json.optBoolean("onList", true),
             storeId = json.optStringOrNull("storeId"),
             location = json.optStringOrNull("location"),
+            amount = json.optStringOrNull("amount"),
+            price = json.optDoubleOrNull("price"),
         )
     }
 

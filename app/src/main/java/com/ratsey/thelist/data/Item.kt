@@ -45,6 +45,14 @@ data class Item(
      */
     val storeId: String? = null,
     val location: String? = null,
+    /**
+     * How much to buy, as the shopper wrote it: "2", "1 L", "5 lb", "a quarter". Free text
+     * rather than a number and a unit, because a quarter of milk, a punnet of strawberries and
+     * 500g of mince are all amounts and none of them want converting to a shopping decision.
+     */
+    val amount: String? = null,
+    /** What this should cost when it is picked up, in the currency on the receipts. */
+    val price: Double? = null,
 ) {
     val isActive: Boolean get() = onList && completedAt == null
 

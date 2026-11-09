@@ -274,16 +274,25 @@ class ListViewModel(
     }
 
     /**
-     * Saves where an item lives: which shop, and where inside it. A shop typed straight into the
-     * sheet is created first, so "Walmart, aisle A6" is one gesture instead of a detour through a
-     * separate screen to set the shop up before it can be chosen.
+     * Saves what the shopper knows about a row: which shop it is bought in, where in it, how much
+     * to buy and what it should cost. A shop typed straight into the sheet is created first, so
+     * "Walmart, aisle A6, 2 L, £3.50" is one gesture instead of a detour through a separate screen
+     * to set the shop up before it can be chosen.
      */
-    fun setPlacement(item: Item, storeId: String?, newStoreName: String?, location: String) {
+    fun setDetails(
+        item: Item,
+        storeId: String?,
+        newStoreName: String?,
+        location: String,
+        amount: String?,
+        price: Double?,
+    ) {
         viewModelScope.launch {
             val created = newStoreName?.let { storeRepository.add(it) }
             val target = created?.id ?: storeId
-            repository.setPlacement(item, target, location)
-            val cleared = target == null && location.isBlank()
+            repository.setDetails(item, target, location, amount, price)
+            val cleared = target == null && location.isBlank() &&
+                amount.isNullOrBlank() && price == null
             _messages.send(
                 UiMessage(
                     if (cleared) R.string.msg_placement_cleared else R.string.msg_placement_saved,

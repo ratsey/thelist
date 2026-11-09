@@ -86,9 +86,19 @@ interface ItemDao {
     @Query("UPDATE items SET onList = 1, completedAt = NULL, updatedAt = :now WHERE id = :id")
     suspend fun bringBack(id: String, now: Long)
 
-    /** Where a row lives: the shop and the aisle in it. Either half can be cleared with null. */
-    @Query("UPDATE items SET storeId = :storeId, location = :location, updatedAt = :now WHERE id = :id")
-    suspend fun setPlacement(id: String, storeId: String?, location: String?, now: Long)
+    /** Where a row lives and how much of it to buy: shop, aisle, amount and price, all optional. */
+    @Query(
+        "UPDATE items SET storeId = :storeId, location = :location, amount = :amount, " +
+            "price = :price, updatedAt = :now WHERE id = :id",
+    )
+    suspend fun setDetails(
+        id: String,
+        storeId: String?,
+        location: String?,
+        amount: String?,
+        price: Double?,
+        now: Long,
+    )
 
     /** Every row pointing at a shop, used when that shop is removed. */
     @Query("SELECT * FROM items WHERE storeId = :storeId")

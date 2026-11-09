@@ -68,9 +68,9 @@ fun placeLabel(
 }
 
 /**
- * Everything the row says besides the name, in one string: shop, aisle, last paid and best paid.
- * One line because the list is scanned at arm's length in a shop, where a second line per item is
- * three fewer items on the screen.
+ * Everything the row says besides the name, in one string: where it lives, how much to buy, what
+ * it should cost, then last and best paid. One line because the list is scanned at arm's length in
+ * a shop, where a second line per item is three fewer items on the screen.
  */
 @Composable
 fun itemMeta(
@@ -81,6 +81,10 @@ fun itemMeta(
 ): String? {
     val parts = buildList {
         placeLabel(item, storeNames, currentStoreId)?.let { add(it) }
+        // What you decided in the kitchen comes before what the till once charged: the amount and
+        // the price you planned are the things you need with a trolley in front of you.
+        item.amount?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
+        item.price?.let { add(formatMoney(it, summary?.currency ?: FALLBACK_CURRENCY)) }
         if (summary != null) {
             add(stringResource(R.string.row_last, formatMoney(summary.latestPrice, summary.currency)))
             add(stringResource(R.string.row_best, formatMoney(summary.lowestPrice, summary.currency)))
@@ -88,6 +92,9 @@ fun itemMeta(
     }
     return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
+
+/** What a planned price means before any receipt has told us the till's currency. */
+private const val FALLBACK_CURRENCY = "£"
 
 /**
  * One direction of a row's swipe: what it does, how the reveal explains it, and whether it is a

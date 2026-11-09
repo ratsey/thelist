@@ -58,6 +58,13 @@ just that shop's name, since its aisle number is no help from here, and items wi
 whatever aisle they have. *All shops* puts everything back, and the choice is remembered, so it is
 still set when the app is reopened outside the shop.
 
+The list is grouped by aisle, in aisle order, with everything that has no aisle at the end, so the
+order you typed becomes the order you walk. A list where nobody has said where anything lives has
+no headers at all. Each row can also carry an **amount** and a **price**: long-press it, choose
+*Where and how much*, and type `2 L`, `5 lb` or `¼` beside what you expect to pay. Both come on the
+row before the receipt history, because the amount and the price you planned are what you need with
+a trolley in front of you.
+
 A shop is a row in its own table, synced like an item, so one person adding "Walmart" gives it to
 everyone sharing the list. Removing one clears the reference from its items but keeps their aisle
 note, because an aisle number is still worth knowing.
