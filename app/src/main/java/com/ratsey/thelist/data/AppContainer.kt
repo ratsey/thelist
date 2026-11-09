@@ -16,8 +16,9 @@ class AppContainer(context: Context) {
     val settings = SettingsStore(appContext)
     val syncSettings = SyncSettingsRepository(appContext)
     val items = ItemRepository(database)
+    val stores = StoreRepository(database)
     val receipts = ReceiptRepository(database)
     val updates = UpdateManager(appContext, settings)
     val ocr = ReceiptOcr(appContext)
-    val sync = SyncEngine(database, syncSettings, items, receipts)
+    val sync = SyncEngine(database, syncSettings, items, stores, receipts)
 }

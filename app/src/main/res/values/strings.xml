@@ -38,6 +38,31 @@
     <string name="shelf_empty_body">Swipe an item left to put it away, or clear your basket after a shop, and it waits here so next week\'s list takes a swipe instead of typing.</string>
     <string name="shelf_no_matches">Nothing matches that</string>
 
+    <string name="action_placement">Where it is</string>
+    <string name="placement_title">Where it is</string>
+    <string name="placement_store">Store</string>
+    <string name="placement_no_store">No store</string>
+    <string name="placement_new_store">New store…</string>
+    <string name="placement_new_store_hint">Store name</string>
+    <string name="placement_location">Aisle or shelf</string>
+    <string name="placement_location_hint">A6</string>
+
+    <string name="menu_stores">Stores</string>
+    <string name="stores_title">Stores</string>
+    <string name="stores_body">The shops you buy in. Pick one on an item to say where in that shop it lives.</string>
+    <string name="stores_empty">No shops yet — add the ones you shop in.</string>
+    <string name="stores_add_hint">Add a shop</string>
+    <string name="stores_hint">Hold a shop to remove it.</string>
+    <string name="stores_delete_title">Remove %1$s?</string>
+    <string name="stores_delete_body">Items keep their aisle note; only the shop is removed from the list of shops.</string>
+    <string name="stores_delete_confirm">Remove</string>
+
+    <string name="msg_placement_saved">Saved where it is</string>
+    <string name="msg_placement_cleared">Cleared where it is</string>
+    <string name="msg_store_added">Shop added</string>
+    <string name="msg_store_renamed">Shop renamed</string>
+    <string name="msg_store_deleted">Shop removed</string>
+
     <string name="menu_check_updates">Check for updates</string>
     <string name="menu_clear_basket">Clear basket</string>
     <string name="menu_settings">Settings</string>

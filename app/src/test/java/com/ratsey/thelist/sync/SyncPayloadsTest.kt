@@ -3,6 +3,7 @@ package com.ratsey.thelist.sync
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PurchaseLine
 import com.ratsey.thelist.data.Receipt
+import com.ratsey.thelist.data.Store
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -147,5 +148,52 @@ class SyncPayloadsTest {
         assertTrue(SyncPayloads.shouldApply(remoteUpdatedAt = 10L, localUpdatedAt = 9L))
         assertTrue(SyncPayloads.shouldApply(remoteUpdatedAt = 10L, localUpdatedAt = 10L))
         assertFalse(SyncPayloads.shouldApply(remoteUpdatedAt = 9L, localUpdatedAt = 10L))
+    }
+
+    @Test
+    fun `placement survives a round trip`() {
+        val item = Item(
+            id = "item-4",
+            name = "Coffee",
+            updatedAt = 5_000L,
+            storeId = "store-1",
+            location = "A6",
+        )
+
+        val decoded = SyncPayloads.itemFromJson(SyncPayloads.itemJson(item))
+
+        assertEquals("store-1", decoded.storeId)
+        assertEquals("A6", decoded.location)
+        assertEquals(item, decoded)
+    }
+
+    @Test
+    fun `an item payload from before placements reads as unplaced`() {
+        val json = JSONObject(SyncPayloads.itemJson(Item(id = "i", name = "Coffee")))
+        json.remove("storeId")
+        json.remove("location")
+
+        val decoded = SyncPayloads.itemFromJson(json.toString())
+
+        assertNull(decoded.storeId)
+        assertNull(decoded.location)
+    }
+
+    @Test
+    fun `a store survives a round trip`() {
+        val store = Store(id = "store-1", name = "Walmart", updatedAt = 1_234L)
+
+        val decoded = SyncPayloads.storeFromJson(SyncPayloads.storeJson(store))
+
+        assertEquals(store, decoded)
+    }
+
+    @Test
+    fun `a removed store stays removed across the wire`() {
+        val store = Store(id = "store-2", name = "Aldi", updatedAt = 20L, deletedAt = 30L)
+        val decoded = SyncPayloads.storeFromJson(SyncPayloads.storeJson(store))
+
+        assertEquals(30L, decoded.deletedAt)
+        assertNull(decoded.copy(deletedAt = null).deletedAt)
     }
 }

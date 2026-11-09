@@ -36,6 +36,15 @@ data class Item(
      * migration is one `ALTER TABLE` and existing rows stay on the list.
      */
     @ColumnInfo(defaultValue = "1") val onList: Boolean = true,
+    /**
+     * The shop this row is bought in ([Store.id]) and the aisle or shelf inside it, e.g. "A6".
+     *
+     * Both are nullable because a list written in the kitchen knows neither, and because "not said
+     * yet" is not the same as "no shop". [location] is free text on purpose: aisles are numbered,
+     * lettered, called things ("the freezer") and, in a corner shop, do not exist at all.
+     */
+    val storeId: String? = null,
+    val location: String? = null,
 ) {
     val isActive: Boolean get() = onList && completedAt == null
 

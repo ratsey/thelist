@@ -3,6 +3,7 @@ package com.ratsey.thelist.sync
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PurchaseLine
 import com.ratsey.thelist.data.Receipt
+import com.ratsey.thelist.data.Store
 import org.json.JSONObject
 
 /** JSON payloads shared by the outbox, the network and the receiving device. */
@@ -27,6 +28,10 @@ object SyncPayloads {
         // Additive: a payload without it means "on the list", which is what an older writer
         // can only have meant, so the version number stays where it is.
         put("onList", item.onList)
+        // Additive, like onList: an older payload has neither key, which reads as "not said",
+        // so the version number stays put and an old writer's rows stay understood.
+        put("storeId", item.storeId ?: JSONObject.NULL)
+        put("location", item.location ?: JSONObject.NULL)
     }.toString()
 
     fun itemFromJson(payload: String): Item {
@@ -40,6 +45,30 @@ object SyncPayloads {
             updatedAt = json.optLong("updatedAt", 0L),
             deletedAt = json.optLongOrNull("deletedAt"),
             onList = json.optBoolean("onList", true),
+            storeId = json.optStringOrNull("storeId"),
+            location = json.optStringOrNull("location"),
+        )
+    }
+
+    fun storeJson(store: Store): String = JSONObject().apply {
+        put("v", VERSION)
+        put("id", store.id)
+        put("listId", store.listId)
+        put("name", store.name)
+        put("createdAt", store.createdAt)
+        put("updatedAt", store.updatedAt)
+        put("deletedAt", store.deletedAt ?: JSONObject.NULL)
+    }.toString()
+
+    fun storeFromJson(payload: String): Store {
+        val json = JSONObject(payload)
+        return Store(
+            id = json.getString("id"),
+            listId = json.optString("listId", Item.DEFAULT_LIST_ID),
+            name = json.optString("name"),
+            createdAt = json.optLong("createdAt", 0L),
+            updatedAt = json.optLong("updatedAt", 0L),
+            deletedAt = json.optLongOrNull("deletedAt"),
         )
     }
 

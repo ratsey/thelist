@@ -127,6 +127,21 @@ class ItemRepository(private val db: AppDatabase) {
         }
     }
 
+    /**
+     * Records where a row lives. The shop is an id so a rename reaches every row; the aisle is
+     * free text because that is what it is on a sign. A blank aisle is stored as null so "cleared"
+     * and "never said" look the same everywhere, including on the other phone.
+     */
+    suspend fun setPlacement(item: Item, storeId: String?, location: String?) {
+        val now = System.currentTimeMillis()
+        val trimmed = location?.trim()?.takeIf { it.isNotEmpty() }
+        val updated = item.copy(storeId = storeId, location = trimmed, updatedAt = now)
+        db.withTransaction {
+            dao.setPlacement(item.id, storeId, trimmed, now)
+            enqueue(updated)
+        }
+    }
+
     /** A shelf row tapped in the sheet: back on the list, to buy, same row. */
     suspend fun bringBack(item: Item) {
         val now = System.currentTimeMillis()

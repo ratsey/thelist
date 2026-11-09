@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.ratsey.thelist.data.AppDatabase
 import com.ratsey.thelist.data.ItemRepository
 import com.ratsey.thelist.data.ReceiptRepository
+import com.ratsey.thelist.data.StoreRepository
 import com.ratsey.thelist.data.SyncOp
 import com.ratsey.thelist.data.SyncSettingsRepository
 import kotlinx.coroutines.sync.Mutex
@@ -25,6 +26,7 @@ class SyncEngine(
     private val db: AppDatabase,
     private val settings: SyncSettingsRepository,
     private val items: ItemRepository,
+    private val stores: StoreRepository,
     private val receipts: ReceiptRepository,
 ) {
 
@@ -58,6 +60,7 @@ class SyncEngine(
     /** Queues everything that already exists locally, used when turning on sharing. */
     suspend fun enqueueSnapshot() {
         items.enqueueAll(items.all())
+        stores.enqueueAll(stores.all())
         receipts.enqueueAll(receipts.allReceipts(), receipts.allLines())
     }
 
@@ -67,6 +70,7 @@ class SyncEngine(
             db.purchaseLineDao().deleteAll()
             db.receiptDao().deleteAll()
             db.itemDao().deleteAll()
+            db.storeDao().deleteAll()
             db.syncDao().deleteAll()
         }
 
@@ -85,6 +89,17 @@ class SyncEngine(
             val local = db.itemDao().byId(remote.id)
             if (SyncPayloads.shouldApply(remote.updatedAt, local?.updatedAt)) {
                 db.itemDao().upsert(remote)
+                true
+            } else {
+                false
+            }
+        }
+
+        SyncOp.ENTITY_STORE -> {
+            val remote = SyncPayloads.storeFromJson(op.payload)
+            val local = db.storeDao().byId(remote.id)
+            if (SyncPayloads.shouldApply(remote.updatedAt, local?.updatedAt)) {
+                db.storeDao().upsert(remote)
                 true
             } else {
                 false

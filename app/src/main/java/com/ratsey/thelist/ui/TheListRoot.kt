@@ -46,8 +46,10 @@ import com.ratsey.thelist.ui.components.AddItemBar
 import com.ratsey.thelist.ui.components.BasketList
 import com.ratsey.thelist.ui.components.HomeHeader
 import com.ratsey.thelist.ui.components.ItemActionsSheet
+import com.ratsey.thelist.ui.components.PlacementDialog
 import com.ratsey.thelist.ui.components.RenameDialog
 import com.ratsey.thelist.ui.components.SettingsDialog
+import com.ratsey.thelist.ui.components.StoresSheet
 import com.ratsey.thelist.ui.components.ShoppingList
 import com.ratsey.thelist.ui.components.SyncDialog
 import com.ratsey.thelist.ui.components.ShelfActionsSheet
@@ -70,6 +72,8 @@ fun TheListRoot(viewModel: ListViewModel) {
     val updateState by viewModel.update.collectAsStateWithLifecycle()
     val hintVisible by viewModel.hintVisible.collectAsStateWithLifecycle()
     val scanMovesItems by viewModel.scanMovesItems.collectAsStateWithLifecycle()
+    val stores by viewModel.stores.collectAsStateWithLifecycle()
+    val storeNames = remember(stores) { stores.associate { it.id to it.name } }
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -84,6 +88,8 @@ fun TheListRoot(viewModel: ListViewModel) {
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showSync by remember { mutableStateOf(false) }
+    var showStores by remember { mutableStateOf(false) }
+    var placementItem by remember { mutableStateOf<Item?>(null) }
     var pendingPhotoPath by remember { mutableStateOf<String?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -185,6 +191,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                     onCheckForUpdates = { viewModel.checkForUpdates(userInitiated = true) },
                     onClearBasket = { confirmClearBasket = true },
                     onOpenSettings = { showSettings = true },
+                    onOpenStores = { showStores = true },
                     onAbout = { showAbout = true },
                     onStartUpdate = viewModel::startUpdate,
                     onInstallUpdate = viewModel::installUpdate,
@@ -207,12 +214,14 @@ fun TheListRoot(viewModel: ListViewModel) {
                     when (tab) {
                         TAB_SHELF -> ShelfScreen(
                             items = shelfItems,
+                            storeNames = storeNames,
                             onAdd = viewModel::addFromShelf,
                             onOpenActions = { shelfActionItem = it },
                         )
 
                         TAB_BASKET -> BasketList(
                             items = basketItems,
+                            storeNames = storeNames,
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,
                             onOpenPrices = { viewModel.showPricesFor(it) },
@@ -221,6 +230,7 @@ fun TheListRoot(viewModel: ListViewModel) {
 
                         else -> ShoppingList(
                             items = activeItems,
+                            storeNames = storeNames,
                             showHint = hintVisible && basketItems.isEmpty() && activeItems.isNotEmpty(),
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,
@@ -246,6 +256,10 @@ fun TheListRoot(viewModel: ListViewModel) {
                 actionSheetItem = null
                 renameTarget = item
             },
+            onPlacement = {
+                actionSheetItem = null
+                placementItem = item
+            },
             onPutAway = {
                 viewModel.putAway(item)
                 actionSheetItem = null
@@ -269,6 +283,10 @@ fun TheListRoot(viewModel: ListViewModel) {
                 shelfActionItem = null
                 renameTarget = item
             },
+            onPlacement = {
+                shelfActionItem = null
+                placementItem = item
+            },
             onDelete = {
                 viewModel.deleteFromShelf(item)
                 shelfActionItem = null
@@ -284,6 +302,27 @@ fun TheListRoot(viewModel: ListViewModel) {
                 viewModel.rename(item, name)
                 renameTarget = null
             },
+        )
+    }
+
+    placementItem?.let { item ->
+        PlacementDialog(
+            item = item,
+            stores = stores,
+            onDismiss = { placementItem = null },
+            onSave = { storeId, newStoreName, location ->
+                viewModel.setPlacement(item, storeId, newStoreName, location)
+                placementItem = null
+            },
+        )
+    }
+
+    if (showStores) {
+        StoresSheet(
+            stores = stores,
+            onDismiss = { showStores = false },
+            onAdd = viewModel::addStore,
+            onDelete = viewModel::deleteStore,
         )
     }
 

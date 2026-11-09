@@ -26,6 +26,7 @@ data class SyncOp(
 ) {
     companion object {
         const val ENTITY_ITEM = "item"
+        const val ENTITY_STORE = "store"
         const val ENTITY_RECEIPT = "receipt"
         const val ENTITY_LINE = "line"
     }

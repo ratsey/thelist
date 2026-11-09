@@ -16,6 +16,8 @@ import com.ratsey.thelist.data.PurchaseLine
 import com.ratsey.thelist.data.Receipt
 import com.ratsey.thelist.data.ReceiptRepository
 import com.ratsey.thelist.data.SettingsStore
+import com.ratsey.thelist.data.Store
+import com.ratsey.thelist.data.StoreRepository
 import com.ratsey.thelist.receipt.ItemMatcher
 import com.ratsey.thelist.receipt.ReceiptOcr
 import com.ratsey.thelist.receipt.ReceiptParser
@@ -101,6 +103,7 @@ data class UiMessage(@StringRes val textRes: Int, val undoable: Boolean = false)
 
 class ListViewModel(
     private val repository: ItemRepository,
+    private val storeRepository: StoreRepository,
     private val receipts: ReceiptRepository,
     private val updates: UpdateManager,
     private val settings: SettingsStore,
@@ -117,6 +120,10 @@ class ListViewModel(
 
     /** Everything off the list but kept: one tap from going back on it. */
     val shelfItems: StateFlow<List<Item>> = repository.observeShelf()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Shops, alphabetical, for saying where an item lives. */
+    val stores: StateFlow<List<Store>> = storeRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Whether a scan moves the items it matched out of the list. Set by the user in Settings. */
@@ -231,6 +238,56 @@ class ListViewModel(
             repository.rename(item, name)
             lastUndo = null
             _messages.send(UiMessage(R.string.msg_renamed))
+            scheduleSync()
+        }
+    }
+
+    // ------------------------------------------------------- shops and aisles
+
+    fun addStore(rawName: String) {
+        val name = rawName.trim()
+        if (name.isEmpty()) return
+        viewModelScope.launch {
+            storeRepository.add(name)
+            _messages.send(UiMessage(R.string.msg_store_added))
+            scheduleSync()
+        }
+    }
+
+    fun renameStore(store: Store, rawName: String) {
+        val name = rawName.trim()
+        if (name.isEmpty() || name == store.name) return
+        viewModelScope.launch {
+            storeRepository.rename(store, name)
+            _messages.send(UiMessage(R.string.msg_store_renamed))
+            scheduleSync()
+        }
+    }
+
+    fun deleteStore(store: Store) {
+        viewModelScope.launch {
+            storeRepository.delete(store)
+            _messages.send(UiMessage(R.string.msg_store_deleted))
+            scheduleSync()
+        }
+    }
+
+    /**
+     * Saves where an item lives: which shop, and where inside it. A shop typed straight into the
+     * sheet is created first, so "Walmart, aisle A6" is one gesture instead of a detour through a
+     * separate screen to set the shop up before it can be chosen.
+     */
+    fun setPlacement(item: Item, storeId: String?, newStoreName: String?, location: String) {
+        viewModelScope.launch {
+            val created = newStoreName?.let { storeRepository.add(it) }
+            val target = created?.id ?: storeId
+            repository.setPlacement(item, target, location)
+            val cleared = target == null && location.isBlank()
+            _messages.send(
+                UiMessage(
+                    if (cleared) R.string.msg_placement_cleared else R.string.msg_placement_saved,
+                ),
+            )
             scheduleSync()
         }
     }
@@ -698,6 +755,7 @@ class ListViewModel(
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
                     ListViewModel(
                         repository = container.items,
+                        storeRepository = container.stores,
                         receipts = container.receipts,
                         updates = container.updates,
                         settings = container.settings,

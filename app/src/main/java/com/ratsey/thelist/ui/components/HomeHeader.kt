@@ -61,6 +61,7 @@ fun HomeHeader(
     onCheckForUpdates: () -> Unit,
     onClearBasket: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenStores: () -> Unit,
     onAbout: () -> Unit,
     onStartUpdate: () -> Unit,
     onInstallUpdate: () -> Unit,
@@ -154,6 +155,13 @@ fun HomeHeader(
                         },
                     )
                     DropdownMenuItem(
+                        text = { Text(stringResource(R.string.menu_stores)) },
+                        onClick = {
+                            menuOpen = false
+                            onOpenStores()
+                        },
+                    )
+                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.menu_about)) },
                         onClick = {
                             menuOpen = false
@@ -204,6 +212,7 @@ private fun subtitleFor(
 @Composable
 fun ShoppingList(
     items: List<Item>,
+    storeNames: Map<String, String>,
     showHint: Boolean,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
@@ -235,6 +244,7 @@ fun ShoppingList(
         items(items, key = { it.id }) { item ->
             ItemRow(
                 item = item,
+                place = placeLabel(item, storeNames),
                 swipeRight = SwipeAction(
                     label = R.string.swipe_got_it,
                     icon = Icons.Rounded.Check,
@@ -257,6 +267,7 @@ fun ShoppingList(
 @Composable
 fun BasketList(
     items: List<Item>,
+    storeNames: Map<String, String>,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
     onOpenPrices: (Item) -> Unit,
@@ -293,6 +304,7 @@ fun BasketList(
             items(groupItems, key = { it.id }) { item ->
                 ItemRow(
                     item = item,
+                    place = placeLabel(item, storeNames),
                     // In the basket, forward is done with it: onto the shelf, as at checkout.
                     swipeRight = SwipeAction(
                         label = R.string.swipe_put_away,

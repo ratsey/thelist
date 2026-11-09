@@ -41,6 +41,17 @@ OCR runs fully offline, which is why the APK is ~45 MB: ML Kit's recognition mod
 once per CPU architecture inside the app rather than being downloaded from Play Services.
 Per-ABI split APKs (roughly 11–18 MB each) are the obvious next size win.
 
+## Where things are
+
+Items can carry a shop and an aisle: coffee, Walmart, `A6`. Add shops under ⋮ → **Stores**, then
+hold an item (or tap its ⋮) and choose **Where it is** to pick the shop and type the aisle. The row
+shows `Walmart \u00b7 A6` underneath the name on every tab, and the shelf filter matches the aisle too, so
+"where do we get that?" is answered by the list instead of by memory.
+
+A shop is a row in its own table, synced like an item, so one person adding "Walmart" gives it to
+everyone sharing the list. Renaming reaches every item that pointed at it; removing one clears the
+reference but keeps each item's aisle note, because an aisle number is still worth knowing.
+
 ## Shelf
 
 Right moves an item forward through a shop, left moves it back a step: shelf → to buy → basket

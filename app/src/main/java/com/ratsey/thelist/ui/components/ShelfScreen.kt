@@ -61,6 +61,7 @@ import java.util.Locale
 @Composable
 fun ShelfScreen(
     items: List<Item>,
+    storeNames: Map<String, String>,
     onAdd: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
@@ -76,12 +77,16 @@ fun ShelfScreen(
     }
 
     var filter by rememberSaveable { mutableStateOf("") }
-    val shown = remember(items, filter) {
+    val shown = remember(items, filter, storeNames) {
         val needle = filter.trim().lowercase(Locale.ROOT)
         if (needle.isEmpty()) {
             items
         } else {
-            items.filter { it.name.lowercase(Locale.ROOT).contains(needle) }
+            // The aisle is searchable too: typing "A6" should show what is in it.
+            items.filter { item ->
+                item.name.lowercase(Locale.ROOT).contains(needle) ||
+                    placeLabel(item, storeNames)?.lowercase(Locale.ROOT)?.contains(needle) == true
+            }
         }
     }
 
@@ -119,6 +124,7 @@ fun ShelfScreen(
                 items(shown, key = { it.id }) { item ->
                     ShelfRow(
                         name = item.name,
+                        place = placeLabel(item, storeNames),
                         onAdd = { onAdd(item) },
                         onOpenActions = { onOpenActions(item) },
                         modifier = Modifier.animateItem(),
@@ -133,6 +139,7 @@ fun ShelfScreen(
 @Composable
 private fun ShelfRow(
     name: String,
+    place: String?,
     onAdd: () -> Unit,
     onOpenActions: () -> Unit,
     modifier: Modifier = Modifier,
@@ -175,16 +182,28 @@ private fun ShelfRow(
                     .padding(start = 18.dp, end = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 10.dp, top = 16.dp, bottom = 16.dp),
-                )
+                        .padding(end = 10.dp, top = 13.dp, bottom = 13.dp),
+                ) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (place != null) {
+                        Text(
+                            text = place,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
 
                 IconButton(
                     onClick = onOpenActions,

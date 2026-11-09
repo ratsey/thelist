@@ -6,6 +6,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +42,18 @@ import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
 
 /**
+ * "Walmart · A6", or just the aisle when no shop is set, or null when nothing is known. The shop
+ * name is looked up rather than copied onto the row, so renaming a shop reaches every item at once.
+ */
+fun placeLabel(item: Item, storeNames: Map<String, String>): String? {
+    val parts = listOfNotNull(
+        storeNames[item.storeId],
+        item.location?.takeIf { it.isNotBlank() },
+    )
+    return parts.joinToString(" · ").takeIf { it.isNotEmpty() }
+}
+
+/**
  * One direction of a row's swipe: what it does, how the reveal explains it, and whether it is a
  * neutral move (putting something away) rather than progress.
  */
@@ -67,6 +80,8 @@ fun ItemRow(
     swipeLeft: SwipeAction,
     onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
+    /** "Walmart · A6" when the row knows where the thing lives; null when it does not. */
+    place: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -105,7 +120,12 @@ fun ItemRow(
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
     ) {
-        ItemCard(item = item, onOpenPrices = onOpenPrices, onOpenActions = onOpenActions)
+        ItemCard(
+            item = item,
+            place = place,
+            onOpenPrices = onOpenPrices,
+            onOpenActions = onOpenActions,
+        )
     }
 }
 
@@ -113,6 +133,7 @@ fun ItemRow(
 @Composable
 private fun ItemCard(
     item: Item,
+    place: String?,
     onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
 ) {
@@ -133,17 +154,31 @@ private fun ItemCard(
                 .padding(start = 16.dp, end = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = item.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = colors.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp, top = 10.dp, bottom = 10.dp),
-            )
+            ) {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // The aisle is what you need with a trolley in front of the shelf, so it belongs
+                // on the row rather than one long press away.
+                if (place != null) {
+                    Text(
+                        text = place,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
 
             IconButton(
                 onClick = onOpenActions,

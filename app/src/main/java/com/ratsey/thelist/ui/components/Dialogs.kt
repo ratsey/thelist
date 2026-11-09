@@ -1,12 +1,19 @@
 package com.ratsey.thelist.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,8 +25,11 @@ import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -47,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
+import com.ratsey.thelist.data.Store
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,6 +67,7 @@ fun ItemActionsSheet(
     onDismiss: () -> Unit,
     onToggle: () -> Unit,
     onRename: () -> Unit,
+    onPlacement: () -> Unit,
     onPutAway: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -94,6 +106,11 @@ fun ItemActionsSheet(
                 onClick = onRename,
             )
             SheetAction(
+                icon = Icons.Rounded.Place,
+                label = stringResource(R.string.action_placement),
+                onClick = onPlacement,
+            )
+            SheetAction(
                 icon = Icons.Rounded.Archive,
                 label = stringResource(R.string.action_put_away),
                 onClick = onPutAway,
@@ -119,6 +136,7 @@ fun ShelfActionsSheet(
     onDismiss: () -> Unit,
     onAdd: () -> Unit,
     onRename: () -> Unit,
+    onPlacement: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -152,6 +170,11 @@ fun ShelfActionsSheet(
                 icon = Icons.Rounded.Edit,
                 label = stringResource(R.string.action_rename),
                 onClick = onRename,
+            )
+            SheetAction(
+                icon = Icons.Rounded.Place,
+                label = stringResource(R.string.action_placement),
+                onClick = onPlacement,
             )
             SheetAction(
                 icon = Icons.Rounded.Delete,
@@ -291,6 +314,277 @@ fun AboutDialog(version: String, onDismiss: () -> Unit) {
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
+    )
+}
+
+/**
+ * Where an item lives: which shop, and where in it. Both halves are optional — a corner shop has no
+ * aisles, and a note like "the freezer" is as useful as "A6".
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlacementDialog(
+    item: Item,
+    stores: List<Store>,
+    onDismiss: () -> Unit,
+    onSave: (storeId: String?, newStoreName: String?, location: String) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selectedStoreId by remember { mutableStateOf(item.storeId) }
+    var location by remember { mutableStateOf(item.location.orEmpty()) }
+    var addingStore by remember { mutableStateOf(false) }
+    var newStoreName by remember { mutableStateOf("") }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.placement_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = item.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.placement_store),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = !addingStore && selectedStoreId == null,
+                    onClick = {
+                        addingStore = false
+                        selectedStoreId = null
+                    },
+                    label = { Text(stringResource(R.string.placement_no_store)) },
+                )
+                stores.forEach { store ->
+                    FilterChip(
+                        selected = !addingStore && selectedStoreId == store.id,
+                        onClick = {
+                            addingStore = false
+                            selectedStoreId = store.id
+                        },
+                        label = { Text(store.name) },
+                    )
+                }
+                FilterChip(
+                    selected = addingStore,
+                    onClick = {
+                        addingStore = true
+                        selectedStoreId = null
+                    },
+                    label = { Text(stringResource(R.string.placement_new_store)) },
+                )
+            }
+            if (addingStore) {
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = newStoreName,
+                    onValueChange = { newStoreName = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.placement_new_store_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            OutlinedTextField(
+                value = location,
+                onValueChange = { location = it },
+                singleLine = true,
+                label = { Text(stringResource(R.string.placement_location)) },
+                placeholder = { Text(stringResource(R.string.placement_location_hint)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+                TextButton(
+                    onClick = {
+                        onSave(
+                            if (addingStore) null else selectedStoreId,
+                            newStoreName.takeIf { addingStore },
+                            location,
+                        )
+                    },
+                    enabled = !(addingStore && newStoreName.isBlank()),
+                ) {
+                    Text(stringResource(R.string.action_save))
+                }
+            }
+        }
+    }
+}
+
+/** The shops themselves. Add one here, or straight from the placement sheet while shopping. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun StoresSheet(
+    stores: List<Store>,
+    onDismiss: () -> Unit,
+    onAdd: (String) -> Unit,
+    onDelete: (Store) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var name by remember { mutableStateOf("") }
+    var pendingDelete by remember { mutableStateOf<Store?>(null) }
+
+    val submit: () -> Unit = {
+        if (name.isNotBlank()) {
+            onAdd(name)
+            name = ""
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.stores_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = stringResource(R.string.stores_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(14.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.stores_add_hint)) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = submit, enabled = name.isNotBlank()) {
+                    Text(stringResource(R.string.action_save))
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            if (stores.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.stores_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    stores.forEach { store ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                // Nothing here deletes on a tap: hold the row instead.
+                                .combinedClickable(
+                                    onClick = {},
+                                    onLongClick = { pendingDelete = store },
+                                )
+                                .padding(vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Storefront,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(14.dp))
+                            Text(
+                                text = store.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    Text(
+                        text = stringResource(R.string.stores_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
+        }
+    }
+
+    pendingDelete?.let { store ->
+        ConfirmDialog(
+            title = stringResource(R.string.stores_delete_title, store.name),
+            body = stringResource(R.string.stores_delete_body),
+            confirmLabel = stringResource(R.string.stores_delete_confirm),
+            onConfirm = {
+                onDelete(store)
+                pendingDelete = null
+            },
+            onDismiss = { pendingDelete = null },
+        )
+    }
+}
+
+@Composable
+fun ConfirmDialog(
+    title: String,
+    body: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(body) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(confirmLabel) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }
