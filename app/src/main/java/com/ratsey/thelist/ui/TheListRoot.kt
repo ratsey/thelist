@@ -74,6 +74,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     val scanMovesItems by viewModel.scanMovesItems.collectAsStateWithLifecycle()
     val stores by viewModel.stores.collectAsStateWithLifecycle()
     val storeNames = remember(stores) { stores.associate { it.id to it.name } }
+    val currentStoreId by viewModel.currentStoreId.collectAsStateWithLifecycle()
     val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
     val summaries = remember(priceSummaries) { priceSummaries.associateBy { it.productKey } }
 
@@ -189,6 +190,9 @@ fun TheListRoot(viewModel: ListViewModel) {
                     shelfCount = shelfItems.size,
                     updateState = updateState,
                     syncUi = syncUi,
+                    stores = stores,
+                    currentStoreId = currentStoreId,
+                    onSelectStore = viewModel::setCurrentStore,
                     onTabSelected = { selectedTab = it },
                     onCheckForUpdates = { viewModel.checkForUpdates(userInitiated = true) },
                     onClearBasket = { confirmClearBasket = true },
@@ -218,6 +222,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                             items = shelfItems,
                             storeNames = storeNames,
                             summaries = summaries,
+                            currentStoreId = currentStoreId,
                             onAdd = viewModel::addFromShelf,
                             onOpenActions = { shelfActionItem = it },
                         )
@@ -226,6 +231,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                             items = basketItems,
                             storeNames = storeNames,
                             summaries = summaries,
+                            currentStoreId = currentStoreId,
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,
                             onOpenPrices = { viewModel.showPricesFor(it) },
@@ -236,6 +242,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                             items = activeItems,
                             storeNames = storeNames,
                             summaries = summaries,
+                            currentStoreId = currentStoreId,
                             showHint = hintVisible && basketItems.isEmpty() && activeItems.isNotEmpty(),
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,

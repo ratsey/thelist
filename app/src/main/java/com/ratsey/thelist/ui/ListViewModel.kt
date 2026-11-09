@@ -131,6 +131,14 @@ class ListViewModel(
     val scanMovesItems: StateFlow<Boolean> = settings.scanMovesItems
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
+    /** Which shop you are in, from the header pill. Null means everywhere at once. */
+    val currentStoreId: StateFlow<String?> = settings.currentStoreId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun setCurrentStore(storeId: String?) {
+        viewModelScope.launch { settings.setCurrentStore(storeId) }
+    }
+
     private val priceRows: StateFlow<List<PriceRow>> = receipts.observePriceRows()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -258,6 +266,8 @@ class ListViewModel(
     fun deleteStore(store: Store) {
         viewModelScope.launch {
             storeRepository.delete(store)
+            // Standing in a shop that no longer exists would silently hide every aisle.
+            if (settings.currentStoreIdNow() == store.id) settings.setCurrentStore(null)
             _messages.send(UiMessage(R.string.msg_store_deleted))
             scheduleSync()
         }

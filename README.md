@@ -52,6 +52,12 @@ place to ask "where do we get that?".
 Price history shows the brand the receipt printed, because "coffee at £1.40" and "coffee at £3.50"
 are different jars and only the till remembers which.
 
+At the door there is a **shop pill** on the header line: pick the shop you are standing in and its
+rows show only the aisle, because the header already says where you are. Rows for other shops show
+just that shop's name, since its aisle number is no help from here, and items with no shop keep
+whatever aisle they have. *All shops* puts everything back, and the choice is remembered, so it is
+still set when the app is reopened outside the shop.
+
 A shop is a row in its own table, synced like an item, so one person adding "Walmart" gives it to
 everyone sharing the list. Removing one clears the reference from its items but keeps their aisle
 note, because an aisle number is still worth knowing.

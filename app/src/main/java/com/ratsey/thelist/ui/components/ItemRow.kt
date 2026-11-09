@@ -47,12 +47,23 @@ import com.ratsey.thelist.ui.formatMoney
 /**
  * "Walmart · A6", or just the aisle when no shop is set, or null when nothing is known. The shop
  * name is looked up rather than copied onto the row, so renaming a shop reaches every item at once.
+ *
+ * While you are standing in a shop (a [currentStoreId] chosen in the header) its rows need only the
+ * aisle — repeating the shop name on every line is wasted width — and another shop's aisle says
+ * nothing about the shop you are in, so only its name survives.
  */
-fun placeLabel(item: Item, storeNames: Map<String, String>): String? {
-    val parts = listOfNotNull(
-        storeNames[item.storeId],
-        item.location?.takeIf { it.isNotBlank() },
-    )
+fun placeLabel(
+    item: Item,
+    storeNames: Map<String, String>,
+    currentStoreId: String? = null,
+): String? {
+    val store = storeNames[item.storeId]
+    val aisle = item.location?.takeIf { it.isNotBlank() }
+    val parts = when {
+        currentStoreId == null || item.storeId == null -> listOfNotNull(store, aisle)
+        item.storeId == currentStoreId -> listOfNotNull(aisle)
+        else -> listOfNotNull(store)
+    }
     return parts.joinToString(" · ").takeIf { it.isNotEmpty() }
 }
 
@@ -62,9 +73,14 @@ fun placeLabel(item: Item, storeNames: Map<String, String>): String? {
  * three fewer items on the screen.
  */
 @Composable
-fun itemMeta(item: Item, storeNames: Map<String, String>, summary: PriceSummary?): String? {
+fun itemMeta(
+    item: Item,
+    storeNames: Map<String, String>,
+    summary: PriceSummary?,
+    currentStoreId: String? = null,
+): String? {
     val parts = buildList {
-        placeLabel(item, storeNames)?.let { add(it) }
+        placeLabel(item, storeNames, currentStoreId)?.let { add(it) }
         if (summary != null) {
             add(stringResource(R.string.row_last, formatMoney(summary.latestPrice, summary.currency)))
             add(stringResource(R.string.row_best, formatMoney(summary.lowestPrice, summary.currency)))

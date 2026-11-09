@@ -22,6 +22,7 @@ class SettingsStore(private val context: Context) {
         val pendingDownloadId = longPreferencesKey("pending_download_id")
         val pendingVersion = stringPreferencesKey("pending_download_version")
         val scanMovesItems = booleanPreferencesKey("scan_moves_items")
+        val currentStoreId = stringPreferencesKey("current_store_id")
     }
 
     /**
@@ -34,6 +35,24 @@ class SettingsStore(private val context: Context) {
     suspend fun setScanMovesItems(value: Boolean) {
         context.settingsDataStore.edit { it[Keys.scanMovesItems] = value }
     }
+
+    /**
+     * The shop the user is standing in, chosen from the header pill. Persisted, because the shop
+     * is usually picked at the door and the app gets killed on the way round. Null means all shops.
+     */
+    val currentStoreId: Flow<String?> = context.settingsDataStore.data.map { it[Keys.currentStoreId] }
+
+    suspend fun setCurrentStore(storeId: String?) {
+        context.settingsDataStore.edit { prefs ->
+            if (storeId == null) {
+                prefs.remove(Keys.currentStoreId)
+            } else {
+                prefs[Keys.currentStoreId] = storeId
+            }
+        }
+    }
+
+    suspend fun currentStoreIdNow(): String? = currentStoreId.first()
 
     val lastCheckAt: Flow<Long> = context.settingsDataStore.data.map { it[Keys.lastCheck] ?: 0L }
 

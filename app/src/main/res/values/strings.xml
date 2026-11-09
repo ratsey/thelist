@@ -47,6 +47,9 @@
     <string name="placement_location">Aisle or shelf</string>
     <string name="placement_location_hint">A6</string>
 
+    <string name="shop_pill_all">All shops</string>
+    <string name="shop_pill_label">Shop you are in</string>
+
     <string name="row_last">last %1$s</string>
     <string name="row_best">best %1$s</string>
 
