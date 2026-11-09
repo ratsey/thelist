@@ -10,8 +10,8 @@ scanner that turns a photo into price history.
 Prices are no screen of their own: hold an item to see every price you have paid for it, as a list
 or a chart.
 
-Swipe a row right to move it to the other list; swipe left to put it away on the shelf. Tapping a
-row does nothing, deliberately — a thumb brushing the list while you shop should never move or
+Swipe a row right to move it forward through the shop — shelf, to buy, basket — and left to move it
+back a step. Tapping a row does nothing, deliberately — a thumb brushing the list while you shop should never move or
 bury anything. Hold a row to see what you have paid for it; tap its ⋮ for rename, put away and
 delete. Tap the camera to scan a receipt, and the Shelf tab to fill a list from what you kept.
 
@@ -43,13 +43,14 @@ Per-ABI split APKs (roughly 11–18 MB each) are the obvious next size win.
 
 ## Shelf
 
-Right is on, left is off.
+Right moves an item forward through a shop, left moves it back a step: shelf → to buy → basket
+→ shelf.
 
 | where | swipe right | swipe left |
 |---|---|---|
-| To buy | into the basket | put away on the shelf |
-| Basket | back on the list | put away on the shelf |
 | Shelf | back on the list | — |
+| To buy | into the basket | put away on the shelf |
+| Basket | put away on the shelf | back on the list |
 
 Putting away is not deleting: the item leaves the list but keeps its row, its spelling and its
 price history, and waits on **shelf** for next time. Clearing the basket moves its rows there too,
@@ -129,7 +130,7 @@ The layout stays quiet so the list reads like paper:
 | Warm off-white canvas, white cards, hairline borders | Paper-like; one green accent carries all meaning |
 | Large title, live count, segmented `Shelf / To buy / Basket` | Three views of one list, one tap apart, no bottom navigation stealing thumb space |
 | Add bar above the keyboard, focus retained | Shopping lists get filled in bursts |
-| Swipe right = on, swipe left = off | Colour-coded reveals teach the gesture, and no swipe destroys anything |
+| Swipe right = forward, swipe left = back | Colour-coded reveals teach the gesture, and no swipe destroys anything |
 | No tap changes anything; the ⋮ holds the menu | a thumb brushing a row mid-shop must not move it, bury it or open a sheet |
 | Day-grouped basket | Answers "did we already buy this?" without timestamps |
 | Receipt review before saving | OCR is good, not perfect: confirm, don't trust blindly |

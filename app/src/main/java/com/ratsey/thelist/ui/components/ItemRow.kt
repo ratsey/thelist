@@ -1,5 +1,6 @@
 package com.ratsey.thelist.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -15,8 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Archive
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,19 +30,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
 
 /**
- * One row: right is on, left is off. Swipe right to move the item to the other list, swipe left to
- * put it away on the shelf; both are reversible, so no swipe here can lose anything.
+ * One direction of a row's swipe: what it does, how the reveal explains it, and whether it is a
+ * neutral move (putting something away) rather than progress.
+ */
+data class SwipeAction(
+    @StringRes val label: Int,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+    val muted: Boolean = false,
+)
+
+/**
+ * One row. Swipe right to move it forward through the shop and left to move it back a step; both
+ * are reversible, so no swipe here can lose anything.
  *
  * Nothing on the row reacts to a tap. A thumb brushing the list while you shop should never move an
  * item or bury it, so every change of state is a deliberate swipe. A long press shows what you have
@@ -53,9 +63,8 @@ import com.ratsey.thelist.data.Item
 @Composable
 fun ItemRow(
     item: Item,
-    inBasket: Boolean,
-    onToggle: () -> Unit,
-    onPutAway: () -> Unit,
+    swipeRight: SwipeAction,
+    swipeLeft: SwipeAction,
     onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
     modifier: Modifier = Modifier,
@@ -70,8 +79,8 @@ fun ItemRow(
 
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> onToggle()
-                SwipeToDismissBoxValue.EndToStart -> onPutAway()
+                SwipeToDismissBoxValue.StartToEnd -> swipeRight.onClick()
+                SwipeToDismissBoxValue.EndToStart -> swipeLeft.onClick()
                 SwipeToDismissBoxValue.Settled -> Unit
             }
 
@@ -86,7 +95,13 @@ fun ItemRow(
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier.clip(RoundedCornerShape(18.dp)),
-        backgroundContent = { SwipeReveal(dismissState.dismissDirection, inBasket) },
+        backgroundContent = {
+            when (dismissState.dismissDirection) {
+                SwipeToDismissBoxValue.StartToEnd -> SwipeReveal(swipeRight, alignEnd = false)
+                SwipeToDismissBoxValue.EndToStart -> SwipeReveal(swipeLeft, alignEnd = true)
+                SwipeToDismissBoxValue.Settled -> Unit
+            }
+        },
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
     ) {
@@ -102,7 +117,6 @@ private fun ItemCard(
     onOpenActions: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val completed = item.completedAt != null
 
     Surface(
         shape = RoundedCornerShape(18.dp),
@@ -122,9 +136,8 @@ private fun ItemCard(
             Text(
                 text = item.name,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (completed) FontWeight.Normal else FontWeight.Medium,
-                color = if (completed) colors.onSurfaceVariant else colors.onSurface,
-                textDecoration = if (completed) TextDecoration.LineThrough else null,
+                fontWeight = FontWeight.Medium,
+                color = colors.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
@@ -148,21 +161,12 @@ private fun ItemCard(
 }
 
 @Composable
-private fun SwipeReveal(direction: SwipeToDismissBoxValue, inBasket: Boolean) {
+private fun SwipeReveal(action: SwipeAction, alignEnd: Boolean) {
     val colors = MaterialTheme.colorScheme
-    val isAway = direction == SwipeToDismissBoxValue.EndToStart
-    val isMove = direction == SwipeToDismissBoxValue.StartToEnd
-    if (!isAway && !isMove) return
-
-    // Nothing here is destructive: the left gesture files the item on the shelf, so it stays a
-    // neutral surface colour rather than the error red a delete would earn.
-    val background = if (isAway) colors.secondaryContainer else colors.primary
-    val contentColor = if (isAway) colors.onSecondaryContainer else colors.onPrimary
-    val label = when {
-        isAway -> stringResource(R.string.swipe_put_away)
-        inBasket -> stringResource(R.string.swipe_add_back)
-        else -> stringResource(R.string.swipe_got_it)
-    }
+    // A neutral move (putting something away) stays a soft surface colour; progress earns the
+    // accent. Neither is a delete, so neither is red.
+    val background = if (action.muted) colors.secondaryContainer else colors.primary
+    val contentColor = if (action.muted) colors.onSecondaryContainer else colors.onPrimary
 
     Row(
         modifier = Modifier
@@ -170,26 +174,34 @@ private fun SwipeReveal(direction: SwipeToDismissBoxValue, inBasket: Boolean) {
             .background(background)
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (isAway) Arrangement.End else Arrangement.Start,
+        horizontalArrangement = if (alignEnd) Arrangement.End else Arrangement.Start,
     ) {
-        if (isAway) {
-            Text(label, color = contentColor, style = MaterialTheme.typography.labelLarge)
+        if (alignEnd) {
+            Text(
+                text = stringResource(action.label),
+                color = contentColor,
+                style = MaterialTheme.typography.labelLarge,
+            )
             Spacer(Modifier.width(8.dp))
             Icon(
-                imageVector = Icons.Rounded.Archive,
+                imageVector = action.icon,
                 contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(20.dp),
             )
         } else {
             Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = action.icon,
                 contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(8.dp))
-            Text(label, color = contentColor, style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = stringResource(action.label),
+                color = contentColor,
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
     }
 }

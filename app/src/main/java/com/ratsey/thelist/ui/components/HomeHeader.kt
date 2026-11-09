@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Archive
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.CloudOff
@@ -232,9 +235,17 @@ fun ShoppingList(
         items(items, key = { it.id }) { item ->
             ItemRow(
                 item = item,
-                inBasket = false,
-                onToggle = { onToggle(item) },
-                onPutAway = { onPutAway(item) },
+                swipeRight = SwipeAction(
+                    label = R.string.swipe_got_it,
+                    icon = Icons.Rounded.Check,
+                    onClick = { onToggle(item) },
+                ),
+                swipeLeft = SwipeAction(
+                    label = R.string.swipe_put_away,
+                    icon = Icons.Rounded.Archive,
+                    onClick = { onPutAway(item) },
+                    muted = true,
+                ),
                 onOpenPrices = { onOpenPrices(item) },
                 onOpenActions = { onOpenActions(item) },
                 modifier = Modifier.animateItem(),
@@ -282,9 +293,19 @@ fun BasketList(
             items(groupItems, key = { it.id }) { item ->
                 ItemRow(
                     item = item,
-                    inBasket = true,
-                    onToggle = { onToggle(item) },
-                    onPutAway = { onPutAway(item) },
+                    // In the basket, forward is done with it: onto the shelf, as at checkout.
+                    swipeRight = SwipeAction(
+                        label = R.string.swipe_put_away,
+                        icon = Icons.Rounded.Archive,
+                        onClick = { onPutAway(item) },
+                        muted = true,
+                    ),
+                    // Back a step, for the thing you put in but did not buy.
+                    swipeLeft = SwipeAction(
+                        label = R.string.swipe_add_back,
+                        icon = Icons.Rounded.Add,
+                        onClick = { onToggle(item) },
+                    ),
                     onOpenPrices = { onOpenPrices(item) },
                     onOpenActions = { onOpenActions(item) },
                     modifier = Modifier.animateItem(),
