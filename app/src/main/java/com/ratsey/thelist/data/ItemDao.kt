@@ -19,7 +19,7 @@ interface ItemDao {
         "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND completedAt IS NOT NULL " +
             "ORDER BY completedAt DESC",
     )
-    fun observeHistory(listId: String): Flow<List<Item>>
+    fun observeBasket(listId: String): Flow<List<Item>>
 
     @Query("SELECT * FROM items WHERE id = :id")
     suspend fun byId(id: String): Item?
@@ -41,7 +41,14 @@ interface ItemDao {
     suspend fun activeNow(listId: String): List<Item>
 
     @Query("SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND completedAt IS NOT NULL ORDER BY completedAt DESC")
-    suspend fun historySnapshot(listId: String): List<Item>
+    suspend fun basketSnapshot(listId: String): List<Item>
+
+    /** Items swiped since [since]. Bounded so an old pickup can't claim a fresh receipt line. */
+    @Query(
+        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL " +
+            "AND completedAt IS NOT NULL AND completedAt >= :since ORDER BY completedAt DESC",
+    )
+    suspend fun pickedUpSince(listId: String, since: Long): List<Item>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(item: Item)

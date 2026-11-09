@@ -9,7 +9,7 @@ import java.util.UUID
  * A single list entry.
  *
  * [completedAt] is the only state switch: null means "still to buy", a timestamp means
- * "picked up" and places the item in History. [deletedAt] is a tombstone so deletions can
+ * "picked up" and places the item in the basket. [deletedAt] is a tombstone so deletions can
  * travel to other devices instead of silently reappearing on the next sync.
  */
 @Entity(

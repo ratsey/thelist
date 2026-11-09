@@ -50,12 +50,13 @@ import java.time.format.DateTimeFormatter
 fun HomeHeader(
     tab: Int,
     activeCount: Int,
-    historyCount: Int,
+    basketCount: Int,
     updateState: UpdateUi,
     syncUi: SyncUi,
     onTabSelected: (Int) -> Unit,
     onCheckForUpdates: () -> Unit,
-    onClearHistory: () -> Unit,
+    onClearBasket: () -> Unit,
+    onOpenSettings: () -> Unit,
     onAbout: () -> Unit,
     onStartUpdate: () -> Unit,
     onInstallUpdate: () -> Unit,
@@ -84,7 +85,7 @@ fun HomeHeader(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = subtitleFor(tab, activeCount, historyCount),
+                    text = subtitleFor(tab, activeCount, basketCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                 )
@@ -133,14 +134,21 @@ fun HomeHeader(
                     )
                     if (tab == 1) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.menu_clear_history)) },
-                            enabled = historyCount > 0,
+                            text = { Text(stringResource(R.string.menu_clear_basket)) },
+                            enabled = basketCount > 0,
                             onClick = {
                                 menuOpen = false
-                                onClearHistory()
+                                onClearBasket()
                             },
                         )
                     }
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.menu_settings)) },
+                        onClick = {
+                            menuOpen = false
+                            onOpenSettings()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.menu_about)) },
                         onClick = {
@@ -165,7 +173,7 @@ fun HomeHeader(
         ScreenTabs(
             selected = tab,
             activeCount = activeCount,
-            historyCount = historyCount,
+            basketCount = basketCount,
             onSelect = onTabSelected,
         )
 
@@ -174,11 +182,11 @@ fun HomeHeader(
 }
 
 @Composable
-private fun subtitleFor(tab: Int, activeCount: Int, historyCount: Int): String = when {
+private fun subtitleFor(tab: Int, activeCount: Int, basketCount: Int): String = when {
     tab == 0 && activeCount == 0 -> stringResource(R.string.empty_subtitle)
     tab == 0 -> pluralStringResource(R.plurals.active_count, activeCount, activeCount)
-    tab == 1 && historyCount == 0 -> stringResource(R.string.empty_subtitle)
-    tab == 1 -> pluralStringResource(R.plurals.history_count, historyCount, historyCount)
+    tab == 1 && basketCount == 0 -> stringResource(R.string.empty_subtitle)
+    tab == 1 -> pluralStringResource(R.plurals.basket_count, basketCount, basketCount)
     else -> stringResource(R.string.prices_subtitle)
 }
 
@@ -215,7 +223,7 @@ fun ShoppingList(
         items(items, key = { it.id }) { item ->
             ItemRow(
                 item = item,
-                inHistory = false,
+                inBasket = false,
                 onToggle = { onToggle(item) },
                 onDelete = { onDelete(item) },
                 onOpenActions = { onOpenActions(item) },
@@ -226,7 +234,7 @@ fun ShoppingList(
 }
 
 @Composable
-fun HistoryList(
+fun BasketList(
     items: List<Item>,
     onToggle: (Item) -> Unit,
     onDelete: (Item) -> Unit,
@@ -236,8 +244,8 @@ fun HistoryList(
     if (items.isEmpty()) {
         EmptyState(
             icon = Icons.Rounded.CheckCircle,
-            title = stringResource(R.string.empty_history_title),
-            body = stringResource(R.string.empty_history_body),
+            title = stringResource(R.string.empty_basket_title),
+            body = stringResource(R.string.empty_basket_body),
             modifier = modifier,
         )
         return
@@ -263,7 +271,7 @@ fun HistoryList(
             items(groupItems, key = { it.id }) { item ->
                 ItemRow(
                     item = item,
-                    inHistory = true,
+                    inBasket = true,
                     onToggle = { onToggle(item) },
                     onDelete = { onDelete(item) },
                     onOpenActions = { onOpenActions(item) },

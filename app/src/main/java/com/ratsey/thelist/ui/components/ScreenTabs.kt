@@ -36,7 +36,7 @@ import com.ratsey.thelist.R
 fun ScreenTabs(
     selected: Int,
     activeCount: Int,
-    historyCount: Int,
+    basketCount: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -76,8 +76,8 @@ fun ScreenTabs(
                 modifier = Modifier.weight(1f),
             )
             TabSegment(
-                label = stringResource(R.string.tab_history),
-                count = historyCount,
+                label = stringResource(R.string.tab_basket),
+                count = basketCount,
                 isSelected = selected == 1,
                 onClick = { onSelect(1) },
                 modifier = Modifier.weight(1f),

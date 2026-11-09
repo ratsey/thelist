@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -72,6 +73,8 @@ data class DraftLine(
     val lineTotal: Double,
     val matchedItemId: String?,
     val matchedName: String?,
+    /** True when the line matched something already swiped instead of something to buy. */
+    val matchedFromBasket: Boolean = false,
     val include: Boolean = true,
 )
 
@@ -109,8 +112,12 @@ class ListViewModel(
     val activeItems: StateFlow<List<Item>> = repository.observeActive()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val historyItems: StateFlow<List<Item>> = repository.observeHistory()
+    val basketItems: StateFlow<List<Item>> = repository.observeBasket()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Whether a scan moves the items it matched out of the list. Set by the user in Settings. */
+    val scanMovesItems: StateFlow<Boolean> = settings.scanMovesItems
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
     private val priceRows: StateFlow<List<PriceRow>> = receipts.observePriceRows()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -158,7 +165,7 @@ class ListViewModel(
     private sealed interface Undo {
         data class Moved(val item: Item, val nowActive: Boolean) : Undo
         data class Deleted(val item: Item) : Undo
-        data class ClearedHistory(val items: List<Item>) : Undo
+        data class ClearedBasket(val items: List<Item>) : Undo
     }
 
     init {
@@ -188,14 +195,14 @@ class ListViewModel(
     }
 
     fun move(item: Item) {
-        val toHistory = item.completedAt == null
+        val toBasket = item.completedAt == null
         viewModelScope.launch {
-            if (toHistory) repository.complete(item) else repository.restore(item)
-            lastUndo = Undo.Moved(item, nowActive = !toHistory)
+            if (toBasket) repository.complete(item) else repository.restore(item)
+            lastUndo = Undo.Moved(item, nowActive = !toBasket)
             _hintVisible.value = false
             _messages.send(
                 UiMessage(
-                    textRes = if (toHistory) R.string.msg_moved_history else R.string.msg_moved_active,
+                    textRes = if (toBasket) R.string.msg_moved_basket else R.string.msg_moved_active,
                     undoable = true,
                 ),
             )
@@ -223,12 +230,12 @@ class ListViewModel(
         }
     }
 
-    fun clearHistory() {
+    fun clearBasket() {
         viewModelScope.launch {
-            val removed = repository.clearHistory()
+            val removed = repository.clearBasket()
             if (removed.isEmpty()) return@launch
-            lastUndo = Undo.ClearedHistory(removed)
-            _messages.send(UiMessage(R.string.msg_history_cleared, undoable = true))
+            lastUndo = Undo.ClearedBasket(removed)
+            _messages.send(UiMessage(R.string.msg_basket_cleared, undoable = true))
             scheduleSync()
         }
     }
@@ -242,7 +249,7 @@ class ListViewModel(
                     if (undo.nowActive) repository.restore(undo.item) else repository.complete(undo.item)
 
                 is Undo.Deleted -> repository.restoreAll(listOf(undo.item))
-                is Undo.ClearedHistory -> repository.restoreAll(undo.items)
+                is Undo.ClearedBasket -> repository.restoreAll(undo.items)
             }
             scheduleSync()
         }
@@ -250,6 +257,10 @@ class ListViewModel(
 
     fun dismissHint() {
         _hintVisible.value = false
+    }
+
+    fun setScanMovesItems(value: Boolean) {
+        viewModelScope.launch { settings.setScanMovesItems(value) }
     }
 
     // ---------------------------------------------------------------- receipts
@@ -270,6 +281,9 @@ class ListViewModel(
                 return@launch
             }
 
+            // Basket first: a swipe during the shop is the shopper's own record of buying it,
+            // so it claims the line ahead of a name that merely looks familiar.
+            val basket = repository.recentlyPickedUp()
             val candidates = repository.activeNow()
             val draft = ReceiptDraft(
                 photoPath = photoPath,
@@ -277,15 +291,17 @@ class ListViewModel(
                 purchasedAt = parsed.purchasedAt ?: System.currentTimeMillis(),
                 currency = parsed.currency,
                 total = parsed.total,
+                markBought = settings.scanMovesItems.first(),
                 lines = parsed.lines.map { line ->
-                    val match = ItemMatcher.match(line.name, candidates)
+                    val match = ItemMatcher.match(line.name, basket, candidates)
                     DraftLine(
                         name = line.name,
                         quantity = line.quantity,
                         unitPrice = line.unitPrice,
                         lineTotal = line.lineTotal,
-                        matchedItemId = match?.id,
-                        matchedName = match?.name,
+                        matchedItemId = match?.item?.id,
+                        matchedName = match?.item?.name,
+                        matchedFromBasket = match?.source == ItemMatcher.Source.Basket,
                     )
                 },
             )
@@ -342,8 +358,12 @@ class ListViewModel(
                 )
             }
 
-            val matchedIds = included.mapNotNull { it.matchedItemId }.toSet()
-            val markBought = if (draft.markBought) {
+            // Only list matches have anywhere to move to: a basket match was swiped already.
+            val matchedIds = included
+                .filterNot { it.matchedFromBasket }
+                .mapNotNull { it.matchedItemId }
+                .toSet()
+            val markBought = if (draft.markBought && matchedIds.isNotEmpty()) {
                 repository.activeNow().filter { it.id in matchedIds }
             } else {
                 emptyList()

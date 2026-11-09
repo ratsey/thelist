@@ -15,13 +15,13 @@ class ItemRepository(private val db: AppDatabase) {
 
     fun observeActive(): Flow<List<Item>> = dao.observeActive(Item.DEFAULT_LIST_ID)
 
-    fun observeHistory(): Flow<List<Item>> = dao.observeHistory(Item.DEFAULT_LIST_ID)
+    fun observeBasket(): Flow<List<Item>> = dao.observeBasket(Item.DEFAULT_LIST_ID)
 
     /** What an add actually did, so the UI can say "already on your list" instead of nothing. */
     enum class AddOutcome { Added, Readded, AlreadyListed }
 
     /**
-     * Adds a name, or revives the existing row (from History or a tombstone) rather than
+     * Adds a name, or revives the existing row (from the basket or a tombstone) rather than
      * creating a second "Milk". Soft on purpose: a unique index would turn two phones adding
      * the same thing at once into a constraint failure during sync, and merging that is worse
      * than the rare duplicate it prevents.
@@ -95,8 +95,8 @@ class ItemRepository(private val db: AppDatabase) {
     }
 
     /** Returns everything that was removed so the action can be undone. */
-    suspend fun clearHistory(): List<Item> {
-        val removed = dao.historySnapshot(Item.DEFAULT_LIST_ID)
+    suspend fun clearBasket(): List<Item> {
+        val removed = dao.basketSnapshot(Item.DEFAULT_LIST_ID)
         if (removed.isEmpty()) return emptyList()
 
         val now = System.currentTimeMillis()
@@ -112,6 +112,14 @@ class ItemRepository(private val db: AppDatabase) {
 
     /** Snapshot used to match receipt lines against what is still to buy. */
     suspend fun activeNow(): List<Item> = dao.activeNow(Item.DEFAULT_LIST_ID)
+
+    /**
+     * What the shopper swiped while shopping, for receipt matching. Time-bounded because the
+     * basket is long-lived: without the window, a receipt scanned today could claim an item
+     * picked up last month instead of the one still on the list.
+     */
+    suspend fun recentlyPickedUp(now: Long = System.currentTimeMillis()): List<Item> =
+        dao.pickedUpSince(Item.DEFAULT_LIST_ID, now - BASKET_WINDOW_MS)
 
     suspend fun enqueue(item: Item) {
         outbox.enqueue(
@@ -136,5 +144,10 @@ class ItemRepository(private val db: AppDatabase) {
                 )
             },
         )
+    }
+
+    companion object {
+        /** Long enough to cover shopping in the evening and scanning the receipt next morning. */
+        private const val BASKET_WINDOW_MS = 36 * 60 * 60 * 1000L
     }
 }

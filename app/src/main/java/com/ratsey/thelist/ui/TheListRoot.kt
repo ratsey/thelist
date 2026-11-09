@@ -43,28 +43,30 @@ import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.receipt.ReceiptPhotos
 import com.ratsey.thelist.ui.components.AboutDialog
 import com.ratsey.thelist.ui.components.AddItemBar
-import com.ratsey.thelist.ui.components.HistoryList
+import com.ratsey.thelist.ui.components.BasketList
 import com.ratsey.thelist.ui.components.HomeHeader
 import com.ratsey.thelist.ui.components.ItemActionsSheet
 import com.ratsey.thelist.ui.components.RenameDialog
+import com.ratsey.thelist.ui.components.SettingsDialog
 import com.ratsey.thelist.ui.components.ShoppingList
 import com.ratsey.thelist.ui.components.SyncDialog
 import java.io.File
 
 private const val TAB_TO_BUY = 0
-private const val TAB_HISTORY = 1
+private const val TAB_BASKET = 1
 private const val TAB_PRICES = 2
 
 @Composable
 fun TheListRoot(viewModel: ListViewModel) {
     val activeItems by viewModel.activeItems.collectAsStateWithLifecycle()
-    val historyItems by viewModel.historyItems.collectAsStateWithLifecycle()
+    val basketItems by viewModel.basketItems.collectAsStateWithLifecycle()
     val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
     val productDetail by viewModel.productDetail.collectAsStateWithLifecycle()
     val scanState by viewModel.scan.collectAsStateWithLifecycle()
     val syncUi by viewModel.syncUi.collectAsStateWithLifecycle()
     val updateState by viewModel.update.collectAsStateWithLifecycle()
     val hintVisible by viewModel.hintVisible.collectAsStateWithLifecycle()
+    val scanMovesItems by viewModel.scanMovesItems.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -74,7 +76,8 @@ fun TheListRoot(viewModel: ListViewModel) {
     var draft by rememberSaveable { mutableStateOf("") }
     var actionSheetItem by remember { mutableStateOf<Item?>(null) }
     var renameTarget by remember { mutableStateOf<Item?>(null) }
-    var confirmClearHistory by remember { mutableStateOf(false) }
+    var confirmClearBasket by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showSync by remember { mutableStateOf(false) }
     var pendingPhotoPath by remember { mutableStateOf<String?>(null) }
@@ -170,12 +173,13 @@ fun TheListRoot(viewModel: ListViewModel) {
                 HomeHeader(
                     tab = selectedTab,
                     activeCount = activeItems.size,
-                    historyCount = historyItems.size,
+                    basketCount = basketItems.size,
                     updateState = updateState,
                     syncUi = syncUi,
                     onTabSelected = { selectedTab = it },
                     onCheckForUpdates = { viewModel.checkForUpdates(userInitiated = true) },
-                    onClearHistory = { confirmClearHistory = true },
+                    onClearBasket = { confirmClearBasket = true },
+                    onOpenSettings = { showSettings = true },
                     onAbout = { showAbout = true },
                     onStartUpdate = viewModel::startUpdate,
                     onInstallUpdate = viewModel::installUpdate,
@@ -198,15 +202,15 @@ fun TheListRoot(viewModel: ListViewModel) {
                     when (tab) {
                         TAB_TO_BUY -> ShoppingList(
                             items = activeItems,
-                            showHint = hintVisible && historyItems.isEmpty() && activeItems.isNotEmpty(),
+                            showHint = hintVisible && basketItems.isEmpty() && activeItems.isNotEmpty(),
                             onToggle = viewModel::move,
                             onDelete = viewModel::delete,
                             onOpenActions = { actionSheetItem = it },
                             onDismissHint = viewModel::dismissHint,
                         )
 
-                        TAB_HISTORY -> HistoryList(
-                            items = historyItems,
+                        TAB_BASKET -> BasketList(
+                            items = basketItems,
                             onToggle = viewModel::move,
                             onDelete = viewModel::delete,
                             onOpenActions = { actionSheetItem = it },
@@ -252,26 +256,34 @@ fun TheListRoot(viewModel: ListViewModel) {
         )
     }
 
-    if (confirmClearHistory) {
+    if (confirmClearBasket) {
         AlertDialog(
-            onDismissRequest = { confirmClearHistory = false },
-            title = { Text(stringResource(R.string.clear_history_title)) },
-            text = { Text(stringResource(R.string.clear_history_body)) },
+            onDismissRequest = { confirmClearBasket = false },
+            title = { Text(stringResource(R.string.clear_basket_title)) },
+            text = { Text(stringResource(R.string.clear_basket_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        confirmClearHistory = false
-                        viewModel.clearHistory()
+                        confirmClearBasket = false
+                        viewModel.clearBasket()
                     },
                 ) {
-                    Text(stringResource(R.string.clear_history_confirm))
+                    Text(stringResource(R.string.clear_basket_confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmClearHistory = false }) {
+                TextButton(onClick = { confirmClearBasket = false }) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },
+        )
+    }
+
+    if (showSettings) {
+        SettingsDialog(
+            scanMovesItems = scanMovesItems,
+            onScanMovesChange = viewModel::setScanMovesItems,
+            onDismiss = { showSettings = false },
         )
     }
 

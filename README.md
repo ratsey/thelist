@@ -4,7 +4,7 @@ A shopping list that remembers what you paid. Three screens, one gesture, and a 
 scanner that turns a photo into price history.
 
 - **To buy** — everything you still need.
-- **History** — everything you have already picked up.
+- **Basket** — everything you have already picked up.
 - **Prices** — every price you have paid for each item, as a list or a chart.
 
 Swipe a row right to move it to the other list (or tap its circle). Swipe left to delete, with
@@ -21,9 +21,14 @@ Services, no cloud you did not choose.
    currency, total, and each `name … price` line. Footer noise — `TOTAL`, `CARD`, `CHANGE`,
    `VAT`, `SUMME`, `TVA` — is dropped rather than guessed at.
 3. A review screen shows the photo, editable store/date/total, and every line with a checkbox.
-   Lines are matched to your list by token overlap ("TESCO SEMI SKIMMED MILK 2L" → *Milk*), and
-   matched items can be marked as bought in the same tap.
-4. Saving stores the receipt and its priced lines, which is what fills the Prices tab.
+   Lines are matched by token overlap ("TESCO SEMI SKIMMED MILK 2L" → *Milk*) against the
+   **basket first** — what you swiped during this shop, within 36 hours — and only then against
+   what is still to buy. Swiping is your own record of picking something up, so it beats a name
+   that merely looks familiar; if you shop without swiping, the list alone is enough.
+4. A line that matched something on the list can move it to the basket as the receipt saves.
+   That is a setting (overflow menu → Settings, on by default) with a per-receipt switch on the
+   review screen, so a scan can also record prices and leave the list untouched.
+5. Saving stores the receipt and its priced lines, which is what fills the Prices tab.
 
 Anything the parser is unsure about stays empty or editable — it never invents a price.
 
@@ -88,10 +93,10 @@ The layout stays quiet so the list reads like paper:
 | Decision | Why |
 | --- | --- |
 | Warm off-white canvas, white cards, hairline borders | Paper-like; one green accent carries all meaning |
-| Large title, live count, segmented `To buy / History / Prices` | Three views of one list, one tap apart, no bottom navigation stealing thumb space |
+| Large title, live count, segmented `To buy / Basket / Prices` | Three views of one list, one tap apart, no bottom navigation stealing thumb space |
 | Add bar above the keyboard, focus retained | Shopping lists get filled in bursts |
 | Swipe right = advance, swipe left = delete | Colour-coded reveals teach the gesture; undo covers mistakes |
-| Day-grouped history | Answers "did we already buy this?" without timestamps |
+| Day-grouped basket | Answers "did we already buy this?" without timestamps |
 | Receipt review before saving | OCR is good, not perfect: confirm, don't trust blindly |
 | Update card inline, never a modal | An update should never interrupt a shopping trip |
 
@@ -224,6 +229,7 @@ These are cheap now and expensive once phones and a relay hold real data, so the
 | Sync payloads | self-describing, `"v": 1`; relay reports `protocol: 1` | a shipped client makes shape changes a compatibility problem |
 | Conflicts | last-write-wins on `updatedAt`, incoming wins ties | works offline; switching to server ordering later would need dual support |
 | Lists | one per device, though every row already carries `listId` | adding lists later means populating a column on live data |
+| Naming | the picked-up list is the **basket**; "history" only ever means price history | a screen name lives in every hint, message and screenshot, so it is hardest to change |
 | Duplicate names | merged on add (case/space only), not a DB constraint | a unique index would turn a simultaneous add on two phones into a sync failure |
 | Invite code | 8 chars, 32-symbol alphabet | changing it strands every code already shared |
 | Member token | 24 random bytes, hex | same |

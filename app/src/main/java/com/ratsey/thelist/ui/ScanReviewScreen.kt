@@ -79,7 +79,10 @@ fun ScanReviewScreen(
 
     BackHandler(onBack = onCancel)
 
-    val matchedCount = draft.lines.count { it.include && it.matchedItemId != null }
+    // Only list matches can move; a basket match is already where a swipe would have put it.
+    val matchedCount = draft.lines.count {
+        it.include && it.matchedItemId != null && !it.matchedFromBasket
+    }
 
     Surface(color = colors.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -342,6 +345,9 @@ private fun DraftLineRow(
                 )
                 Text(
                     text = when {
+                        line.matchedFromBasket ->
+                            stringResource(R.string.scan_matched_basket, line.matchedName.orEmpty())
+
                         line.matchedName != null -> stringResource(R.string.scan_matched, line.matchedName)
                         else -> stringResource(R.string.scan_no_match)
                     },

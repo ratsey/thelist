@@ -10,6 +10,10 @@ class ItemMatcherTest {
 
     private fun item(name: String) = Item(id = name, name = name)
 
+    private fun named(id: String, name: String) = Item(id = id, name = name)
+
+    private fun matchOnList(line: String) = ItemMatcher.match(line, emptyList(), list)?.item?.name
+
     private val list = listOf(
         item("Milk"),
         item("Eggs"),
@@ -21,21 +25,54 @@ class ItemMatcherTest {
 
     @Test
     fun `matches noisy receipt names to short list items`() {
-        assertEquals("Milk", ItemMatcher.match("TESCO SEMI SKIMMED MILK 2L", list)?.name)
-        assertEquals("Eggs", ItemMatcher.match("FREE RANGE EGGS 6PK", list)?.name)
-        assertEquals("Bananas", ItemMatcher.match("BANANAS 1KG", list)?.name)
-        assertEquals("Chicken", ItemMatcher.match("CHICKEN BREAST FILLETS 500G", list)?.name)
+        assertEquals("Milk", matchOnList("TESCO SEMI SKIMMED MILK 2L"))
+        assertEquals("Eggs", matchOnList("FREE RANGE EGGS 6PK"))
+        assertEquals("Bananas", matchOnList("BANANAS 1KG"))
+        assertEquals("Chicken", matchOnList("CHICKEN BREAST FILLETS 500G"))
     }
 
     @Test
     fun `multiplies quantity lines still match`() {
-        assertEquals("Milk", ItemMatcher.match("MILK  2 @ 1.20", list)?.name)
+        assertEquals("Milk", matchOnList("MILK  2 @ 1.20"))
     }
 
     @Test
     fun `does not match unrelated products`() {
-        assertNull(ItemMatcher.match("WASHING UP LIQUID", list))
-        assertNull(ItemMatcher.match("BREADED HAM", list))
+        assertNull(ItemMatcher.match("WASHING UP LIQUID", emptyList(), list))
+        assertNull(ItemMatcher.match("BREADED HAM", emptyList(), list))
+    }
+
+    @Test
+    fun `prefers what the shopper already swiped`() {
+        val matched = ItemMatcher.match(
+            "TESCO BREAD 800G",
+            basket = listOf(named("basket-bread", "Bread")),
+            list = listOf(named("list-bread", "Bread")),
+        )
+        assertEquals(ItemMatcher.Source.Basket, matched?.source)
+        assertEquals("basket-bread", matched?.item?.id)
+    }
+
+    @Test
+    fun `basket wins even when the list reads closer`() {
+        val matched = ItemMatcher.match(
+            "TESCO SEMI SKIMMED MILK 2L",
+            basket = listOf(named("basket-milk", "Milk")),
+            list = listOf(named("list-milk", "Semi skimmed milk")),
+        )
+        assertEquals(ItemMatcher.Source.Basket, matched?.source)
+        assertEquals("basket-milk", matched?.item?.id)
+    }
+
+    @Test
+    fun `falls back to the list when nothing has been swiped`() {
+        val matched = ItemMatcher.match(
+            "TESCO BREAD 800G",
+            basket = emptyList(),
+            list = listOf(named("list-bread", "Bread")),
+        )
+        assertEquals(ItemMatcher.Source.List, matched?.source)
+        assertEquals("list-bread", matched?.item?.id)
     }
 
     @Test

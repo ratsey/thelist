@@ -3,23 +3,23 @@
     <string name="app_name">The List</string>
     <string name="list_name">Groceries</string>
     <string name="tab_to_buy">To buy</string>
-    <string name="tab_history">History</string>
+    <string name="tab_basket">Basket</string>
 
     <string name="add_item_hint">Add an item</string>
     <string name="add_item">Add item</string>
 
     <string name="empty_active_title">Your list is empty</string>
-    <string name="empty_active_body">Add what you need below. When you\'ve got something, swipe it right and it moves to History.</string>
-    <string name="empty_history_title">Nothing picked up yet</string>
-    <string name="empty_history_body">Swipe an item on your list once you\'ve got it. It waits here so you can add it back next time.</string>
+    <string name="empty_active_body">Add what you need below. When you\'ve got something, swipe it right and it moves to your basket.</string>
+    <string name="empty_basket_title">Nothing in your basket yet</string>
+    <string name="empty_basket_body">Swipe an item once you\'ve got it. It waits here so you can add it back next time.</string>
     <string name="empty_subtitle">Nothing to pick up</string>
 
-    <string name="swipe_hint">Swipe an item right when you\'ve got it — it moves to History.</string>
+    <string name="swipe_hint">Swipe an item right when you\'ve got it — it moves to your basket.</string>
     <string name="swipe_got_it">Got it</string>
     <string name="swipe_add_back">Add back</string>
     <string name="swipe_delete">Delete</string>
 
-    <string name="action_move_to_history">Move to History</string>
+    <string name="action_move_to_basket">Move to basket</string>
     <string name="action_add_back">Add back to the list</string>
     <string name="action_rename">Rename</string>
     <string name="action_delete">Delete</string>
@@ -29,12 +29,17 @@
     <string name="action_undo">Undo</string>
 
     <string name="menu_check_updates">Check for updates</string>
-    <string name="menu_clear_history">Clear history</string>
+    <string name="menu_clear_basket">Clear basket</string>
+    <string name="menu_settings">Settings</string>
     <string name="menu_about">About</string>
 
-    <string name="clear_history_title">Clear history?</string>
-    <string name="clear_history_body">Every item in History is removed. Your current list stays as it is.</string>
-    <string name="clear_history_confirm">Clear</string>
+    <string name="clear_basket_title">Clear basket?</string>
+    <string name="clear_basket_body">Every item in your basket is removed. Your current list stays as it is.</string>
+    <string name="clear_basket_confirm">Clear</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_scan_moves">Move matched items to your basket</string>
+    <string name="settings_scan_moves_body">When a scanned receipt matches something still on your list, it counts as bought and moves to your basket, the way swiping it would. Turn this off to record prices only and leave the list alone.</string>
 
     <string name="rename_title">Rename item</string>
 
@@ -65,10 +70,10 @@
     <string name="msg_added">Added to the list</string>
     <string name="msg_already_listed">Already on your list</string>
     <string name="msg_readded">Back on the list</string>
-    <string name="msg_moved_history">Moved to History</string>
+    <string name="msg_moved_basket">Moved to your basket</string>
     <string name="msg_moved_active">Back on the list</string>
     <string name="msg_deleted">Deleted</string>
-    <string name="msg_history_cleared">History cleared</string>
+    <string name="msg_basket_cleared">Basket cleared</string>
     <string name="msg_renamed">Renamed</string>
 
     <string name="section_today">Today</string>
@@ -87,8 +92,8 @@
     <string name="scan_date">Date</string>
     <string name="scan_total">Total</string>
     <string name="scan_items">Items</string>
-    <string name="scan_mark_bought">Mark matched items as bought</string>
-    <string name="scan_mark_bought_count">Mark %1$d matched as bought</string>
+    <string name="scan_mark_bought">Move matched items to your basket</string>
+    <string name="scan_mark_bought_count">Move %1$d matched to your basket</string>
     <string name="scan_save">Save receipt</string>
     <string name="scan_saved">Receipt saved to price history</string>
     <string name="scan_edit_line">Edit item</string>
@@ -96,6 +101,7 @@
     <string name="scan_quantity">Qty</string>
     <string name="scan_unit_price">Price</string>
     <string name="scan_matched">Matches “%1$s”</string>
+    <string name="scan_matched_basket">Already in your basket · “%1$s”</string>
     <string name="scan_no_match">Not on your list</string>
     <string name="scan_edit_date">Change date</string>
     <string name="scan_done">Done</string>
@@ -150,8 +156,8 @@
         <item quantity="one">%d item to pick up</item>
         <item quantity="other">%d items to pick up</item>
     </plurals>
-    <plurals name="history_count">
-        <item quantity="one">%d item picked up</item>
-        <item quantity="other">%d items picked up</item>
+    <plurals name="basket_count">
+        <item quantity="one">%d item in your basket</item>
+        <item quantity="other">%d items in your basket</item>
     </plurals>
 </resources>

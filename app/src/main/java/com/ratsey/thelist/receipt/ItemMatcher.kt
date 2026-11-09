@@ -22,6 +22,11 @@ object ItemMatcher {
         "double", "premium", "classic", "original", "new",
     )
 
+    /** Which side of the shop a line was matched from. */
+    enum class Source { Basket, List }
+
+    data class Match(val item: Item, val source: Source)
+
     /** Stable product identity used for price history. */
     fun productKey(name: String): String =
         tokenize(name).sorted().joinToString("-").ifBlank { name.lowercase(Locale.UK).trim() }
@@ -34,7 +39,21 @@ object ItemMatcher {
             .map { token -> if (token.length > 3 && token.endsWith("s")) token.dropLast(1) else token }
             .distinct()
 
-    fun match(lineName: String, items: List<Item>): Item? {
+    /**
+     * Matches a receipt line against the basket first, then the list.
+     *
+     * Swiping is the shopper saying "I picked this up", which is a far stronger signal than a
+     * name that merely happens to be on the list — so it wins even when both would score. The
+     * two pools never share a row (an item lives in one place at a time), so this only decides
+     * which *other* item a line is allowed to claim.
+     */
+    fun match(lineName: String, basket: List<Item>, list: List<Item>): Match? {
+        best(lineName, basket)?.let { return Match(it, Source.Basket) }
+        best(lineName, list)?.let { return Match(it, Source.List) }
+        return null
+    }
+
+    private fun best(lineName: String, items: List<Item>): Item? {
         val lineTokens = tokenize(lineName).toSet()
         if (lineTokens.isEmpty()) return null
 

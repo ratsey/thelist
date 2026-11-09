@@ -61,7 +61,7 @@ import com.ratsey.thelist.data.Item
 @Composable
 fun ItemRow(
     item: Item,
-    inHistory: Boolean,
+    inBasket: Boolean,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
     onOpenActions: () -> Unit,
@@ -93,13 +93,13 @@ fun ItemRow(
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier.clip(RoundedCornerShape(18.dp)),
-        backgroundContent = { SwipeReveal(dismissState.dismissDirection, inHistory) },
+        backgroundContent = { SwipeReveal(dismissState.dismissDirection, inBasket) },
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
     ) {
         ItemCard(
             item = item,
-            inHistory = inHistory,
+            inBasket = inBasket,
             onToggle = onToggle,
             onOpenActions = onOpenActions,
         )
@@ -110,7 +110,7 @@ fun ItemRow(
 @Composable
 private fun ItemCard(
     item: Item,
-    inHistory: Boolean,
+    inBasket: Boolean,
     onToggle: () -> Unit,
     onOpenActions: () -> Unit,
 ) {
@@ -161,7 +161,7 @@ private fun ToggleCircle(completed: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val progress by animateFloatAsState(if (completed) 1f else 0f, label = "checkProgress")
     val label = stringResource(
-        if (completed) R.string.action_add_back else R.string.action_move_to_history,
+        if (completed) R.string.action_add_back else R.string.action_move_to_basket,
     )
 
     Box(
@@ -204,7 +204,7 @@ private fun ToggleCircle(completed: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SwipeReveal(direction: SwipeToDismissBoxValue, inHistory: Boolean) {
+private fun SwipeReveal(direction: SwipeToDismissBoxValue, inBasket: Boolean) {
     val colors = MaterialTheme.colorScheme
     val isDelete = direction == SwipeToDismissBoxValue.EndToStart
     val isMove = direction == SwipeToDismissBoxValue.StartToEnd
@@ -214,7 +214,7 @@ private fun SwipeReveal(direction: SwipeToDismissBoxValue, inHistory: Boolean) {
     val contentColor = if (isDelete) colors.onError else colors.onPrimary
     val label = when {
         isDelete -> stringResource(R.string.swipe_delete)
-        inHistory -> stringResource(R.string.swipe_add_back)
+        inBasket -> stringResource(R.string.swipe_add_back)
         else -> stringResource(R.string.swipe_got_it)
     }
 

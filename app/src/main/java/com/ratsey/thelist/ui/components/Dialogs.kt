@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -81,7 +82,7 @@ fun ItemActionsSheet(
             SheetAction(
                 icon = if (item.completedAt == null) Icons.Rounded.Check else Icons.Rounded.Add,
                 label = stringResource(
-                    if (item.completedAt == null) R.string.action_move_to_history else R.string.action_add_back,
+                    if (item.completedAt == null) R.string.action_move_to_basket else R.string.action_add_back,
                 ),
                 onClick = onToggle,
             )
@@ -160,6 +161,40 @@ fun RenameDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/** The only user choice so far: whether a scanned receipt clears the list as it saves. */
+@Composable
+fun SettingsDialog(
+    scanMovesItems: Boolean,
+    onScanMovesChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_title)) },
+        text = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_scan_moves),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.settings_scan_moves_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Switch(checked = scanMovesItems, onCheckedChange = onScanMovesChange)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         },
     )
 }
