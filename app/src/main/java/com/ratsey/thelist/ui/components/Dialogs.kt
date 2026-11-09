@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
@@ -55,6 +56,7 @@ fun ItemActionsSheet(
     onDismiss: () -> Unit,
     onToggle: () -> Unit,
     onRename: () -> Unit,
+    onPutAway: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -90,6 +92,11 @@ fun ItemActionsSheet(
                 icon = Icons.Rounded.Edit,
                 label = stringResource(R.string.action_rename),
                 onClick = onRename,
+            )
+            SheetAction(
+                icon = Icons.Rounded.Archive,
+                label = stringResource(R.string.action_put_away),
+                onClick = onPutAway,
             )
             SheetAction(
                 icon = Icons.Rounded.Delete,

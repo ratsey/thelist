@@ -11,8 +11,8 @@ import java.util.UUID
  *
  * - on the list, [completedAt] null: still to buy;
  * - on the list, [completedAt] set: picked up, waiting in the basket;
- * - off the list, [onList] false: a **usual**, the background record of something bought before
- *   so it can go back on the list in one tap instead of being retyped.
+ * - off the list, [onList] false: on the **shelf**, kept but not being bought now, so it can go
+ *   back on the list in one tap instead of being retyped.
  *
  * One flag plus one timestamp rather than three tables, so moving between the states is a single
  * row update that syncs like any other edit. [deletedAt] is a tombstone so deletions travel to
@@ -31,9 +31,9 @@ data class Item(
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
     /**
-     * True while the item belongs to the shopping list; false once it has been cleared from the
-     * basket and kept as a usual. Defaulted in the schema so the v2 → v3 migration is one
-     * `ALTER TABLE` and existing rows stay on the list.
+     * True while the item belongs to the shopping list; false once it has been put away, whether
+     * by swiping it left or by clearing the basket. Defaulted in the schema so the v2 → v3
+     * migration is one `ALTER TABLE` and existing rows stay on the list.
      */
     @ColumnInfo(defaultValue = "1") val onList: Boolean = true,
 ) {

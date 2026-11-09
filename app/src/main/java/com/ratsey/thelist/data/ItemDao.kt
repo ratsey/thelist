@@ -21,12 +21,12 @@ interface ItemDao {
     )
     fun observeBasket(listId: String): Flow<List<Item>>
 
-    /** The background list: bought before, off the list now, alphabetical so it can be scanned. */
+    /** The shelf: off the list but kept, alphabetical so it can be scanned. */
     @Query(
         "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 0 " +
             "ORDER BY name COLLATE NOCASE ASC",
     )
-    fun observeUsuals(listId: String): Flow<List<Item>>
+    fun observeShelf(listId: String): Flow<List<Item>>
 
     @Query("SELECT * FROM items WHERE id = :id")
     suspend fun byId(id: String): Item?
@@ -78,11 +78,11 @@ interface ItemDao {
     @Query("UPDATE items SET completedAt = NULL, updatedAt = :now WHERE id = :id")
     suspend fun restore(id: String, now: Long)
 
-    /** Clears an item off the list into usuals without deleting it. */
+    /** Takes an item off the list onto the shelf without deleting it. */
     @Query("UPDATE items SET onList = 0, updatedAt = :now WHERE id = :id")
     suspend fun archive(id: String, now: Long)
 
-    /** Puts a usual back on the list, reusing the row so its name and history stay put. */
+    /** Puts a shelf row back on the list, reusing it so its name and history stay put. */
     @Query("UPDATE items SET onList = 1, completedAt = NULL, updatedAt = :now WHERE id = :id")
     suspend fun bringBack(id: String, now: Long)
 

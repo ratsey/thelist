@@ -22,7 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun syncDao(): SyncDao
 
     companion object {
-        /** v3 added the usuals flag; everything before that is still a reset, since it never shipped. */
+        /** v3 added the shelf flag; everything before that is still a reset, since it never shipped. */
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE items ADD COLUMN onList INTEGER NOT NULL DEFAULT 1")

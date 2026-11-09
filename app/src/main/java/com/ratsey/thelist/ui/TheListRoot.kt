@@ -50,7 +50,7 @@ import com.ratsey.thelist.ui.components.RenameDialog
 import com.ratsey.thelist.ui.components.SettingsDialog
 import com.ratsey.thelist.ui.components.ShoppingList
 import com.ratsey.thelist.ui.components.SyncDialog
-import com.ratsey.thelist.ui.components.UsualsSheet
+import com.ratsey.thelist.ui.components.ShelfSheet
 import java.io.File
 
 private const val TAB_TO_BUY = 0
@@ -61,7 +61,7 @@ private const val TAB_PRICES = 2
 fun TheListRoot(viewModel: ListViewModel) {
     val activeItems by viewModel.activeItems.collectAsStateWithLifecycle()
     val basketItems by viewModel.basketItems.collectAsStateWithLifecycle()
-    val usualsItems by viewModel.usualsItems.collectAsStateWithLifecycle()
+    val shelfItems by viewModel.shelfItems.collectAsStateWithLifecycle()
     val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
     val productDetail by viewModel.productDetail.collectAsStateWithLifecycle()
     val scanState by viewModel.scan.collectAsStateWithLifecycle()
@@ -80,7 +80,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     var renameTarget by remember { mutableStateOf<Item?>(null) }
     var confirmClearBasket by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
-    var showUsuals by remember { mutableStateOf(false) }
+    var showShelf by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showSync by remember { mutableStateOf(false) }
     var pendingPhotoPath by remember { mutableStateOf<String?>(null) }
@@ -157,7 +157,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                             addFocusRequester.requestFocus()
                         }
                     },
-                    onOpenUsuals = { showUsuals = true },
+                    onOpenShelf = { showShelf = true },
                     focusRequester = addFocusRequester,
                 )
             }
@@ -183,7 +183,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                     onTabSelected = { selectedTab = it },
                     onCheckForUpdates = { viewModel.checkForUpdates(userInitiated = true) },
                     onClearBasket = { confirmClearBasket = true },
-                    onOpenUsuals = { showUsuals = true },
+                    onOpenShelf = { showShelf = true },
                     onOpenSettings = { showSettings = true },
                     onAbout = { showAbout = true },
                     onStartUpdate = viewModel::startUpdate,
@@ -209,7 +209,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                             items = activeItems,
                             showHint = hintVisible && basketItems.isEmpty() && activeItems.isNotEmpty(),
                             onToggle = viewModel::move,
-                            onDelete = viewModel::delete,
+                            onPutAway = viewModel::putAway,
                             onOpenActions = { actionSheetItem = it },
                             onDismissHint = viewModel::dismissHint,
                         )
@@ -217,7 +217,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                         TAB_BASKET -> BasketList(
                             items = basketItems,
                             onToggle = viewModel::move,
-                            onDelete = viewModel::delete,
+                            onPutAway = viewModel::putAway,
                             onOpenActions = { actionSheetItem = it },
                         )
 
@@ -242,6 +242,10 @@ fun TheListRoot(viewModel: ListViewModel) {
             onRename = {
                 actionSheetItem = null
                 renameTarget = item
+            },
+            onPutAway = {
+                viewModel.putAway(item)
+                actionSheetItem = null
             },
             onDelete = {
                 viewModel.delete(item)
@@ -284,12 +288,12 @@ fun TheListRoot(viewModel: ListViewModel) {
         )
     }
 
-    if (showUsuals) {
-        UsualsSheet(
-            items = usualsItems,
-            onAdd = viewModel::addFromUsuals,
-            onForget = viewModel::forgetUsual,
-            onDismiss = { showUsuals = false },
+    if (showShelf) {
+        ShelfSheet(
+            items = shelfItems,
+            onAdd = viewModel::addFromShelf,
+            onDelete = viewModel::deleteFromShelf,
+            onDismiss = { showShelf = false },
         )
     }
 

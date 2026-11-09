@@ -56,7 +56,7 @@ fun HomeHeader(
     onTabSelected: (Int) -> Unit,
     onCheckForUpdates: () -> Unit,
     onClearBasket: () -> Unit,
-    onOpenUsuals: () -> Unit,
+    onOpenShelf: () -> Unit,
     onOpenSettings: () -> Unit,
     onAbout: () -> Unit,
     onStartUpdate: () -> Unit,
@@ -144,10 +144,10 @@ fun HomeHeader(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.usuals_open)) },
+                        text = { Text(stringResource(R.string.shelf_open)) },
                         onClick = {
                             menuOpen = false
-                            onOpenUsuals()
+                            onOpenShelf()
                         },
                     )
                     DropdownMenuItem(
@@ -203,7 +203,7 @@ fun ShoppingList(
     items: List<Item>,
     showHint: Boolean,
     onToggle: (Item) -> Unit,
-    onDelete: (Item) -> Unit,
+    onPutAway: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     onDismissHint: () -> Unit,
     modifier: Modifier = Modifier,
@@ -233,7 +233,7 @@ fun ShoppingList(
                 item = item,
                 inBasket = false,
                 onToggle = { onToggle(item) },
-                onDelete = { onDelete(item) },
+                onPutAway = { onPutAway(item) },
                 onOpenActions = { onOpenActions(item) },
                 modifier = Modifier.animateItem(),
             )
@@ -245,7 +245,7 @@ fun ShoppingList(
 fun BasketList(
     items: List<Item>,
     onToggle: (Item) -> Unit,
-    onDelete: (Item) -> Unit,
+    onPutAway: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -281,7 +281,7 @@ fun BasketList(
                     item = item,
                     inBasket = true,
                     onToggle = { onToggle(item) },
-                    onDelete = { onDelete(item) },
+                    onPutAway = { onPutAway(item) },
                     onOpenActions = { onOpenActions(item) },
                     modifier = Modifier.animateItem(),
                 )

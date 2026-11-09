@@ -17,7 +17,7 @@ class ItemRepository(private val db: AppDatabase) {
 
     fun observeBasket(): Flow<List<Item>> = dao.observeBasket(Item.DEFAULT_LIST_ID)
 
-    fun observeUsuals(): Flow<List<Item>> = dao.observeUsuals(Item.DEFAULT_LIST_ID)
+    fun observeShelf(): Flow<List<Item>> = dao.observeShelf(Item.DEFAULT_LIST_ID)
 
     /** What an add actually did, so the UI can say "already on your list" instead of nothing. */
     enum class AddOutcome { Added, Readded, AlreadyListed }
@@ -33,7 +33,7 @@ class ItemRepository(private val db: AppDatabase) {
         val now = System.currentTimeMillis()
         val existing = dao.findByName(Item.DEFAULT_LIST_ID, ItemNames.key(trimmed))
 
-        // A usual is off the list with no completion time, so the state check needs both flags.
+        // A shelf row is off the list with no completion time, so the check needs both flags.
         if (existing != null && existing.onList && existing.completedAt == null) {
             return AddOutcome.AlreadyListed
         }
@@ -100,9 +100,9 @@ class ItemRepository(private val db: AppDatabase) {
     }
 
     /**
-     * Empties the basket into usuals instead of deleting it: what you just bought is next week's
-     * list, and the row already knows how you spell it and what it cost. Returns the rows as they
-     * were, so the clear can be undone.
+     * Empties the basket onto the shelf instead of deleting it: what you just bought is next
+     * week's list, and the row already knows how you spell it and what it cost. Returns the rows
+     * as they were, so the clear can be undone.
      */
     suspend fun clearBasket(): List<Item> {
         val bought = dao.basketSnapshot(Item.DEFAULT_LIST_ID)
@@ -117,7 +117,17 @@ class ItemRepository(private val db: AppDatabase) {
         return bought
     }
 
-    /** A usual tapped in the sheet: back on the list, to buy, same row. */
+    /** Swipe left on either list: off the list, but the row keeps its name, prices and id. */
+    suspend fun putAway(item: Item) {
+        val now = System.currentTimeMillis()
+        val updated = item.copy(onList = false, updatedAt = now)
+        db.withTransaction {
+            dao.archive(item.id, now)
+            enqueue(updated)
+        }
+    }
+
+    /** A shelf row tapped in the sheet: back on the list, to buy, same row. */
     suspend fun bringBack(item: Item) {
         val now = System.currentTimeMillis()
         val updated = item.copy(onList = true, completedAt = null, updatedAt = now)

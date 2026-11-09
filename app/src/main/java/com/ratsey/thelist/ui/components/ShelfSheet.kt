@@ -50,16 +50,17 @@ import com.ratsey.thelist.data.Item
 import java.util.Locale
 
 /**
- * The background list of things bought before. Tapping a name puts it straight back on the list
- * (and leaves the sheet open, because filling a list is a burst of tapping); swiping one left
- * forgets it, which is a real delete.
+ * The shelf: everything off the list but kept. Tapping a name puts it straight back on the list
+ * and leaves the sheet open, because filling a list is a burst of tapping. Swiping one left
+ * deletes it for good — the one destructive swipe in the app, which is what lets every swipe on
+ * the list and basket be safe to try.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UsualsSheet(
+fun ShelfSheet(
     items: List<Item>,
     onAdd: (Item) -> Unit,
-    onForget: (Item) -> Unit,
+    onDelete: (Item) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -87,7 +88,7 @@ fun UsualsSheet(
                 .padding(bottom = 20.dp),
         ) {
             Text(
-                text = stringResource(R.string.usuals_title),
+                text = stringResource(R.string.shelf_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 24.dp),
@@ -95,9 +96,9 @@ fun UsualsSheet(
             Spacer(Modifier.height(2.dp))
             Text(
                 text = if (items.isEmpty()) {
-                    stringResource(R.string.usuals_subtitle)
+                    stringResource(R.string.shelf_subtitle)
                 } else {
-                    pluralStringResource(R.plurals.usuals_count, items.size, items.size)
+                    pluralStringResource(R.plurals.shelf_count, items.size, items.size)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -108,13 +109,13 @@ fun UsualsSheet(
             if (items.isEmpty()) {
                 Column(Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
                     Text(
-                        text = stringResource(R.string.usuals_empty_title),
+                        text = stringResource(R.string.shelf_empty_title),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = stringResource(R.string.usuals_empty_body),
+                        text = stringResource(R.string.shelf_empty_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -124,7 +125,7 @@ fun UsualsSheet(
                     value = filter,
                     onValueChange = { filter = it },
                     singleLine = true,
-                    placeholder = { Text(stringResource(R.string.usuals_filter)) },
+                    placeholder = { Text(stringResource(R.string.shelf_filter)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 4.dp),
@@ -133,7 +134,7 @@ fun UsualsSheet(
 
                 if (shown.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.usuals_no_matches),
+                        text = stringResource(R.string.shelf_no_matches),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
@@ -147,10 +148,10 @@ fun UsualsSheet(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         items(shown, key = { it.id }) { item ->
-                            UsualRow(
+                            ShelfRow(
                                 name = item.name,
                                 onAdd = { onAdd(item) },
-                                onForget = { onForget(item) },
+                                onDelete = { onDelete(item) },
                                 modifier = Modifier.animateItem(),
                             )
                         }
@@ -163,16 +164,16 @@ fun UsualsSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UsualRow(
+private fun ShelfRow(
     name: String,
     onAdd: () -> Unit,
-    onForget: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
-                onForget()
+                onDelete()
                 true
             } else {
                 false
@@ -203,7 +204,7 @@ private fun UsualRow(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.usuals_forget),
+                    text = stringResource(R.string.swipe_delete),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
@@ -231,7 +232,7 @@ private fun UsualRow(
                 )
                 Icon(
                     imageVector = Icons.Rounded.Add,
-                    contentDescription = stringResource(R.string.usuals_add, name),
+                    contentDescription = stringResource(R.string.shelf_add, name),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )

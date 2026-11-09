@@ -5,12 +5,12 @@ scanner that turns a photo into price history.
 
 - **To buy** — everything you still need.
 - **Basket** — everything you have already picked up.
-- **Usuals** — everything you have bought before, off the list and one tap away.
+- **Shelf** — everything off the list but kept, one tap away.
 - **Prices** — every price you have paid for each item, as a list or a chart.
 
-Swipe a row right to move it to the other list (or tap its circle). Swipe left to delete, with
-undo. Tap a row for rename and delete. Tap the camera to scan a receipt. Tap the bookmark by the
-add bar to fill the list from what you bought last time.
+Swipe a row right to move it to the other list (or tap its circle); swipe left to put it away on
+the shelf. Tap a row for rename, put away and delete. Tap the camera to scan a receipt. Tap the
+bookmark beside the add bar to fill the list from what you kept.
 
 Native Android: Kotlin, Jetpack Compose, Material 3, Room, ML Kit. No account, no Play
 Services, no cloud you did not choose.
@@ -38,21 +38,30 @@ OCR runs fully offline, which is why the APK is ~45 MB: ML Kit's recognition mod
 once per CPU architecture inside the app rather than being downloaded from Play Services.
 Per-ABI split APKs (roughly 11–18 MB each) are the obvious next size win.
 
-## Usuals
+## Shelf
 
-Clearing the basket throws nothing away: every item in it moves to **usuals**, the background
-list of things you have bought before. The bookmark beside the add bar (also in the menu) opens
-it — tap a name to put it straight back on the list, or swipe one left to forget it.
+Right is on, left is off.
 
-That is the whole point of a third state. Next week's list is mostly last week's, the row already
-knows how you spell the name and what the thing cost, and it comes back as the same item rather
-than a second "milk". No categorising, no saving step: the shop you just did is the shortlist.
+| where | swipe right | swipe left |
+|---|---|---|
+| To buy | into the basket | put away on the shelf |
+| Basket | back on the list | put away on the shelf |
+| Shelf | — | delete |
 
-Underneath it is still one `items` row: `onList = false` means a usual, `onList` with
+Putting away is not deleting: the item leaves the list but keeps its row, its spelling and its
+price history, and waits on **shelf** for next time. Clearing the basket moves its rows there too,
+so the shelf fills itself from ordinary shopping — next week's list is mostly last week's.
+
+The bookmark beside the add bar (also in the menu) opens it. Tap a name to put it straight back on
+the list, or swipe one left to delete it for good. That is the trade the gestures make: because
+nothing you swipe on the list or the basket is destroyed, a mis-swipe costs one tap to undo, and a
+typo is removed deliberately — from the shelf, or from an item's own menu, which keeps a real
+"Delete" for the mistake you have only just typed.
+
+Underneath it is still one `items` row: `onList = false` means the shelf, `onList` with
 `completedAt` set means the basket, `onList` with no `completedAt` means to buy. One flag and one
 timestamp instead of three tables, so every move is a single row update that syncs like any other
-edit. Adding a name that is already saved as a usual revives that row rather than creating a new
-one, and forgetting a usual is a real delete with undo, so the list can be pruned.
+edit. Adding a name already on the shelf revives that row rather than creating a second "milk".
 
 Because `onList` arrived after the first schema, it is an added column with a default of `1`:
 the v2 → v3 migration is one `ALTER TABLE`, and a sync payload that predates the flag is read as
@@ -251,8 +260,8 @@ These are cheap now and expensive once phones and a relay hold real data, so the
 | Sync payloads | self-describing, `"v": 1`; relay reports `protocol: 1` | a shipped client makes shape changes a compatibility problem |
 | Conflicts | last-write-wins on `updatedAt`, incoming wins ties | works offline; switching to server ordering later would need dual support |
 | Lists | one per device, though every row already carries `listId` | adding lists later means populating a column on live data |
-| Naming | the picked-up list is the **basket**; "history" only ever means price history | a screen name lives in every hint, message and screenshot, so it is hardest to change |
-| Usuals | clearing the basket archives its rows instead of deleting them | the spelling and the price history follow the row, not a copied name |
+| Naming | the picked-up list is the **basket**, the kept list is the **shelf**; "history" only ever means price history | a screen name lives in every hint, message and screenshot, so it is hardest to change |
+| Shelf | clearing the basket and swiping left both archive the row instead of deleting it | the spelling and the price history follow the row, not a copied name |
 | Duplicate names | merged on add (case/space only), not a DB constraint | a unique index would turn a simultaneous add on two phones into a sync failure |
 | Invite code | 8 chars, 32-symbol alphabet | changing it strands every code already shared |
 | Member token | 24 random bytes, hex | same |

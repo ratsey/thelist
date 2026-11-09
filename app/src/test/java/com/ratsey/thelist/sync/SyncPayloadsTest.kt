@@ -118,8 +118,8 @@ class SyncPayloadsTest {
     }
 
     @Test
-    fun `a usual stays off the list across the wire`() {
-        val usual = Item(
+    fun `a shelved item stays off the list across the wire`() {
+        val shelved = Item(
             id = "item-3",
             name = "Milk",
             completedAt = 2_000L,
@@ -127,14 +127,14 @@ class SyncPayloadsTest {
             onList = false,
         )
 
-        val decoded = SyncPayloads.itemFromJson(SyncPayloads.itemJson(usual))
+        val decoded = SyncPayloads.itemFromJson(SyncPayloads.itemJson(shelved))
 
         assertFalse(decoded.onList)
-        assertEquals(usual, decoded)
+        assertEquals(shelved, decoded)
     }
 
     @Test
-    fun `a payload without the usuals flag is on the list`() {
+    fun `a payload without the shelf flag is on the list`() {
         val json = JSONObject(SyncPayloads.itemJson(Item(id = "i", name = "Milk")))
         json.remove("onList")
 

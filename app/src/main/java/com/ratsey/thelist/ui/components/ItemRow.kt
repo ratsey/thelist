@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -54,8 +54,9 @@ import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
 
 /**
- * One row: swipe right to move the item to the other list, swipe left to delete,
- * tap the circle to move it, tap the row for rename/delete.
+ * One row: right is on, left is off. Swipe right to move the item to the other list, swipe left to
+ * put it away on the shelf; both are reversible, so no swipe here can lose anything. Tap the circle
+ * to move it, tap the row for rename, put away and delete.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,7 +64,7 @@ fun ItemRow(
     item: Item,
     inBasket: Boolean,
     onToggle: () -> Unit,
-    onDelete: () -> Unit,
+    onPutAway: () -> Unit,
     onOpenActions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -80,7 +81,7 @@ fun ItemRow(
 
                 SwipeToDismissBoxValue.EndToStart -> {
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onDelete()
+                    onPutAway()
                     true
                 }
 
@@ -206,14 +207,16 @@ private fun ToggleCircle(completed: Boolean, onClick: () -> Unit) {
 @Composable
 private fun SwipeReveal(direction: SwipeToDismissBoxValue, inBasket: Boolean) {
     val colors = MaterialTheme.colorScheme
-    val isDelete = direction == SwipeToDismissBoxValue.EndToStart
+    val isAway = direction == SwipeToDismissBoxValue.EndToStart
     val isMove = direction == SwipeToDismissBoxValue.StartToEnd
-    if (!isDelete && !isMove) return
+    if (!isAway && !isMove) return
 
-    val background = if (isDelete) colors.error else colors.primary
-    val contentColor = if (isDelete) colors.onError else colors.onPrimary
+    // Nothing here is destructive: the left gesture files the item on the shelf, so it stays a
+    // neutral surface colour rather than the error red a delete would earn.
+    val background = if (isAway) colors.secondaryContainer else colors.primary
+    val contentColor = if (isAway) colors.onSecondaryContainer else colors.onPrimary
     val label = when {
-        isDelete -> stringResource(R.string.swipe_delete)
+        isAway -> stringResource(R.string.swipe_put_away)
         inBasket -> stringResource(R.string.swipe_add_back)
         else -> stringResource(R.string.swipe_got_it)
     }
@@ -224,13 +227,13 @@ private fun SwipeReveal(direction: SwipeToDismissBoxValue, inBasket: Boolean) {
             .background(background)
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (isDelete) Arrangement.End else Arrangement.Start,
+        horizontalArrangement = if (isAway) Arrangement.End else Arrangement.Start,
     ) {
-        if (isDelete) {
+        if (isAway) {
             Text(label, color = contentColor, style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.width(8.dp))
             Icon(
-                imageVector = Icons.Rounded.Delete,
+                imageVector = Icons.Rounded.Archive,
                 contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(20.dp),

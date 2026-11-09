@@ -115,8 +115,8 @@ class ListViewModel(
     val basketItems: StateFlow<List<Item>> = repository.observeBasket()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    /** The background list of things bought before, off the list and one tap from going back. */
-    val usualsItems: StateFlow<List<Item>> = repository.observeUsuals()
+    /** Everything off the list but kept: one tap from going back on it. */
+    val shelfItems: StateFlow<List<Item>> = repository.observeShelf()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Whether a scan moves the items it matched out of the list. Set by the user in Settings. */
@@ -169,6 +169,7 @@ class ListViewModel(
     private sealed interface Undo {
         data class Moved(val item: Item, val nowActive: Boolean) : Undo
         data class Deleted(val item: Item) : Undo
+        data class PutAway(val item: Item) : Undo
         data class ClearedBasket(val items: List<Item>) : Undo
     }
 
@@ -244,7 +245,7 @@ class ListViewModel(
         }
     }
 
-    fun addFromUsuals(item: Item) {
+    fun addFromShelf(item: Item) {
         viewModelScope.launch {
             repository.bringBack(item)
             _hintVisible.value = false
@@ -253,12 +254,22 @@ class ListViewModel(
         }
     }
 
-    /** Forgetting is a real delete: usuals only grow, so there has to be a way to prune them. */
-    fun forgetUsual(item: Item) {
+    /** The only delete the sheet offers: the shelf is where rows accumulate, so it prunes. */
+    fun deleteFromShelf(item: Item) {
         viewModelScope.launch {
             repository.delete(item)
             lastUndo = Undo.Deleted(item)
-            _messages.send(UiMessage(R.string.msg_forgotten, undoable = true))
+            _messages.send(UiMessage(R.string.msg_deleted, undoable = true))
+            scheduleSync()
+        }
+    }
+
+    /** Swiping left on either list: nothing is lost, the row just steps off the list. */
+    fun putAway(item: Item) {
+        viewModelScope.launch {
+            repository.putAway(item)
+            lastUndo = Undo.PutAway(item)
+            _messages.send(UiMessage(R.string.msg_put_away, undoable = true))
             scheduleSync()
         }
     }
@@ -272,6 +283,7 @@ class ListViewModel(
                     if (undo.nowActive) repository.restore(undo.item) else repository.complete(undo.item)
 
                 is Undo.Deleted -> repository.restoreAll(listOf(undo.item))
+                is Undo.PutAway -> repository.restoreAll(listOf(undo.item))
                 is Undo.ClearedBasket -> repository.restoreAll(undo.items)
             }
             scheduleSync()

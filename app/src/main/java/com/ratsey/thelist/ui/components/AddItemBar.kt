@@ -46,7 +46,7 @@ fun AddItemBar(
     value: String,
     onValueChange: (String) -> Unit,
     onAdd: () -> Unit,
-    onOpenUsuals: () -> Unit,
+    onOpenShelf: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
@@ -64,7 +64,7 @@ fun AddItemBar(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             FilledIconButton(
-                onClick = onOpenUsuals,
+                onClick = onOpenShelf,
                 shape = RoundedCornerShape(16.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = colors.surfaceVariant,
@@ -74,7 +74,7 @@ fun AddItemBar(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Bookmarks,
-                    contentDescription = stringResource(R.string.usuals_open),
+                    contentDescription = stringResource(R.string.shelf_open),
                     modifier = Modifier.size(22.dp),
                 )
             }
