@@ -1,15 +1,10 @@
 package com.ratsey.thelist.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +13,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Archive
@@ -26,6 +20,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -33,19 +28,12 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,12 +43,11 @@ import com.ratsey.thelist.data.Item
 
 /**
  * One row: right is on, left is off. Swipe right to move the item to the other list, swipe left to
- * put it away on the shelf; both are reversible, so no swipe here can lose anything. Tap the row
- * for rename, put away and delete.
+ * put it away on the shelf; both are reversible, so no swipe here can lose anything.
  *
- * Only a row that is still to buy shows the circle, because there it means something: tap it
- * instead of swiping to say you have the thing. In the basket every row is bought already, so a
- * tick on each one said nothing and read like some unrelated control.
+ * Nothing on the row reacts to a tap. A thumb brushing the list while you shop should never move an
+ * item or bury it, so the menu — rename, put away, delete — is a long press or the small ⋮, and
+ * every change of state is a deliberate swipe.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,12 +89,7 @@ fun ItemRow(
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
     ) {
-        ItemCard(
-            item = item,
-            inBasket = inBasket,
-            onToggle = onToggle,
-            onOpenActions = onOpenActions,
-        )
+        ItemCard(item = item, onOpenActions = onOpenActions)
     }
 }
 
@@ -115,8 +97,6 @@ fun ItemRow(
 @Composable
 private fun ItemCard(
     item: Item,
-    inBasket: Boolean,
-    onToggle: () -> Unit,
     onOpenActions: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -131,13 +111,12 @@ private fun ItemCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .combinedClickable(onClick = onOpenActions, onLongClick = onOpenActions)
+                // A tap lands nowhere on purpose; only a long press (or the ⋮) opens the menu.
+                .combinedClickable(onClick = {}, onLongClick = onOpenActions)
                 .heightIn(min = 62.dp)
-                .padding(start = if (inBasket) 20.dp else 12.dp, end = 10.dp),
+                .padding(start = 18.dp, end = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (!inBasket) ToggleCircle(completed = completed, onClick = onToggle)
-
             Text(
                 text = item.name,
                 style = MaterialTheme.typography.bodyLarge,
@@ -148,60 +127,18 @@ private fun ItemCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 16.dp),
+                    .padding(end = 10.dp, top = 16.dp, bottom = 16.dp),
             )
 
-            Icon(
-                imageVector = Icons.Rounded.MoreVert,
-                contentDescription = null,
-                tint = colors.outline,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ToggleCircle(completed: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val progress by animateFloatAsState(if (completed) 1f else 0f, label = "checkProgress")
-    val label = stringResource(
-        if (completed) R.string.action_add_back else R.string.action_move_to_basket,
-    )
-
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            )
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(23.dp)
-                .clip(CircleShape)
-                .background(if (completed) colors.primary.copy(alpha = 0.14f) else Color.Transparent)
-                .border(
-                    width = 1.6.dp,
-                    color = if (completed) colors.primary else colors.outline,
-                    shape = CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (completed) {
+            IconButton(
+                onClick = onOpenActions,
+                modifier = Modifier.size(44.dp),
+            ) {
                 Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .alpha(progress)
-                        .scale(0.6f + 0.4f * progress),
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = stringResource(R.string.action_menu),
+                    tint = colors.outline,
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }

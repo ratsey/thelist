@@ -1,7 +1,7 @@
 package com.ratsey.thelist.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,10 +48,12 @@ import com.ratsey.thelist.data.Item
 import java.util.Locale
 
 /**
- * The shelf, on its own tab: everything off the list but kept. Tapping a name puts it straight
- * back on the list and the row leaves the shelf, because filling a list is a burst of tapping.
- * Swiping one left deletes it for good — the one destructive swipe in the app, which is what lets
- * every swipe on the list and the basket be safe to try.
+ * The shelf, on its own tab: everything off the list but kept. Same reading as everywhere else —
+ * right is on, left is off: swipe a name right to put it straight back on the list, left to delete
+ * it for good. That left swipe is the only destructive gesture in the app, which is what lets every
+ * swipe on the list and the basket be safe to try.
+ *
+ * Like the list rows, nothing here acts on a tap.
  */
 @Composable
 fun ShelfScreen(
@@ -88,7 +92,13 @@ fun ShelfScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 4.dp),
         )
-        Spacer(Modifier.height(6.dp))
+        Text(
+            text = stringResource(R.string.shelf_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 6.dp),
+        )
+        Spacer(Modifier.height(8.dp))
 
         if (shown.isEmpty()) {
             Text(
@@ -124,60 +134,44 @@ private fun ShelfRow(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = LocalHapticFeedback.current
+
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
+            if (value == SwipeToDismissBoxValue.Settled) {
+                return@rememberSwipeToDismissBoxState false
             }
-            // Never leave the row dismissed: the shelf list drops it when the delete lands, and a
-            // row that stays dismissed without being removed is just a blank gap.
+
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> onAdd()
+                SwipeToDismissBoxValue.EndToStart -> onDelete()
+                SwipeToDismissBoxValue.Settled -> Unit
+            }
+
+            // Never leave the row dismissed: the shelf drops it when the change lands, and a row
+            // that stays dismissed without being removed is just a blank gap.
             false
         },
-        positionalThreshold = { distance -> distance * 0.35f },
+        positionalThreshold = { distance -> distance * 0.32f },
     )
 
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier.clip(RoundedCornerShape(16.dp)),
-        enableDismissFromStartToEnd = false,
+        enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
-        backgroundContent = {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(horizontal = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.swipe_delete),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            }
-        },
+        backgroundContent = { ShelfReveal(dismissState.dismissDirection) },
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant,
-            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onAdd)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -188,13 +182,52 @@ private fun ShelfRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = stringResource(R.string.shelf_add, name),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
-                )
             }
+        }
+    }
+}
+
+@Composable
+private fun ShelfReveal(direction: SwipeToDismissBoxValue) {
+    val colors = MaterialTheme.colorScheme
+    val isDelete = direction == SwipeToDismissBoxValue.EndToStart
+    val isAdd = direction == SwipeToDismissBoxValue.StartToEnd
+    if (!isDelete && !isAdd) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (isDelete) colors.errorContainer else colors.primary)
+            .padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (isDelete) Arrangement.End else Arrangement.Start,
+    ) {
+        val contentColor = if (isDelete) colors.onErrorContainer else colors.onPrimary
+        val labelRes = if (isDelete) R.string.swipe_delete else R.string.swipe_add_back
+        val icon = if (isDelete) Icons.Rounded.Delete else Icons.Rounded.Add
+
+        if (isDelete) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(
+            text = stringResource(labelRes),
+            style = MaterialTheme.typography.labelLarge,
+            color = contentColor,
+        )
+        if (!isDelete) {
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

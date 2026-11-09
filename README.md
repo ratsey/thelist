@@ -8,9 +8,10 @@ scanner that turns a photo into price history.
 - **Shelf** — everything off the list but kept, one tap away.
 - **Prices** — every price you have paid for each item, as a list or a chart.
 
-Swipe a row right to move it to the other list; swipe left to put it away on the shelf. A row that
-is still to buy also shows a circle you can tap instead of swiping. Tap a row for rename, put away
-and delete. Tap the camera to scan a receipt, and the Shelf tab to fill a list from what you kept.
+Swipe a row right to move it to the other list; swipe left to put it away on the shelf. Tapping a
+row does nothing, deliberately — a thumb brushing the list while you shop should never move or
+bury anything. Long-press a row, or tap its ⋮, for rename, put away and delete. Tap the camera to
+scan a receipt, and the Shelf tab to fill a list from what you kept.
 
 Native Android: Kotlin, Jetpack Compose, Material 3, Room, ML Kit. No account, no Play
 Services, no cloud you did not choose.
@@ -46,14 +47,14 @@ Right is on, left is off.
 |---|---|---|
 | To buy | into the basket | put away on the shelf |
 | Basket | back on the list | put away on the shelf |
-| Shelf | — | delete |
+| Shelf | back on the list | delete |
 
 Putting away is not deleting: the item leaves the list but keeps its row, its spelling and its
 price history, and waits on **shelf** for next time. Clearing the basket moves its rows there too,
 so the shelf fills itself from ordinary shopping — next week's list is mostly last week's.
 
-The shelf has its own tab, between Basket and Prices. Tap a name to put it straight back on the
-list, or swipe one left to delete it for good. That is the trade the gestures make: because
+The shelf has its own tab, between Basket and Prices. Swipe a name right to put it straight back on
+the list, or left to delete it for good — the only swipe in the app that destroys anything. That is the trade the gestures make: because
 nothing you swipe on the list or the basket is destroyed, a mis-swipe costs one tap to undo, and a
 typo is removed deliberately — from the shelf, or from an item's own menu, which keeps a real
 "Delete" for the mistake you have only just typed.
@@ -127,6 +128,7 @@ The layout stays quiet so the list reads like paper:
 | Large title, live count, segmented `To buy / Basket / Shelf / Prices` | Four views of one list, one tap apart, no bottom navigation stealing thumb space |
 | Add bar above the keyboard, focus retained | Shopping lists get filled in bursts |
 | Swipe right = on, swipe left = off | Colour-coded reveals teach the gesture, and nothing a swipe reaches on the list is destroyed |
+| No tap changes anything; the menu is a long press or the ⋮ | a thumb brushing a row mid-shop must not move it, bury it or open a sheet |
 | Day-grouped basket | Answers "did we already buy this?" without timestamps |
 | Receipt review before saving | OCR is good, not perfect: confirm, don't trust blindly |
 | Update card inline, never a modal | An update should never interrupt a shopping trip |

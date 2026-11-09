@@ -30,13 +30,14 @@
     <string name="action_save">Save</string>
     <string name="action_close">Close</string>
     <string name="action_undo">Undo</string>
+    <string name="action_menu">Item actions</string>
 
     <string name="shelf_subtitle">Off the list, kept for next time</string>
     <string name="shelf_filter">Filter</string>
+    <string name="shelf_hint">Swipe right to put it back on your list, left to delete it.</string>
     <string name="shelf_empty_title">Nothing on the shelf yet</string>
-    <string name="shelf_empty_body">Swipe an item left to put it away, or clear your basket after a shop, and it waits here so next week\'s list takes taps instead of typing.</string>
+    <string name="shelf_empty_body">Swipe an item left to put it away, or clear your basket after a shop, and it waits here so next week\'s list takes a swipe instead of typing.</string>
     <string name="shelf_no_matches">Nothing matches that</string>
-    <string name="shelf_add">Add “%1$s” to your list</string>
 
     <string name="menu_check_updates">Check for updates</string>
     <string name="menu_clear_basket">Clear basket</string>
