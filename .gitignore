@@ -18,3 +18,5 @@ server/*.db-wal
 server/*.db-shm
 server/node_modules/
 artifacts/
+deploy/kamatera/deploy.env
+deploy/kamatera/.env

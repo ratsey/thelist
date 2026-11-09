@@ -19,6 +19,8 @@ val appVersionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: run
 }
 val githubOwner = (findProperty("githubOwner") as String?) ?: "your-github-username"
 val githubRepo = (findProperty("githubRepo") as String?) ?: "trolley"
+// Left empty until the relay in deploy/kamatera is live; the share dialog then asks for a URL.
+val syncServerUrl = (findProperty("syncServerUrl") as String?) ?: ""
 
 // Signing credentials come from env vars (CI) or an untracked keystore.properties (local).
 val keystoreProperties = Properties().apply {
@@ -52,6 +54,7 @@ android {
         buildConfigField("String", "GITHUB_OWNER", "\"$githubOwner\"")
         buildConfigField("String", "GITHUB_REPO", "\"$githubRepo\"")
         buildConfigField("String", "RELEASES_URL", "\"https://github.com/$githubOwner/$githubRepo/releases\"")
+        buildConfigField("String", "SYNC_SERVER_URL", "\"$syncServerUrl\"")
     }
 
     signingConfigs {

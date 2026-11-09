@@ -1,0 +1,6 @@
+# Copy to deploy.env (gitignored) and fill in. deploy.sh reads it and refuses
+# to run while the domain is still the placeholder below.
+VPS_HOST=203.0.113.10
+VPS_USER=root
+SYNC_DOMAIN=sync.example.com
+ACME_EMAIL=you@example.com

@@ -44,6 +44,7 @@ import com.ratsey.thelist.ui.SyncUi
 @Composable
 fun SyncDialog(
     syncUi: SyncUi,
+    suggestedServer: String = "",
     onDismiss: () -> Unit,
     onCreate: (serverUrl: String, name: String) -> Unit,
     onJoin: (serverUrl: String, code: String, name: String) -> Unit,
@@ -53,7 +54,7 @@ fun SyncDialog(
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
-    var serverUrl by rememberSaveable { mutableStateOf(syncUi.serverUrl) }
+    var serverUrl by rememberSaveable { mutableStateOf(syncUi.serverUrl.ifBlank { suggestedServer }) }
     var name by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var joinMode by rememberSaveable { mutableStateOf(false) }

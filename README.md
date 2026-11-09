@@ -71,6 +71,13 @@ How it works:
 Security and hosting notes live in [server/README.md](server/README.md). In short: the code is
 the invite secret, use HTTPS, and the server can see item names and prices.
 
+The intended production home is a single small VPS, so `deploy/kamatera/` holds the deployment
+as a stub: a Docker Compose stack (Caddy for automatic HTTPS, the relay, a volume for the
+database), an idempotent `setup-vps.sh` for a fresh Ubuntu box, and `deploy.sh` to ship it. It
+uses placeholders and nothing is deployed yet — [deploy/kamatera/README.md](deploy/kamatera/README.md)
+has the runbook. Once a domain points at the server, set `syncServerUrl` in `gradle.properties`
+and the share dialog pre-fills the address.
+
 If you would rather not run a server, the sync layer is deliberately a small interface
 (`SyncClient` + `SyncEngine`): swapping in a hosted backend is a contained change.
 

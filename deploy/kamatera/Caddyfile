@@ -1,0 +1,15 @@
+# Certificates are issued and renewed automatically for $SYNC_DOMAIN.
+{$SYNC_DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy sync:8080 {
+		# The relay stores full-entity JSON; keep bodies generous but bounded.
+		request_buffers 1MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+}

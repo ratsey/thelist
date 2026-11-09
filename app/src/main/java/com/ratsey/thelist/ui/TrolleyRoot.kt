@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.receipt.ReceiptPhotos
@@ -277,6 +278,7 @@ fun TrolleyRoot(viewModel: ListViewModel) {
     if (showSync) {
         SyncDialog(
             syncUi = syncUi,
+            suggestedServer = BuildConfig.SYNC_SERVER_URL,
             onDismiss = { showSync = false },
             onCreate = { serverUrl, name -> viewModel.createSharedList(serverUrl, name) },
             onJoin = { serverUrl, code, name -> viewModel.joinSharedList(serverUrl, code, name) },
