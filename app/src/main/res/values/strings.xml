@@ -60,7 +60,6 @@
     <string name="msg_placement_saved">Saved where it is</string>
     <string name="msg_placement_cleared">Cleared where it is</string>
     <string name="msg_store_added">Shop added</string>
-    <string name="msg_store_renamed">Shop renamed</string>
     <string name="msg_store_deleted">Shop removed</string>
 
     <string name="menu_check_updates">Check for updates</string>

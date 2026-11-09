@@ -37,18 +37,6 @@ class StoreRepository(private val db: AppDatabase) {
         return store
     }
 
-    suspend fun rename(store: Store, name: String) {
-        val trimmed = name.trim()
-        if (trimmed.isEmpty() || trimmed == store.name) return
-
-        val now = System.currentTimeMillis()
-        val updated = store.copy(name = trimmed, updatedAt = now)
-        db.withTransaction {
-            stores.rename(store.id, trimmed, now)
-            enqueue(updated)
-        }
-    }
-
     /**
      * Removes a shop. Its items keep their aisle note and lose only the dead reference: an aisle
      * number with no shop still tells you where to look, while a shop that is gone is just noise.

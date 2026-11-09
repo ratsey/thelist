@@ -58,9 +58,6 @@ interface StoreDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(stores: List<Store>)
 
-    @Query("UPDATE stores SET name = :name, updatedAt = :now WHERE id = :id")
-    suspend fun rename(id: String, name: String, now: Long)
-
     @Query("UPDATE stores SET deletedAt = :now, updatedAt = :now WHERE id = :id")
     suspend fun softDelete(id: String, now: Long)
 

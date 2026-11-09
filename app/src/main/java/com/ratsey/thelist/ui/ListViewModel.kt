@@ -254,16 +254,6 @@ class ListViewModel(
         }
     }
 
-    fun renameStore(store: Store, rawName: String) {
-        val name = rawName.trim()
-        if (name.isEmpty() || name == store.name) return
-        viewModelScope.launch {
-            storeRepository.rename(store, name)
-            _messages.send(UiMessage(R.string.msg_store_renamed))
-            scheduleSync()
-        }
-    }
-
     fun deleteStore(store: Store) {
         viewModelScope.launch {
             storeRepository.delete(store)
