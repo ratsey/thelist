@@ -49,29 +49,52 @@ jobs:
 
   release:
     name: Publish release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read the committed version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NAME=$(grep -E '^appVersionName=' gradle.properties | head -1 | cut -d= -f2 | tr -d '[:space:]')
+          if [ -z "$NAME" ]; then
+            echo "::error::appVersionName is missing from gradle.properties"
+            exit 1
+          fi
+          TAG="v$NAME"
+
+          # The version is the source of truth; a pushed tag has to agree with it.
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match appVersionName=$NAME in gradle.properties. Bump with ./scripts/bump-version.sh and push to main instead of tagging by hand."
+            exit 1
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; nothing to publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-java@v4
+        if: steps.version.outputs.publish == 'true'
         with:
           distribution: temurin
           java-version: '17'
 
       - uses: gradle/actions/setup-gradle@v4
-
-      - name: Work out the version
-        id: version
-        run: |
-          NAME="${GITHUB_REF_NAME#v}"
-          CODE=$(echo "$NAME" | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+        if: steps.version.outputs.publish == 'true'
 
       - name: Require signing key
+        if: steps.version.outputs.publish == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -81,6 +104,7 @@ jobs:
           fi
 
       - name: Decode signing keystore
+        if: steps.version.outputs.publish == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -88,19 +112,19 @@ jobs:
           echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
       - name: Assemble release
+        if: steps.version.outputs.publish == 'true'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: >
-          ./gradlew assembleRelease
-          -PappVersionName=${{ steps.version.outputs.name }}
-          -PappVersionCode=${{ steps.version.outputs.code }}
-          --stacktrace
+        run: ./gradlew testDebugUnitTest assembleRelease --stacktrace
 
       - name: Publish GitHub release
+        if: steps.version.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: Trolley ${{ steps.version.outputs.name }}
           generate_release_notes: true
           fail_on_unmatched_files: true

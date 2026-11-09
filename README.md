@@ -158,14 +158,24 @@ Back up `release.jks`: lose it and no future release can update an installed cop
 
 ## Shipping a version
 
+The version lives in exactly one place, `gradle.properties`:
+
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+./scripts/bump-version.sh patch     # 0.2.0 -> 0.2.1
+git commit -am "Release 0.2.1"
+git push
 ```
 
-`.github/workflows/android.yml` derives `versionName` and `versionCode` from the tag, runs the
-unit tests, builds a signed APK and attaches it to a GitHub release. Phones on an older version
-see the update card next time they open the app.
+`versionCode` is derived from `versionName` (`major*10000 + minor*100 + patch`), so there is no
+second number to keep in sync. On every push to `main`, CI compares the committed version with
+the existing releases: if `v<version>` is new it runs the unit tests, builds a signed APK,
+creates the tag and publishes the release; if the release already exists it does nothing. That
+makes releasing a one-command operation and means the tag can never disagree with the build.
+
+Tags are created by CI, but pushing one by hand still works as long as it matches
+`gradle.properties` — the workflow fails loudly if they drift. Never move a version backwards:
+phones compare `versionName` to decide whether an update exists, Android compares `versionCode`
+to decide whether it may install.
 
 ## Layout
 

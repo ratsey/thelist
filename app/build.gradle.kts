@@ -7,8 +7,16 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// gradle.properties holds the only version number in the project. versionCode is derived from
+// it so a release never needs two numbers kept in step: major * 10000 + minor * 100 + patch.
 val appVersionName = (findProperty("appVersionName") as String?) ?: "0.1.0"
-val appVersionCode = ((findProperty("appVersionCode") as String?) ?: "1").toInt()
+val appVersionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: run {
+    val parts = appVersionName.split('.')
+    val major = parts.getOrNull(0)?.toIntOrNull() ?: 0
+    val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    val patch = parts.getOrNull(2)?.toIntOrNull() ?: 0
+    major * 10_000 + minor * 100 + patch
+}
 val githubOwner = (findProperty("githubOwner") as String?) ?: "your-github-username"
 val githubRepo = (findProperty("githubRepo") as String?) ?: "trolley"
 
