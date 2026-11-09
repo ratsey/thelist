@@ -1,40 +1,106 @@
 # Trolley
 
-A shopping list that gets out of the way. Two screens, one gesture:
+A shopping list that remembers what you paid. Three screens, one gesture, and a receipt
+scanner that turns a photo into price history.
 
 - **To buy** — everything you still need.
 - **History** — everything you have already picked up.
+- **Prices** — every price you have paid for each item, as a list or a chart.
 
-Swipe a row right to move it to the other list (or tap its circle). Swipe left to delete, with undo. Tap a row for rename and delete.
+Swipe a row right to move it to the other list (or tap its circle). Swipe left to delete, with
+undo. Tap a row for rename and delete. Tap the camera to scan a receipt.
 
-Native Android: Kotlin, Jetpack Compose, Material 3, Room. No account, no network calls except the update check.
+Native Android: Kotlin, Jetpack Compose, Material 3, Room, ML Kit. No account, no Play
+Services, no cloud you did not choose.
+
+## Receipt scanning
+
+1. The camera icon launches the system camera (no CAMERA permission, no preview code).
+2. The photo is OCR'd **on the device** with ML Kit's bundled Latin model, then parsed by a
+   conservative heuristic parser: store name, date (day-first or month-first from your locale),
+   currency, total, and each `name … price` line. Footer noise — `TOTAL`, `CARD`, `CHANGE`,
+   `VAT`, `SUMME`, `TVA` — is dropped rather than guessed at.
+3. A review screen shows the photo, editable store/date/total, and every line with a checkbox.
+   Lines are matched to your list by token overlap ("TESCO SEMI SKIMMED MILK 2L" → *Milk*), and
+   matched items can be marked as bought in the same tap.
+4. Saving stores the receipt and its priced lines, which is what fills the Prices tab.
+
+Anything the parser is unsure about stays empty or editable — it never invents a price.
+
+OCR runs fully offline, which is why the APK is ~45 MB: ML Kit's recognition model ships
+once per CPU architecture inside the app rather than being downloaded from Play Services.
+Per-ABI split APKs (roughly 11–18 MB each) are the obvious next size win.
+
+## Price history
+
+Receipt lines carry a `productKey`: the normalised name of the matched list item, or the
+receipt text when nothing matched. Price history is **derived** from those lines at query time
+rather than cached in its own table, so two people adding receipts to the same shared list
+cannot disagree about a "last price".
+
+- List: last paid, best price, store, date, number of purchases.
+- Detail: latest price card, a hand-drawn Canvas chart (no chart library), and every purchase.
+
+Sizes are part of the key, so 1 L and 2 L milk keep separate histories.
+
+## Shared lists
+
+Sharing needs a relay; Trolley ships with one you can run in a minute (`/server`, zero
+dependencies):
+
+```bash
+cd server && node index.js        # listens on :8080
+```
+
+Then in the app: cloud icon → paste the server address → **Start a shared list** → share the
+8-character code. On the other phone: same address, **Join with a code**. New items, swipes,
+renames and scanned receipts appear on both within a few seconds.
+
+How it works:
+
+- Every local write is also appended to a `sync_outbox` with the full entity as JSON.
+- The app pushes the outbox and pulls everything newer than its last sequence every ~6 seconds
+  while open, immediately after edits, and on demand.
+- Conflicts resolve last-write-wins on `updatedAt`; deletes travel as tombstones (`deletedAt`)
+  so a removed item does not come back on the next sync.
+- Offline is a normal state: the list keeps working and the header cloud icon turns red until
+  it catches up.
+- Joining replaces the local list with the shared one (the dialog says so) — you are adopting
+  someone else's shopping history, not merging two.
+
+Security and hosting notes live in [server/README.md](server/README.md). In short: the code is
+the invite secret, use HTTPS, and the server can see item names and prices.
+
+If you would rather not run a server, the sync layer is deliberately a small interface
+(`SyncClient` + `SyncEngine`): swapping in a hosted backend is a contained change.
 
 ## Design notes
 
-The layout is deliberately quiet so the list reads like paper:
+The layout stays quiet so the list reads like paper:
 
 | Decision | Why |
 | --- | --- |
-| Warm off-white canvas, white cards with a hairline border | Reads as paper; lets one green accent carry all meaning |
-| Large title, live count subtitle, segmented `To buy / History` switch | Two screens, one tap apart, with no bottom navigation stealing thumb space |
-| Add bar pinned to the bottom, above the keyboard | Shopping lists are filled in bursts; focus and keyboard survive each add |
-| Swipe right = advance, swipe left = delete | Colour-coded reveals teach the gesture, and undo covers mistakes |
-| Day-grouped history (`Today`, `Yesterday`, date) | Answers "did we already buy this?" without timestamps |
-| One-time swipe hint that retires after the first move | Teaches the core interaction without a tutorial screen |
-| Update card appears inline, never as a modal | An update should never interrupt a shopping trip |
+| Warm off-white canvas, white cards, hairline borders | Paper-like; one green accent carries all meaning |
+| Large title, live count, segmented `To buy / History / Prices` | Three views of one list, one tap apart, no bottom navigation stealing thumb space |
+| Add bar above the keyboard, focus retained | Shopping lists get filled in bursts |
+| Swipe right = advance, swipe left = delete | Colour-coded reveals teach the gesture; undo covers mistakes |
+| Day-grouped history | Answers "did we already buy this?" without timestamps |
+| Receipt review before saving | OCR is good, not perfect: confirm, don't trust blindly |
+| Update card inline, never a modal | An update should never interrupt a shopping trip |
 
-Dark mode uses the same palette inverted. Dynamic colour is intentionally not used — the app should look the same on every phone.
+Dark mode inverts the same palette. Dynamic colour is intentionally not used.
 
 ## Build
 
-Requires JDK 17 and the Android SDK (compileSdk 35).
+JDK 17 and Android SDK 35.
 
 ```bash
-./gradlew assembleDebug          # debug APK
+./gradlew assembleDebug
+./gradlew testDebugUnitTest
 ./gradlew assembleRelease        # needs signing config, see below
 ```
 
-The debug build installs as `app.trolley.lists.debug`, so it can live next to a release build.
+Debug builds install as `app.trolley.lists.debug` alongside a release build.
 
 ## Getting it onto GitHub
 
@@ -43,7 +109,7 @@ git remote add origin git@github.com:<you>/trolley.git
 git push -u origin main
 ```
 
-Then point the app at that repo — this is how it finds updates:
+Point the app at that repo so it can find updates:
 
 ```properties
 # gradle.properties
@@ -51,41 +117,44 @@ githubOwner=your-github-username
 githubRepo=trolley
 ```
 
-While `githubOwner` is still the placeholder, update checks are skipped silently.
+While `githubOwner` is the placeholder, update checks are skipped silently.
 
 ## Self-update
 
-On launch (at most every six hours) and whenever you pick **Check for updates**, the app asks
-`https://api.github.com/repos/<owner>/<repo>/releases/latest` for the newest release and compares
-its tag with the installed version. When a newer tag exists, the header shows an update card:
+On launch (at most every six hours) and from **Check for updates**, the app asks
+`api.github.com/repos/<owner>/<repo>/releases/latest` for the newest release and compares tags.
+When a newer tag exists, the header shows an update card:
 
-1. **Update** downloads the release APK with the system `DownloadManager` (progress in the card and in the notification shade; it keeps going if the app is backgrounded).
-2. The APK lands in the app's external files directory and is shared with the package installer through a `FileProvider`.
-3. Android shows its own install prompt. The first time, you also grant "install unknown apps" for Trolley — the card links straight to that setting.
+1. **Update** downloads the release APK with the system `DownloadManager` (progress in the card
+   and the notification shade; it continues if the app is backgrounded).
+2. The APK is shared with the package installer through a `FileProvider`.
+3. Android shows its install prompt. The first time, you grant "install unknown apps" — the card
+   links straight to that setting.
 
-Two constraints are inherent to sideloaded self-updates:
+Two inherent constraints of sideloaded self-updates:
 
-- **Every release must be signed with the same key.** Android will not install an update signed by a different key. Generate the key once, keep it, and use it for every release.
-- **The repository and its releases must be public**, because the check and the download are unauthenticated.
+- **Every release must be signed with the same key**, or Android refuses the update.
+- **The repo and its releases must be public**, because the check and download are unauthenticated.
 
-If a download finishes while the app is closed, it is picked up on the next launch and the card offers **Install**.
+A download that finishes while the app is closed is offered again on next launch.
 
-## Release signing (one-time setup)
+## Release signing
 
 ```bash
 ./scripts/generate-keystore.sh
 ```
 
-This creates `release.jks` and a git-ignored `keystore.properties` for local release builds, then prints the values to paste into **Settings → Secrets and variables → Actions**:
+Creates `release.jks` and a git-ignored `keystore.properties` for local release builds, then
+prints the values for **Settings → Secrets and variables → Actions**:
 
 | Secret | Value |
 | --- | --- |
-| `KEYSTORE_BASE64` | base64 of `release.jks` (printed by the script) |
+| `KEYSTORE_BASE64` | base64 of `release.jks` |
 | `KEYSTORE_PASSWORD` | keystore password |
 | `KEY_ALIAS` | key alias (`trolley`) |
 | `KEY_PASSWORD` | key password |
 
-Back up `release.jks`. Losing it means no future release can update an installed copy.
+Back up `release.jks`: lose it and no future release can update an installed copy.
 
 ## Shipping a version
 
@@ -94,9 +163,9 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-`.github/workflows/android.yml` derives `versionName` (`0.2.0`) and `versionCode` (`20000`) from the
-tag, builds a signed APK, and attaches it to a GitHub release. Phones on an older version see the
-update card the next time they open the app. Pushes and pull requests build a debug APK instead.
+`.github/workflows/android.yml` derives `versionName` and `versionCode` from the tag, runs the
+unit tests, builds a signed APK and attaches it to a GitHub release. Phones on an older version
+see the update card next time they open the app.
 
 ## Layout
 
@@ -104,21 +173,29 @@ update card the next time they open the app. Pushes and pull requests build a de
 app/src/main/java/app/trolley/lists/
 ├── MainActivity.kt          edge-to-edge Compose host
 ├── TrolleyApp.kt            application + container
-├── data/                    Room entity, DAO, repository, DataStore settings
+├── data/                    Room entities (items, receipts, lines, outbox), DAOs, repositories
+├── receipt/                 parser, item matcher, ML Kit OCR, camera photo helpers
+├── sync/                    HTTP protocol, payloads, push/pull engine
 ├── update/                  GitHub releases client + download/install pipeline
 └── ui/
     ├── TrolleyRoot.kt       scaffold, tabs, snackbars, dialogs
-    ├── ListViewModel.kt     list state, undo stack, update state machine
-    ├── components/          header, tabs, swipe row, add bar, banner, sheet
+    ├── ListViewModel.kt     list state, undo, scan state, sync state, prices, updater
+    ├── ScanReviewScreen.kt  receipt confirmation and editing
+    ├── PriceScreens.kt      price list, product detail, Canvas chart
+    ├── components/          header, tabs, swipe row, add bar, banner, sheet, sync dialog
     └── theme/               palette + type scale
+server/                      zero-dependency Node sync relay + protocol tests
 ```
 
-Items store `completedAt` (null = to buy) rather than a boolean, so the two screens are two
-queries over one table. `listId` and `updatedAt` are already on every row so shared lists can be
-added without a schema rewrite.
+## Data and migration
+
+Schema v2 adds receipts, purchase lines, tombstones and the sync outbox. The app is pre-1.0, so
+local data is reset on upgrade (`fallbackToDestructiveMigration`). Replacing that with real
+migrations is the first task before a wider release.
 
 ## Next
 
-- Shared lists: sync `listId` between people (needs a backend or a file-based sync target).
-- Quantity and notes per item, plus reorder.
-- Optional categories/aisles to sort the list.
+- Hosted sync option so sharing does not require running Node.
+- WebSocket push instead of 6-second polling.
+- Receipt photos: view/delete an old receipt, and cap photo storage.
+- Quantity and notes per item, plus drag-to-reorder.

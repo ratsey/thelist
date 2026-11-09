@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.CloudDone
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -35,6 +38,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.trolley.lists.R
 import app.trolley.lists.data.Item
+import app.trolley.lists.ui.SyncState
+import app.trolley.lists.ui.SyncUi
 import app.trolley.lists.ui.UpdateUi
 import java.time.Instant
 import java.time.LocalDate
@@ -47,6 +52,7 @@ fun HomeHeader(
     activeCount: Int,
     historyCount: Int,
     updateState: UpdateUi,
+    syncUi: SyncUi,
     onTabSelected: (Int) -> Unit,
     onCheckForUpdates: () -> Unit,
     onClearHistory: () -> Unit,
@@ -55,6 +61,8 @@ fun HomeHeader(
     onInstallUpdate: () -> Unit,
     onOpenInstallPermission: () -> Unit,
     onDismissUpdate: () -> Unit,
+    onScan: () -> Unit,
+    onOpenSync: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -79,6 +87,31 @@ fun HomeHeader(
                     text = subtitleFor(tab, activeCount, historyCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
+                )
+            }
+
+            IconButton(onClick = onOpenSync) {
+                Icon(
+                    imageVector = when (syncUi.state) {
+                        SyncState.Syncing -> Icons.Rounded.CloudSync
+                        SyncState.Offline -> Icons.Rounded.CloudOff
+                        SyncState.Idle -> Icons.Rounded.CloudDone
+                        SyncState.Disabled -> Icons.Rounded.CloudOff
+                    },
+                    contentDescription = stringResource(R.string.menu_sync),
+                    tint = when (syncUi.state) {
+                        SyncState.Idle -> colors.primary
+                        SyncState.Offline -> colors.error
+                        else -> colors.onSurfaceVariant
+                    },
+                )
+            }
+
+            IconButton(onClick = onScan) {
+                Icon(
+                    imageVector = Icons.Rounded.PhotoCamera,
+                    contentDescription = stringResource(R.string.menu_scan),
+                    tint = colors.onSurfaceVariant,
                 )
             }
 
@@ -144,8 +177,9 @@ fun HomeHeader(
 private fun subtitleFor(tab: Int, activeCount: Int, historyCount: Int): String = when {
     tab == 0 && activeCount == 0 -> stringResource(R.string.empty_subtitle)
     tab == 0 -> pluralStringResource(R.plurals.active_count, activeCount, activeCount)
-    historyCount == 0 -> stringResource(R.string.empty_subtitle)
-    else -> pluralStringResource(R.plurals.history_count, historyCount, historyCount)
+    tab == 1 && historyCount == 0 -> stringResource(R.string.empty_subtitle)
+    tab == 1 -> pluralStringResource(R.plurals.history_count, historyCount, historyCount)
+    else -> stringResource(R.string.prices_subtitle)
 }
 
 @Composable

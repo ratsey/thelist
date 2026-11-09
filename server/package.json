@@ -1,0 +1,14 @@
+{
+  "name": "trolley-sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared-list sync relay for Trolley",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test test/"
+  }
+}

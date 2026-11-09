@@ -1,5 +1,7 @@
 package app.trolley.lists.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -37,21 +39,29 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.trolley.lists.R
 import app.trolley.lists.data.Item
-import app.trolley.lists.ui.components.AddItemBar
+import app.trolley.lists.receipt.ReceiptPhotos
 import app.trolley.lists.ui.components.AboutDialog
+import app.trolley.lists.ui.components.AddItemBar
 import app.trolley.lists.ui.components.HistoryList
 import app.trolley.lists.ui.components.HomeHeader
 import app.trolley.lists.ui.components.ItemActionsSheet
 import app.trolley.lists.ui.components.RenameDialog
 import app.trolley.lists.ui.components.ShoppingList
+import app.trolley.lists.ui.components.SyncDialog
+import java.io.File
 
 private const val TAB_TO_BUY = 0
 private const val TAB_HISTORY = 1
+private const val TAB_PRICES = 2
 
 @Composable
 fun TrolleyRoot(viewModel: ListViewModel) {
     val activeItems by viewModel.activeItems.collectAsStateWithLifecycle()
     val historyItems by viewModel.historyItems.collectAsStateWithLifecycle()
+    val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
+    val productDetail by viewModel.productDetail.collectAsStateWithLifecycle()
+    val scanState by viewModel.scan.collectAsStateWithLifecycle()
+    val syncUi by viewModel.syncUi.collectAsStateWithLifecycle()
     val updateState by viewModel.update.collectAsStateWithLifecycle()
     val hintVisible by viewModel.hintVisible.collectAsStateWithLifecycle()
 
@@ -65,6 +75,27 @@ fun TrolleyRoot(viewModel: ListViewModel) {
     var renameTarget by remember { mutableStateOf<Item?>(null) }
     var confirmClearHistory by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
+    var showSync by remember { mutableStateOf(false) }
+    var pendingPhotoPath by remember { mutableStateOf<String?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+    ) { saved ->
+        val path = pendingPhotoPath
+        pendingPhotoPath = null
+        if (saved && path != null) {
+            val file = File(path)
+            viewModel.startScan(ReceiptPhotos.uriFor(context, file), file.path)
+        } else if (path != null) {
+            runCatching { File(path).delete() }
+        }
+    }
+
+    val openCamera: () -> Unit = {
+        val file = ReceiptPhotos.newPhotoFile(context)
+        pendingPhotoPath = file.path
+        runCatching { cameraLauncher.launch(ReceiptPhotos.uriFor(context, file)) }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
@@ -76,6 +107,32 @@ fun TrolleyRoot(viewModel: ListViewModel) {
             )
             if (result == SnackbarResult.ActionPerformed) viewModel.undoLast()
         }
+    }
+
+    LaunchedEffect(scanState) {
+        val failed = scanState as? ScanUi.Failed ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = context.getString(failed.messageRes),
+            withDismissAction = true,
+            duration = SnackbarDuration.Long,
+        )
+        viewModel.dismissScanError()
+    }
+
+    val review = scanState as? ScanUi.Review
+    if (review != null) {
+        ScanReviewScreen(
+            draft = review.draft,
+            onDraftChange = viewModel::updateDraft,
+            onSave = viewModel::saveDraft,
+            onCancel = viewModel::cancelScan,
+        )
+        return
+    }
+
+    productDetail?.let { detail ->
+        ProductDetailScreen(detail = detail, onBack = viewModel::closeProduct)
+        return
     }
 
     Scaffold(
@@ -114,6 +171,7 @@ fun TrolleyRoot(viewModel: ListViewModel) {
                     activeCount = activeItems.size,
                     historyCount = historyItems.size,
                     updateState = updateState,
+                    syncUi = syncUi,
                     onTabSelected = { selectedTab = it },
                     onCheckForUpdates = { viewModel.checkForUpdates(userInitiated = true) },
                     onClearHistory = { confirmClearHistory = true },
@@ -122,22 +180,22 @@ fun TrolleyRoot(viewModel: ListViewModel) {
                     onInstallUpdate = viewModel::installUpdate,
                     onOpenInstallPermission = viewModel::openInstallPermissionSettings,
                     onDismissUpdate = viewModel::dismissUpdate,
+                    onScan = openCamera,
+                    onOpenSync = { showSync = true },
                 )
             }
 
             AnimatedContent(
                 targetState = selectedTab,
-                transitionSpec = {
-                    fadeIn(tween(160)) togetherWith fadeOut(tween(100))
-                },
+                transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(100)) },
                 label = "screen",
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
             ) { tab ->
                 Box(Modifier.fillMaxSize()) {
-                    if (tab == TAB_TO_BUY) {
-                        ShoppingList(
+                    when (tab) {
+                        TAB_TO_BUY -> ShoppingList(
                             items = activeItems,
                             showHint = hintVisible && historyItems.isEmpty() && activeItems.isNotEmpty(),
                             onToggle = viewModel::move,
@@ -145,12 +203,17 @@ fun TrolleyRoot(viewModel: ListViewModel) {
                             onOpenActions = { actionSheetItem = it },
                             onDismissHint = viewModel::dismissHint,
                         )
-                    } else {
-                        HistoryList(
+
+                        TAB_HISTORY -> HistoryList(
                             items = historyItems,
                             onToggle = viewModel::move,
                             onDelete = viewModel::delete,
                             onOpenActions = { actionSheetItem = it },
+                        )
+
+                        else -> PricesScreen(
+                            summaries = priceSummaries,
+                            onOpen = viewModel::openProduct,
                         )
                     }
                 }
@@ -211,6 +274,20 @@ fun TrolleyRoot(viewModel: ListViewModel) {
         )
     }
 
+    if (showSync) {
+        SyncDialog(
+            syncUi = syncUi,
+            onDismiss = { showSync = false },
+            onCreate = { serverUrl, name -> viewModel.createSharedList(serverUrl, name) },
+            onJoin = { serverUrl, code, name -> viewModel.joinSharedList(serverUrl, code, name) },
+            onSyncNow = viewModel::syncNow,
+            onDisconnect = {
+                viewModel.disconnectSync()
+                showSync = false
+            },
+        )
+    }
+
     if (showAbout) {
         AboutDialog(
             version = viewModel.currentVersion,
@@ -218,3 +295,4 @@ fun TrolleyRoot(viewModel: ListViewModel) {
         )
     }
 }
+

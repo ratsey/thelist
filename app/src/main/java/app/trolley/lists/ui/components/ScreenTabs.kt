@@ -23,15 +23,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.trolley.lists.R
 
 /**
- * Segmented switch between the two screens. A sliding indicator (rather than Material's
- * TabRow) keeps the header compact and reads instantly as "two sides of the same list".
+ * Segmented switch between the three screens. A sliding indicator (rather than Material's
+ * TabRow) keeps the header compact and reads instantly as one list seen three ways.
  */
 @Composable
 fun ScreenTabs(
@@ -51,9 +50,9 @@ fun ScreenTabs(
             .clip(shape)
             .background(colors.surfaceVariant),
     ) {
-        val segmentWidth = maxWidth / 2
+        val segmentWidth = maxWidth / 3
         val indicatorOffset by animateDpAsState(
-            targetValue = if (selected == 0) 3.dp else segmentWidth + 3.dp,
+            targetValue = 3.dp + segmentWidth * selected,
             animationSpec = tween(durationMillis = 220),
             label = "tabIndicator",
         )
@@ -83,6 +82,13 @@ fun ScreenTabs(
                 onClick = { onSelect(1) },
                 modifier = Modifier.weight(1f),
             )
+            TabSegment(
+                label = stringResource(R.string.tab_prices),
+                count = 0,
+                isSelected = selected == 2,
+                onClick = { onSelect(2) },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
@@ -108,9 +114,10 @@ private fun TabSegment(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (isSelected) colors.onSurface else colors.onSurfaceVariant,
+                maxLines = 1,
             )
             if (count > 0) {
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(5.dp))
                 Text(
                     text = count.toString(),
                     style = MaterialTheme.typography.labelMedium,

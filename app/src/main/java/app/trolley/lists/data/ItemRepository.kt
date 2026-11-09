@@ -1,12 +1,17 @@
 package app.trolley.lists.data
 
+import androidx.room.withTransaction
+import app.trolley.lists.sync.SyncPayloads
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Single entry point for list mutations. The UI never talks to Room directly, which keeps
- * a future sync layer (shared lists) a drop-in replacement here.
+ * Single entry point for list mutations. Every write also lands in the sync outbox, so a
+ * shared list catches up as soon as the device is online.
  */
-class ItemRepository(private val dao: ItemDao) {
+class ItemRepository(private val db: AppDatabase) {
+
+    private val dao = db.itemDao()
+    private val outbox = db.syncDao()
 
     fun observeActive(): Flow<List<Item>> = dao.observeActive(Item.DEFAULT_LIST_ID)
 
@@ -14,23 +19,98 @@ class ItemRepository(private val dao: ItemDao) {
 
     suspend fun add(name: String) {
         val now = System.currentTimeMillis()
-        dao.upsert(Item(name = name, createdAt = now, updatedAt = now))
+        val item = Item(name = name.trim(), createdAt = now, updatedAt = now)
+        db.withTransaction {
+            dao.upsert(item)
+            enqueue(item)
+        }
     }
 
-    suspend fun complete(item: Item) = dao.complete(item.id, System.currentTimeMillis())
+    suspend fun complete(item: Item) {
+        val now = System.currentTimeMillis()
+        val updated = item.copy(completedAt = now, updatedAt = now)
+        db.withTransaction {
+            dao.complete(item.id, now)
+            enqueue(updated)
+        }
+    }
 
-    suspend fun restore(item: Item) = dao.restore(item.id, System.currentTimeMillis())
+    suspend fun restore(item: Item) {
+        val now = System.currentTimeMillis()
+        val updated = item.copy(completedAt = null, updatedAt = now)
+        db.withTransaction {
+            dao.restore(item.id, now)
+            enqueue(updated)
+        }
+    }
 
-    suspend fun rename(item: Item, name: String) = dao.rename(item.id, name, System.currentTimeMillis())
+    suspend fun rename(item: Item, name: String) {
+        val now = System.currentTimeMillis()
+        val updated = item.copy(name = name.trim(), updatedAt = now)
+        db.withTransaction {
+            dao.rename(item.id, name.trim(), now)
+            enqueue(updated)
+        }
+    }
 
-    suspend fun delete(item: Item) = dao.deleteById(item.id)
+    suspend fun delete(item: Item) {
+        val now = System.currentTimeMillis()
+        val updated = item.copy(deletedAt = now, updatedAt = now)
+        db.withTransaction {
+            dao.softDelete(item.id, now)
+            enqueue(updated)
+        }
+    }
 
-    suspend fun restoreAll(items: List<Item>) = dao.upsertAll(items)
+    suspend fun restoreAll(items: List<Item>) {
+        if (items.isEmpty()) return
+        db.withTransaction {
+            dao.upsertAll(items)
+            enqueueAll(items)
+        }
+    }
 
     /** Returns everything that was removed so the action can be undone. */
     suspend fun clearHistory(): List<Item> {
         val removed = dao.historySnapshot(Item.DEFAULT_LIST_ID)
-        if (removed.isNotEmpty()) dao.deleteHistory(Item.DEFAULT_LIST_ID)
+        if (removed.isEmpty()) return emptyList()
+
+        val now = System.currentTimeMillis()
+        val tombstones = removed.map { it.copy(deletedAt = now, updatedAt = now) }
+        db.withTransaction {
+            removed.forEach { dao.softDelete(it.id, now) }
+            enqueueAll(tombstones)
+        }
         return removed
+    }
+
+    suspend fun all(): List<Item> = dao.all(Item.DEFAULT_LIST_ID)
+
+    /** Snapshot used to match receipt lines against what is still to buy. */
+    suspend fun activeNow(): List<Item> = dao.activeNow(Item.DEFAULT_LIST_ID)
+
+    suspend fun enqueue(item: Item) {
+        outbox.enqueue(
+            SyncOp(
+                entity = SyncOp.ENTITY_ITEM,
+                entityId = item.id,
+                payload = SyncPayloads.itemJson(item),
+                updatedAt = item.updatedAt,
+            ),
+        )
+    }
+
+    suspend fun enqueueAll(items: List<Item>) {
+        if (items.isEmpty()) return
+        outbox.enqueueAll(
+            items.map { item ->
+                SyncOp(
+                    entity = SyncOp.ENTITY_ITEM,
+                    entityId = item.id,
+                    payload = SyncPayloads.itemJson(item),
+                    updatedAt = item.updatedAt,
+                )
+            },
+        )
     }
 }

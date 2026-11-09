@@ -72,6 +72,78 @@
     <string name="section_today">Today</string>
     <string name="section_yesterday">Yesterday</string>
 
+    <string name="tab_prices">Prices</string>
+
+    <string name="menu_scan">Scan a receipt</string>
+    <string name="menu_sync">Share this list</string>
+
+    <string name="scan_title">Review receipt</string>
+    <string name="scan_reading">Reading receipt…</string>
+    <string name="scan_failed">Couldn\'t read that receipt. Try again with more light and the whole receipt in frame.</string>
+    <string name="scan_no_lines">No priced items found on that receipt.</string>
+    <string name="scan_store">Store</string>
+    <string name="scan_date">Date</string>
+    <string name="scan_total">Total</string>
+    <string name="scan_items">Items</string>
+    <string name="scan_mark_bought">Mark matched items as bought</string>
+    <string name="scan_mark_bought_count">Mark %1$d matched as bought</string>
+    <string name="scan_save">Save receipt</string>
+    <string name="scan_saved">Receipt saved to price history</string>
+    <string name="scan_edit_line">Edit item</string>
+    <string name="scan_name">Item</string>
+    <string name="scan_quantity">Qty</string>
+    <string name="scan_unit_price">Price</string>
+    <string name="scan_matched">Matches “%1$s”</string>
+    <string name="scan_no_match">Not on your list</string>
+    <string name="scan_edit_date">Change date</string>
+    <string name="scan_done">Done</string>
+    <string name="scan_cancel">Cancel</string>
+
+    <string name="prices_empty_title">No prices yet</string>
+    <string name="prices_empty_body">Scan a receipt after you shop and every price you paid is kept here, per item, with the store and the date.</string>
+    <string name="prices_latest">Last paid</string>
+    <string name="prices_best">Best</string>
+    <string name="prices_average">Average</string>
+    <string name="prices_history">Price history</string>
+    <string name="prices_subtitle">Every price you\'ve paid</string>
+
+    <plurals name="prices_purchases">
+        <item quantity="one">%1$d purchase</item>
+        <item quantity="other">%1$d purchases</item>
+    </plurals>
+    <string name="prices_bought_times">%1$d purchases</string>
+    <string name="prices_one_purchase">1 purchase</string>
+    <string name="prices_last_at">%1$s · %2$s</string>
+    <string name="prices_chart_empty">Scan another receipt to see how this price moves.</string>
+    <string name="prices_scan_hint">Scan receipt</string>
+    <string name="action_back">Back</string>
+
+    <string name="sync_title">Share this list</string>
+    <string name="sync_body">Everyone on the same list sees new items, moves and receipts within seconds. Trolley talks to a sync server you point it at — see the README for the one-command server.</string>
+    <string name="sync_server">Server address</string>
+    <string name="sync_server_hint">https://lists.example.com</string>
+    <string name="sync_your_name">Your name</string>
+    <string name="sync_your_name_hint">Sam</string>
+    <string name="sync_create">Start a shared list</string>
+    <string name="sync_join">Join with a code</string>
+    <string name="sync_code">Share code</string>
+    <string name="sync_code_hint">8-character code</string>
+    <string name="sync_connected">Connected to %1$s</string>
+    <string name="sync_last_synced">Last synced %1$s</string>
+    <string name="sync_never">Not synced yet</string>
+    <string name="sync_now">Sync now</string>
+    <string name="sync_disconnect">Stop sharing</string>
+    <string name="sync_share">Share code</string>
+    <string name="sync_created">Shared list created — give the code to whoever shops with you</string>
+    <string name="sync_joined">Joined the shared list</string>
+    <string name="sync_failed">Couldn\'t reach the sync server</string>
+    <string name="sync_offline">Offline — changes will sync later</string>
+    <string name="sync_disconnected">No longer sharing this list</string>
+    <string name="sync_busy">Syncing…</string>
+    <string name="sync_join_warning">Joining replaces what is on this phone with the shared list.</string>
+    <string name="sync_code_copied">Code copied</string>
+    <string name="sync_share_text">Join my Trolley list. Share code: %1$s</string>
+
     <plurals name="active_count">
         <item quantity="one">%d item to pick up</item>
         <item quantity="other">%d items to pick up</item>

@@ -8,8 +8,8 @@ import java.util.UUID
  * A single list entry.
  *
  * [completedAt] is the only state switch: null means "still to buy", a timestamp means
- * "picked up" and places the item in History. [listId] and [updatedAt] exist so a second
- * list (and eventually a shared/synced list) can be added without a schema rewrite.
+ * "picked up" and places the item in History. [deletedAt] is a tombstone so deletions can
+ * travel to other devices instead of silently reappearing on the next sync.
  */
 @Entity(tableName = "items")
 data class Item(
@@ -19,6 +19,7 @@ data class Item(
     val createdAt: Long = System.currentTimeMillis(),
     val completedAt: Long? = null,
     val updatedAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long? = null,
 ) {
     val isActive: Boolean get() = completedAt == null
 

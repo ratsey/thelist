@@ -36,6 +36,17 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
+  server:
+    name: Sync server tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Protocol tests
+        run: node --test server/test/
+
   release:
     name: Publish release
     if: startsWith(github.ref, 'refs/tags/v')

@@ -108,6 +108,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.androidx.room.runtime)
@@ -116,5 +117,10 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
+    // On-device receipt OCR: bundled Latin model, no Play Services download.
+    implementation(libs.mlkit.text.recognition)
+
     testImplementation(libs.junit)
+    // The android.jar stub throws on org.json calls; unit tests need the real implementation.
+    testImplementation(libs.org.json)
 }
