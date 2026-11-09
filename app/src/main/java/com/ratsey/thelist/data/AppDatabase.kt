@@ -19,7 +19,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         fun build(context: Context): AppDatabase =
-            Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "trolley.db")
+            Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "thelist.db")
                 // Pre-1.0: the schema moved to tombstones and receipts, so local data is reset
                 // rather than migrated. Removing this in favour of real migrations is the first
                 // item on the roadmap before a wider release.

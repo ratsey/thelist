@@ -1,4 +1,4 @@
-# Trolley
+# The List
 
 A shopping list that remembers what you paid. Three screens, one gesture, and a receipt
 scanner that turns a photo into price history.
@@ -45,7 +45,7 @@ Sizes are part of the key, so 1 L and 2 L milk keep separate histories.
 
 ## Shared lists
 
-Sharing needs a relay; Trolley ships with one you can run in a minute (`/server`, zero
+Sharing needs a relay; The List ships with one you can run in a minute (`/server`, zero
 dependencies):
 
 ```bash
@@ -112,7 +112,7 @@ Debug builds install as `com.ratsey.thelist.debug` alongside a release build.
 ## Getting it onto GitHub
 
 ```bash
-git remote add origin git@github.com:<you>/trolley.git
+git remote add origin git@github.com:<you>/thelist.git
 git push -u origin main
 ```
 
@@ -121,7 +121,7 @@ Point the app at that repo so it can find updates:
 ```properties
 # gradle.properties
 githubOwner=your-github-username
-githubRepo=trolley
+githubRepo=thelist
 ```
 
 While `githubOwner` is the placeholder, update checks are skipped silently.
@@ -158,7 +158,7 @@ prints the values for **Settings → Secrets and variables → Actions**:
 | --- | --- |
 | `KEYSTORE_BASE64` | base64 of `release.jks` |
 | `KEYSTORE_PASSWORD` | keystore password |
-| `KEY_ALIAS` | key alias (`trolley`) |
+| `KEY_ALIAS` | key alias (`thelist`) |
 | `KEY_PASSWORD` | key password |
 
 Back up `release.jks`: lose it and no future release can update an installed copy.
@@ -189,13 +189,13 @@ to decide whether it may install.
 ```
 app/src/main/java/com/ratsey/thelist/
 ├── MainActivity.kt          edge-to-edge Compose host
-├── TrolleyApp.kt            application + container
+├── TheListApp.kt            application + container
 ├── data/                    Room entities (items, receipts, lines, outbox), DAOs, repositories
 ├── receipt/                 parser, item matcher, ML Kit OCR, camera photo helpers
 ├── sync/                    HTTP protocol, payloads, push/pull engine
 ├── update/                  GitHub releases client + download/install pipeline
 └── ui/
-    ├── TrolleyRoot.kt       scaffold, tabs, snackbars, dialogs
+    ├── TheListRoot.kt       scaffold, tabs, snackbars, dialogs
     ├── ListViewModel.kt     list state, undo, scan state, sync state, prices, updater
     ├── ScanReviewScreen.kt  receipt confirmation and editing
     ├── PriceScreens.kt      price list, product detail, Canvas chart

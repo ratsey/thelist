@@ -18,7 +18,7 @@ val appVersionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: run
     major * 10_000 + minor * 100 + patch
 }
 val githubOwner = (findProperty("githubOwner") as String?) ?: "your-github-username"
-val githubRepo = (findProperty("githubRepo") as String?) ?: "trolley"
+val githubRepo = (findProperty("githubRepo") as String?) ?: "thelist"
 // Left empty until the relay in deploy/kamatera is live; the share dialog then asks for a URL.
 val syncServerUrl = (findProperty("syncServerUrl") as String?) ?: ""
 

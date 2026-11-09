@@ -1,5 +1,5 @@
 /**
- * Trolley sync server.
+ * The List sync server.
  *
  * A deliberately small relay for shared lists: each list has a share code, each member a
  * token, and every change is an immutable operation. Clients push their outbox and pull
@@ -8,7 +8,7 @@
  *
  * No dependencies beyond Node itself: `node:http` + `node:sqlite`.
  *
- *   node index.js                    # listens on :8080, database in ./trolley-sync.db
+ *   node index.js                    # listens on :8080, database in ./thelist-sync.db
  *   PORT=9000 DB_PATH=/data/db node index.js
  */
 import http from 'node:http';
@@ -67,7 +67,7 @@ async function readJson(req) {
   }
 }
 
-export function createApp({ dbPath = process.env.DB_PATH || './trolley-sync.db' } = {}) {
+export function createApp({ dbPath = process.env.DB_PATH || './thelist-sync.db' } = {}) {
   const db = new DatabaseSync(dbPath);
 
   db.exec(`
@@ -139,7 +139,7 @@ export function createApp({ dbPath = process.env.DB_PATH || './trolley-sync.db' 
   const routes = [
     {
       match: (method, path) => method === 'GET' && path === '/health',
-      handle: async (req, res) => sendJson(res, 200, { ok: true, service: 'trolley-sync' }),
+      handle: async (req, res) => sendJson(res, 200, { ok: true, service: 'thelist-sync' }),
     },
     {
       match: (method, path) => method === 'POST' && path === '/v1/lists',
@@ -293,6 +293,6 @@ if (isMain) {
   const port = Number(process.env.PORT || 8080);
   const server = createApp();
   server.listen(port, '0.0.0.0', () => {
-    console.log(`trolley-sync listening on :${port}`);
+    console.log(`thelist-sync listening on :${port}`);
   });
 }

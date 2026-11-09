@@ -65,7 +65,7 @@ class UpdateManager(
         updateDirectory().listFiles()?.forEach { it.delete() }
 
         val request = DownloadManager.Request(Uri.parse(release.apkUrl))
-            .setTitle("Trolley ${release.version}")
+            .setTitle("The List ${release.version}")
             .setDescription(context.getString(R.string.update_downloading_title, release.version))
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationInExternalFilesDir(
@@ -139,7 +139,7 @@ class UpdateManager(
         return File(base, "updates").apply { mkdirs() }
     }
 
-    private fun apkName(version: String) = "trolley-$version.apk"
+    private fun apkName(version: String) = "thelist-$version.apk"
 
     private companion object {
         const val CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000L

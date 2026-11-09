@@ -56,7 +56,7 @@ private const val TAB_HISTORY = 1
 private const val TAB_PRICES = 2
 
 @Composable
-fun TrolleyRoot(viewModel: ListViewModel) {
+fun TheListRoot(viewModel: ListViewModel) {
     val activeItems by viewModel.activeItems.collectAsStateWithLifecycle()
     val historyItems by viewModel.historyItems.collectAsStateWithLifecycle()
     val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()

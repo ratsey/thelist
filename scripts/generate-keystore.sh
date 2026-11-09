@@ -8,9 +8,9 @@
 set -euo pipefail
 
 KEYSTORE="${1:-release.jks}"
-ALIAS="${KEY_ALIAS:-trolley}"
+ALIAS="${KEY_ALIAS:-thelist}"
 PASSWORD="${KEYSTORE_PASSWORD:-$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | head -c 24)}"
-DN="${KEY_DNAME:-CN=Trolley, OU=Mobile, O=Trolley, C=GB}"
+DN="${KEY_DNAME:-CN=The List, OU=Mobile, O=The List, C=GB}"
 
 if [[ -f "$KEYSTORE" ]]; then
   echo "Refusing to overwrite $KEYSTORE — move it aside first." >&2

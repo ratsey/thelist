@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.sp
  * Tighter tracking on display sizes and a slightly heavier body weight — the difference
  * between "stock Material" and something that looks considered.
  */
-val TrolleyTypography = Typography(
+val TheListTypography = Typography(
     displaySmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,

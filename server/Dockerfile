@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json index.js ./
 
 ENV PORT=8080
-ENV DB_PATH=/data/trolley-sync.db
+ENV DB_PATH=/data/thelist-sync.db
 
 RUN mkdir -p /data
 VOLUME ["/data"]

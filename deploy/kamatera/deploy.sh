@@ -25,7 +25,7 @@ if [ "$SYNC_DOMAIN" = "sync.example.com" ]; then
   exit 1
 fi
 
-remote=/opt/trolley-sync
+remote=/opt/thelist-sync
 target="$VPS_USER@$VPS_HOST"
 
 echo "== shipping to $target:$remote =="

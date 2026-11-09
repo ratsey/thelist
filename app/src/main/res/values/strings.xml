@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Trolley</string>
+    <string name="app_name">The List</string>
     <string name="list_name">Groceries</string>
     <string name="tab_to_buy">To buy</string>
     <string name="tab_history">History</string>
@@ -49,7 +49,7 @@
     <string name="update_ready_title">Ready to install</string>
     <string name="update_ready_body">Version %1$s has been downloaded.</string>
     <string name="update_permission_title">Allow installs</string>
-    <string name="update_permission_body">Trolley needs your permission to install this update.</string>
+    <string name="update_permission_body">The List needs your permission to install this update.</string>
     <string name="update_checking_title">Checking for updates</string>
     <string name="update_checking_body">Asking GitHub for the latest version.</string>
     <string name="update_failed_title">Update failed</string>
@@ -119,7 +119,7 @@
     <string name="action_back">Back</string>
 
     <string name="sync_title">Share this list</string>
-    <string name="sync_body">Everyone on the same list sees new items, moves and receipts within seconds. Trolley talks to a sync server you point it at — see the README for the one-command server.</string>
+    <string name="sync_body">Everyone on the same list sees new items, moves and receipts within seconds. The List talks to a sync server you point it at — see the README for the one-command server.</string>
     <string name="sync_server">Server address</string>
     <string name="sync_server_hint">https://lists.example.com</string>
     <string name="sync_your_name">Your name</string>
@@ -142,7 +142,7 @@
     <string name="sync_busy">Syncing…</string>
     <string name="sync_join_warning">Joining replaces what is on this phone with the shared list.</string>
     <string name="sync_code_copied">Code copied</string>
-    <string name="sync_share_text">Join my Trolley list. Share code: %1$s</string>
+    <string name="sync_share_text">Join my shopping list on The List — code: %1$s</string>
 
     <plurals name="active_count">
         <item quantity="one">%d item to pick up</item>

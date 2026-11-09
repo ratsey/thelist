@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ratsey.thelist.ui.ListViewModel
-import com.ratsey.thelist.ui.TrolleyRoot
-import com.ratsey.thelist.ui.theme.TrolleyTheme
+import com.ratsey.thelist.ui.TheListRoot
+import com.ratsey.thelist.ui.theme.TheListTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -15,12 +15,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val container = (application as TrolleyApp).container
+        val container = (application as TheListApp).container
 
         setContent {
-            TrolleyTheme {
+            TheListTheme {
                 val viewModel: ListViewModel = viewModel(factory = ListViewModel.factory(container))
-                TrolleyRoot(viewModel)
+                TheListRoot(viewModel)
             }
         }
     }

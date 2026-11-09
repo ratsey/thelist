@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { createApp } from '../index.js';
 
 async function startServer() {
-  const dir = mkdtempSync(join(tmpdir(), 'trolley-sync-'));
+  const dir = mkdtempSync(join(tmpdir(), 'thelist-sync-'));
   const server = createApp({ dbPath: join(dir, 'test.db') });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address();

@@ -23,7 +23,7 @@ data class PullResponse(val seq: Long, val ops: List<RemoteOp>)
 class SyncException(message: String, val status: Int = 0) : Exception(message)
 
 /**
- * Minimal JSON-over-HTTP client for the Trolley sync server (see /server).
+ * Minimal JSON-over-HTTP client for The List's sync server (see /server).
  * No auth provider, no SDK: a list code plus a per-member token.
  */
 class SyncClient(private val baseUrl: String) {
@@ -124,7 +124,7 @@ class SyncClient(private val baseUrl: String) {
             connectTimeout = 10_000
             readTimeout = 20_000
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "Trolley-Android")
+            setRequestProperty("User-Agent", "TheList-Android")
             if (token != null) setRequestProperty("Authorization", "Bearer $token")
             if (body != null) {
                 doOutput = true

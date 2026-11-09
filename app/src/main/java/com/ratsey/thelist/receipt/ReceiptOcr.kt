@@ -13,7 +13,7 @@ import kotlin.coroutines.resumeWithException
 
 /**
  * Photo capture helpers. Capture is delegated to the installed camera app through
- * ACTION_IMAGE_CAPTURE, so Trolley needs no CAMERA permission and no preview code.
+ * ACTION_IMAGE_CAPTURE, so The List needs no CAMERA permission and no preview code.
  */
 object ReceiptPhotos {
 

@@ -55,7 +55,7 @@ class UpdateApi(private val owner: String, private val repo: String) {
                 connectTimeout = 10_000
                 readTimeout = 15_000
                 setRequestProperty("Accept", "application/vnd.github+json")
-                setRequestProperty("User-Agent", "Trolley-Android")
+                setRequestProperty("User-Agent", "TheList-Android")
             }
         }.getOrNull() ?: return@withContext null
 

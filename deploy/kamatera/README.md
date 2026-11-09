@@ -30,7 +30,7 @@ ssh root@<vps-ip> 'bash /root/setup-vps.sh'
 ```
 
 It installs Docker with the Compose plugin, enables `ufw` for 22/80/443, and creates
-`/opt/trolley-sync`.
+`/opt/thelist-sync`.
 
 ## 4. Ship the code
 
@@ -40,7 +40,7 @@ $EDITOR deploy/kamatera/deploy.env                             # host, user, dom
 ./deploy/kamatera/deploy.sh
 ```
 
-`deploy.sh` rsyncs `server/` and `deploy/` to `/opt/trolley-sync`, writes the `.env` from your
+`deploy.sh` rsyncs `server/` and `deploy/` to `/opt/thelist-sync`, writes the `.env` from your
 local config, rebuilds the image, restarts the stack and polls `https://<domain>/health` until
 it answers. The first run takes a minute while the certificate is issued.
 
@@ -61,8 +61,8 @@ The database lives in the `sync-data` volume, not in the checkout:
 
 ```bash
 ssh root@<vps-ip> 'docker run --rm \
-  -v trolley-sync_sync-data:/data -v /root:/backup alpine \
-  tar czf /backup/trolley-sync-$(date +%F).tgz -C /data .'
+  -v thelist-sync_sync-data:/data -v /root:/backup alpine \
+  tar czf /backup/thelist-sync-$(date +%F).tgz -C /data .'
 ```
 
 Pull that file somewhere else on a schedule. Losing it loses every shared list, because the
@@ -70,7 +70,7 @@ server is the only copy once people join.
 
 ## 7. Operating notes
 
-| Task | Command (from `/opt/trolley-sync/deploy/kamatera`) |
+| Task | Command (from `/opt/thelist-sync/deploy/kamatera`) |
 | --- | --- |
 | Status | `docker compose ps` |
 | Logs | `docker compose logs -f --tail=100` |

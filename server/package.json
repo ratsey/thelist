@@ -1,9 +1,9 @@
 {
-  "name": "trolley-sync",
+  "name": "thelist-sync",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Shared-list sync relay for Trolley",
+  "description": "Shared-list sync relay for The List",
   "engines": {
     "node": ">=22.13"
   },

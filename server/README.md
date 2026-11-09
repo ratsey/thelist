@@ -1,20 +1,20 @@
-# trolley-sync
+# thelist-sync
 
-The sync relay behind Trolley's shared lists. One Node process, one SQLite file, no
+The sync relay behind The List's shared lists. One Node process, one SQLite file, no
 dependencies — `node:http` and `node:sqlite` are part of Node itself.
 
 ## Run it
 
 ```bash
-node index.js                       # :8080, ./trolley-sync.db
+node index.js                       # :8080, ./thelist-sync.db
 PORT=9000 DB_PATH=/data/db node index.js
 ```
 
 Node 22.13+ (24 recommended). With Docker:
 
 ```bash
-docker build -t trolley-sync .
-docker run -p 8080:8080 -v trolley-data:/data trolley-sync
+docker build -t thelist-sync .
+docker run -p 8080:8080 -v thelist-data:/data thelist-sync
 ```
 
 Put it behind HTTPS before using it from a phone. A TLS-terminating reverse proxy is enough:
@@ -55,7 +55,7 @@ Tables: `lists`, `members` (token per member), `ops`, `counters`.
 ## Backups
 
 Everything is in `DB_PATH` (plus `-wal`/`-shm`). Copy the SQLite file, or run
-`sqlite3 trolley-sync.db ".backup backup.db"` while it is running.
+`sqlite3 thelist-sync.db ".backup backup.db"` while it is running.
 
 ## API
 

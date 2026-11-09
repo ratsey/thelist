@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time provisioning for a fresh Ubuntu 24.04 VPS. Safe to re-run.
-# Installs Docker + Compose plugin, opens 22/80/443, creates /opt/trolley-sync.
+# Installs Docker + Compose plugin, opens 22/80/443, creates /opt/thelist-sync.
 #
 #   scp setup-vps.sh root@<vps-ip>:/root/ && ssh root@<vps-ip> 'bash /root/setup-vps.sh'
 set -euo pipefail
@@ -37,7 +37,7 @@ ufw allow 80/tcp
 ufw allow 443/tcp
 ufw --force enable
 
-mkdir -p /opt/trolley-sync
+mkdir -p /opt/thelist-sync
 
 echo
 echo "Provisioned. Remember to also allow TCP 22/80/443 in the Kamatera firewall panel."
