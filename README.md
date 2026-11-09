@@ -100,7 +100,7 @@ JDK 17 and Android SDK 35.
 ./gradlew assembleRelease        # needs signing config, see below
 ```
 
-Debug builds install as `app.trolley.lists.debug` alongside a release build.
+Debug builds install as `com.ratsey.thelist.debug` alongside a release build.
 
 ## Getting it onto GitHub
 
@@ -180,7 +180,7 @@ to decide whether it may install.
 ## Layout
 
 ```
-app/src/main/java/app/trolley/lists/
+app/src/main/java/com/ratsey/thelist/
 ├── MainActivity.kt          edge-to-edge Compose host
 ├── TrolleyApp.kt            application + container
 ├── data/                    Room entities (items, receipts, lines, outbox), DAOs, repositories

@@ -38,11 +38,11 @@ val releaseKeystoreFile = keystorePath?.let { path ->
 val hasReleaseKeystore = releaseKeystoreFile?.exists() == true
 
 android {
-    namespace = "app.trolley.lists"
+    namespace = "com.ratsey.thelist"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "app.trolley.lists"
+        applicationId = "com.ratsey.thelist"
         minSdk = 26
         targetSdk = 35
         versionCode = appVersionCode
