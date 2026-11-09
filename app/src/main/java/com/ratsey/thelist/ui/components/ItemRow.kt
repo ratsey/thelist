@@ -94,7 +94,7 @@ fun ItemRow(
 
     SwipeToDismissBox(
         state = dismissState,
-        modifier = modifier.clip(RoundedCornerShape(18.dp)),
+        modifier = modifier.clip(RoundedCornerShape(14.dp)),
         backgroundContent = {
             when (dismissState.dismissDirection) {
                 SwipeToDismissBoxValue.StartToEnd -> SwipeReveal(swipeRight, alignEnd = false)
@@ -119,7 +119,7 @@ private fun ItemCard(
     val colors = MaterialTheme.colorScheme
 
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         color = colors.surface,
         border = BorderStroke(1.dp, colors.outlineVariant),
         modifier = Modifier.fillMaxWidth(),
@@ -129,8 +129,8 @@ private fun ItemCard(
                 .fillMaxWidth()
                 // A tap lands nowhere on purpose: a long press shows prices, the ⋮ opens the menu.
                 .combinedClickable(onClick = {}, onLongClick = onOpenPrices)
-                .heightIn(min = 62.dp)
-                .padding(start = 18.dp, end = 2.dp),
+                .heightIn(min = 44.dp)
+                .padding(start = 16.dp, end = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -142,18 +142,18 @@ private fun ItemCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 10.dp, top = 16.dp, bottom = 16.dp),
+                    .padding(end = 8.dp, top = 10.dp, bottom = 10.dp),
             )
 
             IconButton(
                 onClick = onOpenActions,
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier.size(40.dp),
             ) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
                     contentDescription = stringResource(R.string.action_menu),
                     tint = colors.outline,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
