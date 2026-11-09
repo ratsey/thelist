@@ -1,6 +1,6 @@
 # The List
 
-A shopping list that remembers what you paid. Three screens, one gesture, and a receipt
+A shopping list that remembers what you paid. Four screens, one gesture, and a receipt
 scanner that turns a photo into price history.
 
 - **To buy** — everything you still need.
@@ -8,9 +8,9 @@ scanner that turns a photo into price history.
 - **Shelf** — everything off the list but kept, one tap away.
 - **Prices** — every price you have paid for each item, as a list or a chart.
 
-Swipe a row right to move it to the other list (or tap its circle); swipe left to put it away on
-the shelf. Tap a row for rename, put away and delete. Tap the camera to scan a receipt. Tap the
-bookmark beside the add bar to fill the list from what you kept.
+Swipe a row right to move it to the other list; swipe left to put it away on the shelf. A row that
+is still to buy also shows a circle you can tap instead of swiping. Tap a row for rename, put away
+and delete. Tap the camera to scan a receipt, and the Shelf tab to fill a list from what you kept.
 
 Native Android: Kotlin, Jetpack Compose, Material 3, Room, ML Kit. No account, no Play
 Services, no cloud you did not choose.
@@ -52,8 +52,8 @@ Putting away is not deleting: the item leaves the list but keeps its row, its sp
 price history, and waits on **shelf** for next time. Clearing the basket moves its rows there too,
 so the shelf fills itself from ordinary shopping — next week's list is mostly last week's.
 
-The bookmark beside the add bar (also in the menu) opens it. Tap a name to put it straight back on
-the list, or swipe one left to delete it for good. That is the trade the gestures make: because
+The shelf has its own tab, between Basket and Prices. Tap a name to put it straight back on the
+list, or swipe one left to delete it for good. That is the trade the gestures make: because
 nothing you swipe on the list or the basket is destroyed, a mis-swipe costs one tap to undo, and a
 typo is removed deliberately — from the shelf, or from an item's own menu, which keeps a real
 "Delete" for the mistake you have only just typed.
@@ -124,9 +124,9 @@ The layout stays quiet so the list reads like paper:
 | Decision | Why |
 | --- | --- |
 | Warm off-white canvas, white cards, hairline borders | Paper-like; one green accent carries all meaning |
-| Large title, live count, segmented `To buy / Basket / Prices` | Three views of one list, one tap apart, no bottom navigation stealing thumb space |
+| Large title, live count, segmented `To buy / Basket / Shelf / Prices` | Four views of one list, one tap apart, no bottom navigation stealing thumb space |
 | Add bar above the keyboard, focus retained | Shopping lists get filled in bursts |
-| Swipe right = advance, swipe left = delete | Colour-coded reveals teach the gesture; undo covers mistakes |
+| Swipe right = on, swipe left = off | Colour-coded reveals teach the gesture, and nothing a swipe reaches on the list is destroyed |
 | Day-grouped basket | Answers "did we already buy this?" without timestamps |
 | Receipt review before saving | OCR is good, not perfect: confirm, don't trust blindly |
 | Update card inline, never a modal | An update should never interrupt a shopping trip |
@@ -235,18 +235,18 @@ app/src/main/java/com/ratsey/thelist/
     ├── ListViewModel.kt     list state, undo, scan state, sync state, prices, updater
     ├── ScanReviewScreen.kt  receipt confirmation and editing
     ├── PriceScreens.kt      price list, product detail, Canvas chart
-    ├── components/          header, tabs, swipe row, add bar, banner, sheet, sync dialog
+    ├── components/          header, tabs, swipe row, shelf screen, add bar, banner, sync dialog
     └── theme/               palette + type scale
 server/                      zero-dependency Node sync relay + protocol tests
 ```
 
 ## Data and migration
 
-Schema v2 adds receipts, purchase lines, tombstones and the sync outbox. The generated schema is
-committed under `app/schemas/`, so a future migration to v3 can be written and tested against a
-real v2 definition instead of a reconstructed one. Until that migration exists, local data is
-still reset on upgrade (`fallbackToDestructiveMigration`) — the first task before a wider
-release.
+Schema v2 adds receipts, purchase lines, tombstones and the sync outbox; v3 adds the `onList` flag
+behind the shelf. Both steps are written, and the generated schemas are committed under
+`app/schemas/`, so each migration is a one-line `ALTER` tested against a real definition instead
+of a reconstructed one. Anything older than v2 is still reset on upgrade
+(`fallbackToDestructiveMigration`), which costs nothing while the only installs are debug ones.
 
 ### Locked before the first install
 

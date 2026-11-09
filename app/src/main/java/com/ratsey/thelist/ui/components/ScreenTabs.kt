@@ -29,14 +29,15 @@ import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
 
 /**
- * Segmented switch between the three screens. A sliding indicator (rather than Material's
- * TabRow) keeps the header compact and reads instantly as one list seen three ways.
+ * Segmented switch between the four screens. A sliding indicator (rather than Material's
+ * TabRow) keeps the header compact and reads instantly as one list seen four ways.
  */
 @Composable
 fun ScreenTabs(
     selected: Int,
     activeCount: Int,
     basketCount: Int,
+    shelfCount: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -50,7 +51,7 @@ fun ScreenTabs(
             .clip(shape)
             .background(colors.surfaceVariant),
     ) {
-        val segmentWidth = maxWidth / 3
+        val segmentWidth = maxWidth / 4
         val indicatorOffset by animateDpAsState(
             targetValue = 3.dp + segmentWidth * selected,
             animationSpec = tween(durationMillis = 220),
@@ -83,10 +84,17 @@ fun ScreenTabs(
                 modifier = Modifier.weight(1f),
             )
             TabSegment(
-                label = stringResource(R.string.tab_prices),
-                count = 0,
+                label = stringResource(R.string.tab_shelf),
+                count = shelfCount,
                 isSelected = selected == 2,
                 onClick = { onSelect(2) },
+                modifier = Modifier.weight(1f),
+            )
+            TabSegment(
+                label = stringResource(R.string.tab_prices),
+                count = 0,
+                isSelected = selected == 3,
+                onClick = { onSelect(3) },
                 modifier = Modifier.weight(1f),
             )
         }

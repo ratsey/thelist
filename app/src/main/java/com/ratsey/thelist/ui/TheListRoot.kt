@@ -50,12 +50,13 @@ import com.ratsey.thelist.ui.components.RenameDialog
 import com.ratsey.thelist.ui.components.SettingsDialog
 import com.ratsey.thelist.ui.components.ShoppingList
 import com.ratsey.thelist.ui.components.SyncDialog
-import com.ratsey.thelist.ui.components.ShelfSheet
+import com.ratsey.thelist.ui.components.ShelfScreen
 import java.io.File
 
 private const val TAB_TO_BUY = 0
 private const val TAB_BASKET = 1
-private const val TAB_PRICES = 2
+private const val TAB_SHELF = 2
+private const val TAB_PRICES = 3
 
 @Composable
 fun TheListRoot(viewModel: ListViewModel) {
@@ -80,7 +81,6 @@ fun TheListRoot(viewModel: ListViewModel) {
     var renameTarget by remember { mutableStateOf<Item?>(null) }
     var confirmClearBasket by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
-    var showShelf by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showSync by remember { mutableStateOf(false) }
     var pendingPhotoPath by remember { mutableStateOf<String?>(null) }
@@ -157,7 +157,6 @@ fun TheListRoot(viewModel: ListViewModel) {
                             addFocusRequester.requestFocus()
                         }
                     },
-                    onOpenShelf = { showShelf = true },
                     focusRequester = addFocusRequester,
                 )
             }
@@ -178,12 +177,12 @@ fun TheListRoot(viewModel: ListViewModel) {
                     tab = selectedTab,
                     activeCount = activeItems.size,
                     basketCount = basketItems.size,
+                    shelfCount = shelfItems.size,
                     updateState = updateState,
                     syncUi = syncUi,
                     onTabSelected = { selectedTab = it },
                     onCheckForUpdates = { viewModel.checkForUpdates(userInitiated = true) },
                     onClearBasket = { confirmClearBasket = true },
-                    onOpenShelf = { showShelf = true },
                     onOpenSettings = { showSettings = true },
                     onAbout = { showAbout = true },
                     onStartUpdate = viewModel::startUpdate,
@@ -219,6 +218,12 @@ fun TheListRoot(viewModel: ListViewModel) {
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,
                             onOpenActions = { actionSheetItem = it },
+                        )
+
+                        TAB_SHELF -> ShelfScreen(
+                            items = shelfItems,
+                            onAdd = viewModel::addFromShelf,
+                            onDelete = viewModel::deleteFromShelf,
                         )
 
                         else -> PricesScreen(
@@ -285,15 +290,6 @@ fun TheListRoot(viewModel: ListViewModel) {
                     Text(stringResource(R.string.action_cancel))
                 }
             },
-        )
-    }
-
-    if (showShelf) {
-        ShelfSheet(
-            items = shelfItems,
-            onAdd = viewModel::addFromShelf,
-            onDelete = viewModel::deleteFromShelf,
-            onDismiss = { showShelf = false },
         )
     }
 

@@ -55,8 +55,12 @@ import com.ratsey.thelist.data.Item
 
 /**
  * One row: right is on, left is off. Swipe right to move the item to the other list, swipe left to
- * put it away on the shelf; both are reversible, so no swipe here can lose anything. Tap the circle
- * to move it, tap the row for rename, put away and delete.
+ * put it away on the shelf; both are reversible, so no swipe here can lose anything. Tap the row
+ * for rename, put away and delete.
+ *
+ * Only a row that is still to buy shows the circle, because there it means something: tap it
+ * instead of swiping to say you have the thing. In the basket every row is bought already, so a
+ * tick on each one said nothing and read like some unrelated control.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,21 +76,21 @@ fun ItemRow(
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onToggle()
-                    true
-                }
-
-                SwipeToDismissBoxValue.EndToStart -> {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onPutAway()
-                    true
-                }
-
-                SwipeToDismissBoxValue.Settled -> false
+            if (value == SwipeToDismissBoxValue.Settled) {
+                return@rememberSwipeToDismissBoxState false
             }
+
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> onToggle()
+                SwipeToDismissBoxValue.EndToStart -> onPutAway()
+                SwipeToDismissBoxValue.Settled -> Unit
+            }
+
+            // The action is done, but the row is not gone yet: the database flow takes it out of
+            // this list a frame later. Letting the box stay dismissed leaves a blank gap whenever
+            // that update is late or does not arrive, which looks like a swipe that did nothing.
+            false
         },
         positionalThreshold = { distance -> distance * 0.32f },
     )
@@ -129,10 +133,10 @@ private fun ItemCard(
                 .fillMaxWidth()
                 .combinedClickable(onClick = onOpenActions, onLongClick = onOpenActions)
                 .heightIn(min = 62.dp)
-                .padding(start = 12.dp, end = 10.dp),
+                .padding(start = if (inBasket) 20.dp else 12.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ToggleCircle(completed = completed, onClick = onToggle)
+            if (!inBasket) ToggleCircle(completed = completed, onClick = onToggle)
 
             Text(
                 text = item.name,

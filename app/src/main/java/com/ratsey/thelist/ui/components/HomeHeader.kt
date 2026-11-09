@@ -51,12 +51,12 @@ fun HomeHeader(
     tab: Int,
     activeCount: Int,
     basketCount: Int,
+    shelfCount: Int,
     updateState: UpdateUi,
     syncUi: SyncUi,
     onTabSelected: (Int) -> Unit,
     onCheckForUpdates: () -> Unit,
     onClearBasket: () -> Unit,
-    onOpenShelf: () -> Unit,
     onOpenSettings: () -> Unit,
     onAbout: () -> Unit,
     onStartUpdate: () -> Unit,
@@ -86,7 +86,7 @@ fun HomeHeader(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = subtitleFor(tab, activeCount, basketCount),
+                    text = subtitleFor(tab, activeCount, basketCount, shelfCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                 )
@@ -144,13 +144,6 @@ fun HomeHeader(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.shelf_open)) },
-                        onClick = {
-                            menuOpen = false
-                            onOpenShelf()
-                        },
-                    )
-                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.menu_settings)) },
                         onClick = {
                             menuOpen = false
@@ -182,6 +175,7 @@ fun HomeHeader(
             selected = tab,
             activeCount = activeCount,
             basketCount = basketCount,
+            shelfCount = shelfCount,
             onSelect = onTabSelected,
         )
 
@@ -190,11 +184,18 @@ fun HomeHeader(
 }
 
 @Composable
-private fun subtitleFor(tab: Int, activeCount: Int, basketCount: Int): String = when {
+private fun subtitleFor(
+    tab: Int,
+    activeCount: Int,
+    basketCount: Int,
+    shelfCount: Int,
+): String = when {
     tab == 0 && activeCount == 0 -> stringResource(R.string.empty_subtitle)
     tab == 0 -> pluralStringResource(R.plurals.active_count, activeCount, activeCount)
     tab == 1 && basketCount == 0 -> stringResource(R.string.empty_subtitle)
     tab == 1 -> pluralStringResource(R.plurals.basket_count, basketCount, basketCount)
+    tab == 2 && shelfCount == 0 -> stringResource(R.string.shelf_subtitle)
+    tab == 2 -> pluralStringResource(R.plurals.shelf_count, shelfCount, shelfCount)
     else -> stringResource(R.string.prices_subtitle)
 }
 
