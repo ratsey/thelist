@@ -47,6 +47,9 @@
     <string name="placement_location">Aisle or shelf</string>
     <string name="placement_location_hint">A6</string>
 
+    <string name="row_last">last %1$s</string>
+    <string name="row_best">best %1$s</string>
+
     <string name="menu_stores">Stores</string>
     <string name="stores_title">Stores</string>
     <string name="stores_body">The shops you buy in. Pick one on an item to say where in that shop it lives.</string>

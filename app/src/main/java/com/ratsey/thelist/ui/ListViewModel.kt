@@ -18,6 +18,7 @@ import com.ratsey.thelist.data.ReceiptRepository
 import com.ratsey.thelist.data.SettingsStore
 import com.ratsey.thelist.data.Store
 import com.ratsey.thelist.data.StoreRepository
+import com.ratsey.thelist.data.prettyReceiptName
 import com.ratsey.thelist.receipt.ItemMatcher
 import com.ratsey.thelist.receipt.ReceiptOcr
 import com.ratsey.thelist.receipt.ReceiptParser
@@ -425,7 +426,7 @@ class ListViewModel(
             )
 
             val lines = included.map { line ->
-                val displayName = line.matchedName ?: displayNameFor(line.name)
+                val displayName = line.matchedName ?: prettyReceiptName(line.name)
                 PurchaseLine(
                     receiptId = receipt.id,
                     productKey = ItemMatcher.productKey(line.matchedName ?: line.name),
@@ -722,17 +723,6 @@ class ListViewModel(
     private fun isDayFirst(): Boolean {
         val country = Locale.getDefault().country.uppercase(Locale.UK)
         return country !in MONTH_FIRST_COUNTRIES
-    }
-
-    private fun displayNameFor(raw: String): String {
-        val trimmed = raw.trim()
-        return if (trimmed.none { it.isLowerCase() }) {
-            trimmed.lowercase(Locale.getDefault())
-                .split(' ')
-                .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase(Locale.getDefault()) } }
-        } else {
-            trimmed
-        }
     }
 
     companion object {

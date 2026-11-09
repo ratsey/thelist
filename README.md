@@ -44,9 +44,13 @@ Per-ABI split APKs (roughly 11–18 MB each) are the obvious next size win.
 ## Where things are
 
 Items can carry a shop and an aisle: coffee, Walmart, `A6`. Add shops under ⋮ → **Stores**, then
-hold an item (or tap its ⋮) and choose **Where it is** to pick the shop and type the aisle. The row
-shows `Walmart · A6` underneath the name on every tab, and the shelf filter matches the aisle too, so
-"where do we get that?" is answered by the list instead of by memory.
+hold an item (or tap its ⋮) and choose **Where it is** to pick the shop and type the aisle. An item
+is still one row: the name on the left, then shop, aisle, last paid and best paid on the same line,
+so none of it costs vertical space. The shelf filter matches the aisle too, which makes the shelf the
+place to ask "where do we get that?".
+
+Price history shows the brand the receipt printed, because "coffee at £1.40" and "coffee at £3.50"
+are different jars and only the till remembers which.
 
 A shop is a row in its own table, synced like an item, so one person adding "Walmart" gives it to
 everyone sharing the list. Removing one clears the reference from its items but keeps their aisle

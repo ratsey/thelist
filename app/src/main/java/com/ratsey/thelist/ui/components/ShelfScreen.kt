@@ -44,10 +44,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
+import com.ratsey.thelist.data.PriceSummary
+import com.ratsey.thelist.receipt.ItemMatcher
 import java.util.Locale
 
 /**
@@ -62,6 +65,7 @@ import java.util.Locale
 fun ShelfScreen(
     items: List<Item>,
     storeNames: Map<String, String>,
+    summaries: Map<String, PriceSummary>,
     onAdd: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
@@ -124,7 +128,11 @@ fun ShelfScreen(
                 items(shown, key = { it.id }) { item ->
                     ShelfRow(
                         name = item.name,
-                        place = placeLabel(item, storeNames),
+                        meta = itemMeta(
+                            item = item,
+                            storeNames = storeNames,
+                            summary = summaries[ItemMatcher.productKey(item.name)],
+                        ),
                         onAdd = { onAdd(item) },
                         onOpenActions = { onOpenActions(item) },
                         modifier = Modifier.animateItem(),
@@ -139,7 +147,7 @@ fun ShelfScreen(
 @Composable
 private fun ShelfRow(
     name: String,
-    place: String?,
+    meta: String?,
     onAdd: () -> Unit,
     onOpenActions: () -> Unit,
     modifier: Modifier = Modifier,
@@ -182,27 +190,29 @@ private fun ShelfRow(
                     .padding(start = 18.dp, end = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 10.dp, top = 13.dp, bottom = 13.dp),
-                ) {
+                        .padding(end = 8.dp, top = 13.dp, bottom = 13.dp),
+                )
+
+                if (meta != null) {
                     Text(
-                        text = name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = meta,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .padding(end = 4.dp, top = 13.dp, bottom = 13.dp),
                     )
-                    if (place != null) {
-                        Text(
-                            text = place,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
 
                 IconButton(

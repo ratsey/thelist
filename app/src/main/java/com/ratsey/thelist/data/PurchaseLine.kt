@@ -41,6 +41,8 @@ data class PurchaseLine(
 data class PriceRow(
     val productKey: String,
     val displayName: String,
+    /** The line as the receipt printed it, so the brand survives into the history. */
+    val sourceText: String? = null,
     val quantity: Double,
     val unitPrice: Double,
     val lineTotal: Double,

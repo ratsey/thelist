@@ -74,6 +74,8 @@ fun TheListRoot(viewModel: ListViewModel) {
     val scanMovesItems by viewModel.scanMovesItems.collectAsStateWithLifecycle()
     val stores by viewModel.stores.collectAsStateWithLifecycle()
     val storeNames = remember(stores) { stores.associate { it.id to it.name } }
+    val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
+    val summaries = remember(priceSummaries) { priceSummaries.associateBy { it.productKey } }
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -215,6 +217,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                         TAB_SHELF -> ShelfScreen(
                             items = shelfItems,
                             storeNames = storeNames,
+                            summaries = summaries,
                             onAdd = viewModel::addFromShelf,
                             onOpenActions = { shelfActionItem = it },
                         )
@@ -222,6 +225,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                         TAB_BASKET -> BasketList(
                             items = basketItems,
                             storeNames = storeNames,
+                            summaries = summaries,
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,
                             onOpenPrices = { viewModel.showPricesFor(it) },
@@ -231,6 +235,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                         else -> ShoppingList(
                             items = activeItems,
                             storeNames = storeNames,
+                            summaries = summaries,
                             showHint = hintVisible && basketItems.isEmpty() && activeItems.isNotEmpty(),
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,

@@ -41,6 +41,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
+import com.ratsey.thelist.data.PriceSummary
+import com.ratsey.thelist.receipt.ItemMatcher
 import com.ratsey.thelist.ui.SyncState
 import com.ratsey.thelist.ui.SyncUi
 import com.ratsey.thelist.ui.UpdateUi
@@ -213,6 +215,7 @@ private fun subtitleFor(
 fun ShoppingList(
     items: List<Item>,
     storeNames: Map<String, String>,
+    summaries: Map<String, PriceSummary>,
     showHint: Boolean,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
@@ -244,7 +247,11 @@ fun ShoppingList(
         items(items, key = { it.id }) { item ->
             ItemRow(
                 item = item,
-                place = placeLabel(item, storeNames),
+                meta = itemMeta(
+                    item = item,
+                    storeNames = storeNames,
+                    summary = summaries[ItemMatcher.productKey(item.name)],
+                ),
                 swipeRight = SwipeAction(
                     label = R.string.swipe_got_it,
                     icon = Icons.Rounded.Check,
@@ -268,6 +275,7 @@ fun ShoppingList(
 fun BasketList(
     items: List<Item>,
     storeNames: Map<String, String>,
+    summaries: Map<String, PriceSummary>,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
     onOpenPrices: (Item) -> Unit,
@@ -304,7 +312,11 @@ fun BasketList(
             items(groupItems, key = { it.id }) { item ->
                 ItemRow(
                     item = item,
-                    place = placeLabel(item, storeNames),
+                    meta = itemMeta(
+                        item = item,
+                        storeNames = storeNames,
+                        summary = summaries[ItemMatcher.productKey(item.name)],
+                    ),
                     // In the basket, forward is done with it: onto the shelf, as at checkout.
                     swipeRight = SwipeAction(
                         label = R.string.swipe_put_away,

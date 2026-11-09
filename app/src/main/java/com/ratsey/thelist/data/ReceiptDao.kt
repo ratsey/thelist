@@ -19,7 +19,8 @@ interface ReceiptDao {
     suspend fun all(listId: String): List<Receipt>
 
     @Query(
-        "SELECT pl.productKey AS productKey, pl.displayName AS displayName, pl.quantity AS quantity, " +
+        "SELECT pl.productKey AS productKey, pl.displayName AS displayName, " +
+            "pl.sourceText AS sourceText, pl.quantity AS quantity, " +
             "pl.unitPrice AS unitPrice, pl.lineTotal AS lineTotal, r.storeName AS storeName, " +
             "r.purchasedAt AS purchasedAt, r.currency AS currency, r.id AS receiptId " +
             "FROM purchase_lines pl JOIN receipts r ON r.id = pl.receiptId " +

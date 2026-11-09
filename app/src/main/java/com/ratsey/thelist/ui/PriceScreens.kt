@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
+import com.ratsey.thelist.data.prettyReceiptName
 import com.ratsey.thelist.data.PricePoint
 import com.ratsey.thelist.data.PriceSummary
 import com.ratsey.thelist.ui.components.EmptyState
@@ -239,6 +240,7 @@ fun ProductDetailScreen(detail: ProductDetail, onBack: () -> Unit) {
                     quantity = purchase.quantity,
                     store = purchase.storeName,
                     date = formatDay(purchase.purchasedAt),
+                    sourceText = purchase.sourceText,
                 )
             }
         }
@@ -435,7 +437,13 @@ fun PriceChart(points: List<PricePoint>, currency: String, modifier: Modifier = 
 }
 
 @Composable
-private fun PurchaseRow(price: String, quantity: Double, store: String, date: String) {
+private fun PurchaseRow(
+    price: String,
+    quantity: Double,
+    store: String,
+    date: String,
+    sourceText: String?,
+) {
     val colors = MaterialTheme.colorScheme
     Surface(
         shape = RoundedCornerShape(15.dp),
@@ -450,17 +458,25 @@ private fun PurchaseRow(price: String, quantity: Double, store: String, date: St
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
+                // The brand is what tells two purchases of the same thing apart: "coffee" at £1.40
+                // and "coffee" at £3.50 are different jars, and only the receipt remembers which.
                 Text(
-                    text = store,
+                    text = sourceText?.let(::prettyReceiptName)?.takeIf { it.isNotBlank() } ?: store,
                     style = MaterialTheme.typography.bodyLarge,
                     color = colors.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = if (quantity > 1.0) "$date · ×${quantity.toInt()}" else date,
+                    text = if (quantity > 1.0) {
+                        "$store · $date · ×${quantity.toInt()}"
+                    } else {
+                        "$store · $date"
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Text(

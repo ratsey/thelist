@@ -36,10 +36,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
+import com.ratsey.thelist.data.PriceSummary
+import com.ratsey.thelist.ui.formatMoney
 
 /**
  * "Walmart · A6", or just the aisle when no shop is set, or null when nothing is known. The shop
@@ -51,6 +54,23 @@ fun placeLabel(item: Item, storeNames: Map<String, String>): String? {
         item.location?.takeIf { it.isNotBlank() },
     )
     return parts.joinToString(" · ").takeIf { it.isNotEmpty() }
+}
+
+/**
+ * Everything the row says besides the name, in one string: shop, aisle, last paid and best paid.
+ * One line because the list is scanned at arm's length in a shop, where a second line per item is
+ * three fewer items on the screen.
+ */
+@Composable
+fun itemMeta(item: Item, storeNames: Map<String, String>, summary: PriceSummary?): String? {
+    val parts = buildList {
+        placeLabel(item, storeNames)?.let { add(it) }
+        if (summary != null) {
+            add(stringResource(R.string.row_last, formatMoney(summary.latestPrice, summary.currency)))
+            add(stringResource(R.string.row_best, formatMoney(summary.lowestPrice, summary.currency)))
+        }
+    }
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
 
 /**
@@ -80,8 +100,8 @@ fun ItemRow(
     swipeLeft: SwipeAction,
     onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
-    /** "Walmart · A6" when the row knows where the thing lives; null when it does not. */
-    place: String? = null,
+    /** Shop, aisle, last and best paid, already joined; null when the row knows none of it. */
+    meta: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -122,7 +142,7 @@ fun ItemRow(
     ) {
         ItemCard(
             item = item,
-            place = place,
+            meta = meta,
             onOpenPrices = onOpenPrices,
             onOpenActions = onOpenActions,
         )
@@ -133,7 +153,7 @@ fun ItemRow(
 @Composable
 private fun ItemCard(
     item: Item,
-    place: String?,
+    meta: String?,
     onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
 ) {
@@ -154,30 +174,32 @@ private fun ItemCard(
                 .padding(start = 16.dp, end = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
+            Text(
+                text = item.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = colors.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp, top = 10.dp, bottom = 10.dp),
-            ) {
+            )
+
+            // Shop, aisle, last and best paid, all on the same line as the name so an item stays
+            // one row tall. When there is not enough width it is this that gives way, not the name.
+            if (meta != null) {
                 Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = colors.onSurface,
-                    maxLines = 2,
+                    text = meta,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .padding(end = 4.dp, top = 10.dp, bottom = 10.dp),
                 )
-                // The aisle is what you need with a trolley in front of the shelf, so it belongs
-                // on the row rather than one long press away.
-                if (place != null) {
-                    Text(
-                        text = place,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
 
             IconButton(
