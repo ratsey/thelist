@@ -133,7 +133,7 @@ fun HomeHeader(
                             onCheckForUpdates()
                         },
                     )
-                    if (tab == 1) {
+                    if (tab == 2) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_clear_basket)) },
                             enabled = basketCount > 0,
@@ -190,13 +190,12 @@ private fun subtitleFor(
     basketCount: Int,
     shelfCount: Int,
 ): String = when {
-    tab == 0 && activeCount == 0 -> stringResource(R.string.empty_subtitle)
-    tab == 0 -> pluralStringResource(R.plurals.active_count, activeCount, activeCount)
-    tab == 1 && basketCount == 0 -> stringResource(R.string.empty_subtitle)
-    tab == 1 -> pluralStringResource(R.plurals.basket_count, basketCount, basketCount)
-    tab == 2 && shelfCount == 0 -> stringResource(R.string.shelf_subtitle)
-    tab == 2 -> pluralStringResource(R.plurals.shelf_count, shelfCount, shelfCount)
-    else -> stringResource(R.string.prices_subtitle)
+    tab == 0 && shelfCount == 0 -> stringResource(R.string.shelf_subtitle)
+    tab == 0 -> pluralStringResource(R.plurals.shelf_count, shelfCount, shelfCount)
+    tab == 1 && activeCount == 0 -> stringResource(R.string.empty_subtitle)
+    tab == 1 -> pluralStringResource(R.plurals.active_count, activeCount, activeCount)
+    tab == 2 && basketCount == 0 -> stringResource(R.string.empty_subtitle)
+    else -> pluralStringResource(R.plurals.basket_count, basketCount, basketCount)
 }
 
 @Composable
@@ -205,6 +204,7 @@ fun ShoppingList(
     showHint: Boolean,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
+    onOpenPrices: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     onDismissHint: () -> Unit,
     modifier: Modifier = Modifier,
@@ -235,6 +235,7 @@ fun ShoppingList(
                 inBasket = false,
                 onToggle = { onToggle(item) },
                 onPutAway = { onPutAway(item) },
+                onOpenPrices = { onOpenPrices(item) },
                 onOpenActions = { onOpenActions(item) },
                 modifier = Modifier.animateItem(),
             )
@@ -247,6 +248,7 @@ fun BasketList(
     items: List<Item>,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
+    onOpenPrices: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -283,6 +285,7 @@ fun BasketList(
                     inBasket = true,
                     onToggle = { onToggle(item) },
                     onPutAway = { onPutAway(item) },
+                    onOpenPrices = { onOpenPrices(item) },
                     onOpenActions = { onOpenActions(item) },
                     modifier = Modifier.animateItem(),
                 )

@@ -90,8 +90,6 @@
     <string name="section_today">Today</string>
     <string name="section_yesterday">Yesterday</string>
 
-    <string name="tab_prices">Prices</string>
-
     <string name="menu_scan">Scan a receipt</string>
     <string name="menu_sync">Share this list</string>
 
@@ -118,6 +116,7 @@
     <string name="scan_done">Done</string>
     <string name="scan_cancel">Cancel</string>
 
+    <string name="prices_none_for_item">No prices for that one yet — scan a receipt after you shop</string>
     <string name="prices_empty_title">No prices yet</string>
     <string name="prices_empty_body">Scan a receipt after you shop and every price you paid is kept here, per item, with the store and the date.</string>
     <string name="prices_latest">Last paid</string>

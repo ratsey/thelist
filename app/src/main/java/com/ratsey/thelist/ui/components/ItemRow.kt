@@ -46,8 +46,8 @@ import com.ratsey.thelist.data.Item
  * put it away on the shelf; both are reversible, so no swipe here can lose anything.
  *
  * Nothing on the row reacts to a tap. A thumb brushing the list while you shop should never move an
- * item or bury it, so the menu — rename, put away, delete — is a long press or the small ⋮, and
- * every change of state is a deliberate swipe.
+ * item or bury it, so every change of state is a deliberate swipe. A long press shows what you have
+ * paid for the thing; the small ⋮ opens the menu — rename, put away, delete.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +56,7 @@ fun ItemRow(
     inBasket: Boolean,
     onToggle: () -> Unit,
     onPutAway: () -> Unit,
+    onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -89,7 +90,7 @@ fun ItemRow(
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
     ) {
-        ItemCard(item = item, onOpenActions = onOpenActions)
+        ItemCard(item = item, onOpenPrices = onOpenPrices, onOpenActions = onOpenActions)
     }
 }
 
@@ -97,6 +98,7 @@ fun ItemRow(
 @Composable
 private fun ItemCard(
     item: Item,
+    onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -111,8 +113,8 @@ private fun ItemCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                // A tap lands nowhere on purpose; only a long press (or the ⋮) opens the menu.
-                .combinedClickable(onClick = {}, onLongClick = onOpenActions)
+                // A tap lands nowhere on purpose: a long press shows prices, the ⋮ opens the menu.
+                .combinedClickable(onClick = {}, onLongClick = onOpenPrices)
                 .heightIn(min = 62.dp)
                 .padding(start = 18.dp, end = 2.dp),
             verticalAlignment = Alignment.CenterVertically,

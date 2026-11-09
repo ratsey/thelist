@@ -1,17 +1,19 @@
 # The List
 
-A shopping list that remembers what you paid. Four screens, one gesture, and a receipt
+A shopping list that remembers what you paid. Three tabs, one gesture, and a receipt
 scanner that turns a photo into price history.
 
+- **Shelf** — everything off the list but kept, one swipe away.
 - **To buy** — everything you still need.
 - **Basket** — everything you have already picked up.
-- **Shelf** — everything off the list but kept, one tap away.
-- **Prices** — every price you have paid for each item, as a list or a chart.
+
+Prices are no screen of their own: hold an item to see every price you have paid for it, as a list
+or a chart.
 
 Swipe a row right to move it to the other list; swipe left to put it away on the shelf. Tapping a
 row does nothing, deliberately — a thumb brushing the list while you shop should never move or
-bury anything. Long-press a row, or tap its ⋮, for rename, put away and delete. Tap the camera to
-scan a receipt, and the Shelf tab to fill a list from what you kept.
+bury anything. Hold a row to see what you have paid for it; tap its ⋮ for rename, put away and
+delete. Tap the camera to scan a receipt, and the Shelf tab to fill a list from what you kept.
 
 Native Android: Kotlin, Jetpack Compose, Material 3, Room, ML Kit. No account, no Play
 Services, no cloud you did not choose.
@@ -75,8 +77,8 @@ receipt text when nothing matched. Price history is **derived** from those lines
 rather than cached in its own table, so two people adding receipts to the same shared list
 cannot disagree about a "last price".
 
-- List: last paid, best price, store, date, number of purchases.
-- Detail: latest price card, a hand-drawn Canvas chart (no chart library), and every purchase.
+- From a row: hold the item to open its history — last paid, best, average, store and date.
+- Detail: a hand-drawn Canvas chart (no chart library) and every purchase.
 
 Sizes are part of the key, so 1 L and 2 L milk keep separate histories.
 
@@ -125,10 +127,10 @@ The layout stays quiet so the list reads like paper:
 | Decision | Why |
 | --- | --- |
 | Warm off-white canvas, white cards, hairline borders | Paper-like; one green accent carries all meaning |
-| Large title, live count, segmented `To buy / Basket / Shelf / Prices` | Four views of one list, one tap apart, no bottom navigation stealing thumb space |
+| Large title, live count, segmented `Shelf / To buy / Basket` | Three views of one list, one tap apart, no bottom navigation stealing thumb space |
 | Add bar above the keyboard, focus retained | Shopping lists get filled in bursts |
 | Swipe right = on, swipe left = off | Colour-coded reveals teach the gesture, and no swipe destroys anything |
-| No tap changes anything; the menu is a long press or the ⋮ | a thumb brushing a row mid-shop must not move it, bury it or open a sheet |
+| No tap changes anything; the ⋮ holds the menu | a thumb brushing a row mid-shop must not move it, bury it or open a sheet |
 | Day-grouped basket | Answers "did we already buy this?" without timestamps |
 | Receipt review before saving | OCR is good, not perfect: confirm, don't trust blindly |
 | Update card inline, never a modal | An update should never interrupt a shopping trip |
@@ -236,7 +238,7 @@ app/src/main/java/com/ratsey/thelist/
     ├── TheListRoot.kt       scaffold, tabs, snackbars, dialogs
     ├── ListViewModel.kt     list state, undo, scan state, sync state, prices, updater
     ├── ScanReviewScreen.kt  receipt confirmation and editing
-    ├── PriceScreens.kt      price list, product detail, Canvas chart
+    ├── PriceScreens.kt      per-item price detail and Canvas chart
     ├── components/          header, tabs, swipe row, shelf screen, add bar, banner, sync dialog
     └── theme/               palette + type scale
 server/                      zero-dependency Node sync relay + protocol tests

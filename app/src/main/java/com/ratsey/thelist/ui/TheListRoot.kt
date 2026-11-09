@@ -54,17 +54,16 @@ import com.ratsey.thelist.ui.components.ShelfActionsSheet
 import com.ratsey.thelist.ui.components.ShelfScreen
 import java.io.File
 
-private const val TAB_TO_BUY = 0
-private const val TAB_BASKET = 1
-private const val TAB_SHELF = 2
-private const val TAB_PRICES = 3
+/** In the order a shop happens: what you keep, what you need, what you have picked up. */
+private const val TAB_SHELF = 0
+private const val TAB_TO_BUY = 1
+private const val TAB_BASKET = 2
 
 @Composable
 fun TheListRoot(viewModel: ListViewModel) {
     val activeItems by viewModel.activeItems.collectAsStateWithLifecycle()
     val basketItems by viewModel.basketItems.collectAsStateWithLifecycle()
     val shelfItems by viewModel.shelfItems.collectAsStateWithLifecycle()
-    val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
     val productDetail by viewModel.productDetail.collectAsStateWithLifecycle()
     val scanState by viewModel.scan.collectAsStateWithLifecycle()
     val syncUi by viewModel.syncUi.collectAsStateWithLifecycle()
@@ -206,31 +205,28 @@ fun TheListRoot(viewModel: ListViewModel) {
             ) { tab ->
                 Box(Modifier.fillMaxSize()) {
                     when (tab) {
-                        TAB_TO_BUY -> ShoppingList(
-                            items = activeItems,
-                            showHint = hintVisible && basketItems.isEmpty() && activeItems.isNotEmpty(),
-                            onToggle = viewModel::move,
-                            onPutAway = viewModel::putAway,
-                            onOpenActions = { actionSheetItem = it },
-                            onDismissHint = viewModel::dismissHint,
-                        )
-
-                        TAB_BASKET -> BasketList(
-                            items = basketItems,
-                            onToggle = viewModel::move,
-                            onPutAway = viewModel::putAway,
-                            onOpenActions = { actionSheetItem = it },
-                        )
-
                         TAB_SHELF -> ShelfScreen(
                             items = shelfItems,
                             onAdd = viewModel::addFromShelf,
                             onOpenActions = { shelfActionItem = it },
                         )
 
-                        else -> PricesScreen(
-                            summaries = priceSummaries,
-                            onOpen = viewModel::openProduct,
+                        TAB_BASKET -> BasketList(
+                            items = basketItems,
+                            onToggle = viewModel::move,
+                            onPutAway = viewModel::putAway,
+                            onOpenPrices = { viewModel.showPricesFor(it) },
+                            onOpenActions = { actionSheetItem = it },
+                        )
+
+                        else -> ShoppingList(
+                            items = activeItems,
+                            showHint = hintVisible && basketItems.isEmpty() && activeItems.isNotEmpty(),
+                            onToggle = viewModel::move,
+                            onPutAway = viewModel::putAway,
+                            onOpenPrices = { viewModel.showPricesFor(it) },
+                            onOpenActions = { actionSheetItem = it },
+                            onDismissHint = viewModel::dismissHint,
                         )
                     }
                 }

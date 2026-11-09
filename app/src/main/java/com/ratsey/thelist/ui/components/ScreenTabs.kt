@@ -29,8 +29,9 @@ import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
 
 /**
- * Segmented switch between the four screens. A sliding indicator (rather than Material's
- * TabRow) keeps the header compact and reads instantly as one list seen four ways.
+ * Segmented switch between the three screens, in the order a shop happens: what you already keep,
+ * what you still need, what you have picked up. A sliding indicator (rather than Material's TabRow)
+ * keeps the header compact and reads instantly as one list seen three ways.
  */
 @Composable
 fun ScreenTabs(
@@ -51,7 +52,7 @@ fun ScreenTabs(
             .clip(shape)
             .background(colors.surfaceVariant),
     ) {
-        val segmentWidth = maxWidth / 4
+        val segmentWidth = maxWidth / 3
         val indicatorOffset by animateDpAsState(
             targetValue = 3.dp + segmentWidth * selected,
             animationSpec = tween(durationMillis = 220),
@@ -70,31 +71,24 @@ fun ScreenTabs(
 
         Row(Modifier.fillMaxSize()) {
             TabSegment(
-                label = stringResource(R.string.tab_to_buy),
-                count = activeCount,
+                label = stringResource(R.string.tab_shelf),
+                count = shelfCount,
                 isSelected = selected == 0,
                 onClick = { onSelect(0) },
                 modifier = Modifier.weight(1f),
             )
             TabSegment(
-                label = stringResource(R.string.tab_basket),
-                count = basketCount,
+                label = stringResource(R.string.tab_to_buy),
+                count = activeCount,
                 isSelected = selected == 1,
                 onClick = { onSelect(1) },
                 modifier = Modifier.weight(1f),
             )
             TabSegment(
-                label = stringResource(R.string.tab_shelf),
-                count = shelfCount,
+                label = stringResource(R.string.tab_basket),
+                count = basketCount,
                 isSelected = selected == 2,
                 onClick = { onSelect(2) },
-                modifier = Modifier.weight(1f),
-            )
-            TabSegment(
-                label = stringResource(R.string.tab_prices),
-                count = 0,
-                isSelected = selected == 3,
-                onClick = { onSelect(3) },
                 modifier = Modifier.weight(1f),
             )
         }

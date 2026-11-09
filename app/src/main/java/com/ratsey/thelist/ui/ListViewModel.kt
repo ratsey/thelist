@@ -419,6 +419,20 @@ class ListViewModel(
         selectedProduct.value = null
     }
 
+    /**
+     * Long-press on a row: what this thing has cost you. Prices are no longer a screen of their own,
+     * so the row is the way in — and saying so is better than a long press that appears to do
+     * nothing when nothing has been bought yet.
+     */
+    fun showPricesFor(item: Item) {
+        val key = ItemMatcher.productKey(item.name)
+        if (priceRows.value.any { it.productKey == key }) {
+            selectedProduct.value = key
+        } else {
+            viewModelScope.launch { _messages.send(UiMessage(R.string.prices_none_for_item)) }
+        }
+    }
+
     // ---------------------------------------------------------------- sharing
 
     fun createSharedList(serverUrl: String, memberName: String) {
