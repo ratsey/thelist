@@ -18,7 +18,6 @@
     <string name="swipe_hint">Swipe right when you\'ve got it — it moves to your basket. Swipe left to put it back on the shelf.</string>
     <string name="swipe_got_it">Got it</string>
     <string name="swipe_add_back">Add back</string>
-    <string name="swipe_delete">Delete</string>
     <string name="swipe_put_away">Put away</string>
 
     <string name="action_move_to_basket">Move to basket</string>
@@ -34,7 +33,7 @@
 
     <string name="shelf_subtitle">Off the list, kept for next time</string>
     <string name="shelf_filter">Filter</string>
-    <string name="shelf_hint">Swipe right to put it back on your list, left to delete it.</string>
+    <string name="shelf_hint">Swipe right to put it back on your list. Hold a row, or tap its ⋮, to rename or delete it.</string>
     <string name="shelf_empty_title">Nothing on the shelf yet</string>
     <string name="shelf_empty_body">Swipe an item left to put it away, or clear your basket after a shop, and it waits here so next week\'s list takes a swipe instead of typing.</string>
     <string name="shelf_no_matches">Nothing matches that</string>

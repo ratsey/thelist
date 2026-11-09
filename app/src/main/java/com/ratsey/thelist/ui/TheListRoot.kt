@@ -50,6 +50,7 @@ import com.ratsey.thelist.ui.components.RenameDialog
 import com.ratsey.thelist.ui.components.SettingsDialog
 import com.ratsey.thelist.ui.components.ShoppingList
 import com.ratsey.thelist.ui.components.SyncDialog
+import com.ratsey.thelist.ui.components.ShelfActionsSheet
 import com.ratsey.thelist.ui.components.ShelfScreen
 import java.io.File
 
@@ -78,6 +79,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     var selectedTab by rememberSaveable { mutableIntStateOf(TAB_TO_BUY) }
     var draft by rememberSaveable { mutableStateOf("") }
     var actionSheetItem by remember { mutableStateOf<Item?>(null) }
+    var shelfActionItem by remember { mutableStateOf<Item?>(null) }
     var renameTarget by remember { mutableStateOf<Item?>(null) }
     var confirmClearBasket by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
@@ -223,7 +225,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                         TAB_SHELF -> ShelfScreen(
                             items = shelfItems,
                             onAdd = viewModel::addFromShelf,
-                            onDelete = viewModel::deleteFromShelf,
+                            onOpenActions = { shelfActionItem = it },
                         )
 
                         else -> PricesScreen(
@@ -255,6 +257,25 @@ fun TheListRoot(viewModel: ListViewModel) {
             onDelete = {
                 viewModel.delete(item)
                 actionSheetItem = null
+            },
+        )
+    }
+
+    shelfActionItem?.let { item ->
+        ShelfActionsSheet(
+            item = item,
+            onDismiss = { shelfActionItem = null },
+            onAdd = {
+                viewModel.addFromShelf(item)
+                shelfActionItem = null
+            },
+            onRename = {
+                shelfActionItem = null
+                renameTarget = item
+            },
+            onDelete = {
+                viewModel.deleteFromShelf(item)
+                shelfActionItem = null
             },
         )
     }

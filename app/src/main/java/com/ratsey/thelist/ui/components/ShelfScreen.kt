@@ -1,7 +1,9 @@
 package com.ratsey.thelist.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,11 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Archive
-import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -48,18 +51,18 @@ import com.ratsey.thelist.data.Item
 import java.util.Locale
 
 /**
- * The shelf, on its own tab: everything off the list but kept. Same reading as everywhere else —
- * right is on, left is off: swipe a name right to put it straight back on the list, left to delete
- * it for good. That left swipe is the only destructive gesture in the app, which is what lets every
- * swipe on the list and the basket be safe to try.
+ * The shelf, on its own tab: everything off the list but kept. One swipe, and it only ever adds —
+ * swipe a name right to put it straight back on the list. Nothing here deletes from a swipe or a
+ * tap: hold the row, or tap its ⋮, and delete from the menu.
  *
- * Like the list rows, nothing here acts on a tap.
+ * That is what lets every swipe in the app be safe to try: a mis-swipe moves a row and can be
+ * undone, and destruction is never one careless gesture away.
  */
 @Composable
 fun ShelfScreen(
     items: List<Item>,
     onAdd: (Item) -> Unit,
-    onDelete: (Item) -> Unit,
+    onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) {
@@ -117,7 +120,7 @@ fun ShelfScreen(
                     ShelfRow(
                         name = item.name,
                         onAdd = { onAdd(item) },
-                        onDelete = { onDelete(item) },
+                        onOpenActions = { onOpenActions(item) },
                         modifier = Modifier.animateItem(),
                     )
                 }
@@ -126,12 +129,12 @@ fun ShelfScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun ShelfRow(
     name: String,
     onAdd: () -> Unit,
-    onDelete: () -> Unit,
+    onOpenActions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -143,14 +146,10 @@ private fun ShelfRow(
             }
 
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> onAdd()
-                SwipeToDismissBoxValue.EndToStart -> onDelete()
-                SwipeToDismissBoxValue.Settled -> Unit
-            }
+            onAdd()
 
-            // Never leave the row dismissed: the shelf drops it when the change lands, and a row
-            // that stays dismissed without being removed is just a blank gap.
+            // The row is not gone yet: the database flow drops it from the shelf a frame later.
+            // Springing back keeps a failed or late update from leaving a blank gap.
             false
         },
         positionalThreshold = { distance -> distance * 0.32f },
@@ -160,7 +159,7 @@ private fun ShelfRow(
         state = dismissState,
         modifier = modifier.clip(RoundedCornerShape(16.dp)),
         enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = true,
+        enableDismissFromEndToStart = false,
         backgroundContent = { ShelfReveal(dismissState.dismissDirection) },
     ) {
         Surface(
@@ -171,7 +170,9 @@ private fun ShelfRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                    // A tap lands nowhere on purpose; only a long press (or the ⋮) opens the menu.
+                    .combinedClickable(onClick = {}, onLongClick = onOpenActions)
+                    .padding(start = 18.dp, end = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -180,8 +181,22 @@ private fun ShelfRow(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 10.dp, top = 16.dp, bottom = 16.dp),
                 )
+
+                IconButton(
+                    onClick = onOpenActions,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.MoreVert,
+                        contentDescription = stringResource(R.string.action_menu),
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
     }
@@ -189,45 +204,27 @@ private fun ShelfRow(
 
 @Composable
 private fun ShelfReveal(direction: SwipeToDismissBoxValue) {
-    val colors = MaterialTheme.colorScheme
-    val isDelete = direction == SwipeToDismissBoxValue.EndToStart
-    val isAdd = direction == SwipeToDismissBoxValue.StartToEnd
-    if (!isDelete && !isAdd) return
+    if (direction != SwipeToDismissBoxValue.StartToEnd) return
 
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDelete) colors.errorContainer else colors.primary)
+            .background(MaterialTheme.colorScheme.primary)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (isDelete) Arrangement.End else Arrangement.Start,
+        horizontalArrangement = Arrangement.Start,
     ) {
-        val contentColor = if (isDelete) colors.onErrorContainer else colors.onPrimary
-        val labelRes = if (isDelete) R.string.swipe_delete else R.string.swipe_add_back
-        val icon = if (isDelete) Icons.Rounded.Delete else Icons.Rounded.Add
-
-        if (isDelete) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(8.dp))
-        }
-        Text(
-            text = stringResource(labelRes),
-            style = MaterialTheme.typography.labelLarge,
-            color = contentColor,
+        Icon(
+            imageVector = Icons.Rounded.Check,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(18.dp),
         )
-        if (!isDelete) {
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(18.dp),
-            )
-        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.swipe_add_back),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onPrimary,
+        )
     }
 }

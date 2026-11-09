@@ -108,6 +108,61 @@ fun ItemActionsSheet(
     }
 }
 
+/**
+ * A shelf row's menu. It exists because nothing deletes from a swipe or a tap: the only way to
+ * remove a name for good is to open this deliberately and choose Delete.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShelfActionsSheet(
+    item: Item,
+    onDismiss: () -> Unit,
+    onAdd: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp),
+        ) {
+            Text(
+                text = item.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+            )
+            Spacer(Modifier.height(8.dp))
+            SheetAction(
+                icon = Icons.Rounded.Add,
+                label = stringResource(R.string.action_add_back),
+                onClick = onAdd,
+            )
+            SheetAction(
+                icon = Icons.Rounded.Edit,
+                label = stringResource(R.string.action_rename),
+                onClick = onRename,
+            )
+            SheetAction(
+                icon = Icons.Rounded.Delete,
+                label = stringResource(R.string.action_delete),
+                onClick = onDelete,
+                destructive = true,
+            )
+        }
+    }
+}
+
 @Composable
 private fun SheetAction(
     icon: ImageVector,
