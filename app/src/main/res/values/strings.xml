@@ -63,6 +63,8 @@
     <string name="update_file_missing">The downloaded file is missing — try again</string>
 
     <string name="msg_added">Added to the list</string>
+    <string name="msg_already_listed">Already on your list</string>
+    <string name="msg_readded">Back on the list</string>
     <string name="msg_moved_history">Moved to History</string>
     <string name="msg_moved_active">Back on the list</string>
     <string name="msg_deleted">Deleted</string>

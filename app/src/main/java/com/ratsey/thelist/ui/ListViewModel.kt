@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Locale
 import java.util.UUID
 
@@ -173,7 +174,15 @@ class ListViewModel(
         val name = rawName.trim()
         if (name.isEmpty()) return
         viewModelScope.launch {
-            repository.add(name)
+            when (repository.add(name)) {
+                ItemRepository.AddOutcome.AlreadyListed ->
+                    _messages.send(UiMessage(R.string.msg_already_listed))
+
+                ItemRepository.AddOutcome.Readded ->
+                    _messages.send(UiMessage(R.string.msg_readded))
+
+                ItemRepository.AddOutcome.Added -> Unit
+            }
             scheduleSync()
         }
     }
@@ -311,7 +320,8 @@ class ListViewModel(
                 purchasedAt = draft.purchasedAt,
                 total = draft.total,
                 currency = draft.currency,
-                photoPath = draft.photoPath,
+                // Relative name only: this row is shared with other devices.
+                photoPath = draft.photoPath?.let { File(it).name },
                 createdAt = now,
                 updatedAt = now,
             )
@@ -322,6 +332,7 @@ class ListViewModel(
                     receiptId = receipt.id,
                     productKey = ItemMatcher.productKey(line.matchedName ?: line.name),
                     displayName = displayName,
+                    sourceText = line.name,
                     quantity = line.quantity,
                     unitPrice = line.unitPrice,
                     lineTotal = line.lineTotal,

@@ -24,6 +24,16 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE id = :id")
     suspend fun byId(id: String): Item?
 
+    /**
+     * Duplicate check used before inserting. Matches on trimmed lowercase name, so the query
+     * must stay aligned with [ItemNames.key] (which also collapses repeated spaces).
+     */
+    @Query(
+        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL " +
+            "AND lower(trim(name)) = :nameKey ORDER BY updatedAt DESC LIMIT 1",
+    )
+    suspend fun findByName(listId: String, nameKey: String): Item?
+
     @Query("SELECT * FROM items WHERE listId = :listId")
     suspend fun all(listId: String): List<Item>
 

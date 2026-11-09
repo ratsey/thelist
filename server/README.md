@@ -67,6 +67,25 @@ Everything is in `DB_PATH` (plus `-wal`/`-shm`). Copy the SQLite file, or run
 | GET | `/v1/lists/:code/ops?since=N` | Bearer | pull operations after `N` |
 | POST | `/v1/lists/:code/ops` | Bearer | push up to 200 operations |
 
+## Frozen contract
+
+Fixed for v1. Installed apps and codes already in the wild depend on each of these, so changing
+one needs a compatibility story rather than an edit.
+
+| Thing | Value |
+| --- | --- |
+| Protocol | `1`, reported as `protocol` by `GET /health` |
+| Payload shape | every op payload carries `"v": 1` |
+| Entities | `item`, `receipt`, `line` |
+| Invite code | 8 chars from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (32 symbols; no `0`, `O`, `1`, `I`) |
+| Member token | 24 random bytes, hex |
+| Push batch | 200 ops |
+| Pull page | 500 ops |
+| Conflicts | last-write-wins on payload `updatedAt` (device clock); ties go to the incoming op |
+
+The payload is opaque JSON here — the relay never inspects a `v`, it only stores and orders it —
+but it is written on every row so shape changes are recognisable in the data itself.
+
 ## Tests
 
 ```bash

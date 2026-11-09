@@ -1,6 +1,7 @@
 package com.ratsey.thelist.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.UUID
 
@@ -10,13 +11,23 @@ import java.util.UUID
  * [productKey] is the normalised product name and is the identity used for price history,
  * so "Tesco Semi Skimmed Milk 2L" and "Semi Skimmed Milk" both roll up under `milk`.
  */
-@Entity(tableName = "purchase_lines")
+@Entity(
+    tableName = "purchase_lines",
+    indices = [
+        Index(value = ["listId", "productKey"]),
+        Index(value = ["receiptId"]),
+    ],
+)
 data class PurchaseLine(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val listId: String = Item.DEFAULT_LIST_ID,
     val receiptId: String,
     val productKey: String,
     val displayName: String,
+    /** The line exactly as OCR found it. [displayName] may be replaced by the matched list
+     *  item's name, so without this the original text is unrecoverable and price keys could
+     *  never be recomputed for receipts already saved. */
+    val sourceText: String? = null,
     val quantity: Double = 1.0,
     val unitPrice: Double,
     val lineTotal: Double,

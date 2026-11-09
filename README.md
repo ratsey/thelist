@@ -206,9 +206,28 @@ server/                      zero-dependency Node sync relay + protocol tests
 
 ## Data and migration
 
-Schema v2 adds receipts, purchase lines, tombstones and the sync outbox. The app is pre-1.0, so
-local data is reset on upgrade (`fallbackToDestructiveMigration`). Replacing that with real
-migrations is the first task before a wider release.
+Schema v2 adds receipts, purchase lines, tombstones and the sync outbox. The generated schema is
+committed under `app/schemas/`, so a future migration to v3 can be written and tested against a
+real v2 definition instead of a reconstructed one. Until that migration exists, local data is
+still reset on upgrade (`fallbackToDestructiveMigration`) — the first task before a wider
+release.
+
+### Locked before the first install
+
+These are cheap now and expensive once phones and a relay hold real data, so they are decided:
+
+| Decision | Value | Why now |
+| --- | --- | --- |
+| Schema history | exported, committed per version | migrations can't be authored or verified retroactively |
+| Receipt line text | `sourceText` keeps the raw OCR line | price keys are derived; without the raw text they can't be recomputed |
+| Receipt photos | stored as a bare file name, never a path | the row syncs to devices where a local path means nothing |
+| Sync payloads | self-describing, `"v": 1`; relay reports `protocol: 1` | a shipped client makes shape changes a compatibility problem |
+| Conflicts | last-write-wins on `updatedAt`, incoming wins ties | works offline; switching to server ordering later would need dual support |
+| Lists | one per device, though every row already carries `listId` | adding lists later means populating a column on live data |
+| Duplicate names | merged on add (case/space only), not a DB constraint | a unique index would turn a simultaneous add on two phones into a sync failure |
+| Invite code | 8 chars, 32-symbol alphabet | changing it strands every code already shared |
+| Member token | 24 random bytes, hex | same |
+| Signing key, repo | permanent before the first install | installs and update checks are pinned to both |
 
 ## Next
 

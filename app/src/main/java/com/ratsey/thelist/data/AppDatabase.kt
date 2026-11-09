@@ -8,7 +8,9 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [Item::class, Receipt::class, PurchaseLine::class, SyncOp::class],
     version = 2,
-    exportSchema = false,
+    // Schema history lives in app/schemas and is committed: without it, a migration to v3
+    // could only be written by reconstructing v2 by hand and could not be tested.
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
 

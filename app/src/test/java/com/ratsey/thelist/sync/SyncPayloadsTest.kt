@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.json.JSONObject
 import org.junit.Test
 
 class SyncPayloadsTest {
@@ -70,6 +71,49 @@ class SyncPayloadsTest {
 
         val decoded = SyncPayloads.lineFromJson(SyncPayloads.lineJson(line))
 
+        assertEquals(line, decoded)
+    }
+
+    @Test
+    fun `every payload declares its protocol version`() {
+        val item = JSONObject(SyncPayloads.itemJson(Item(id = "i", name = "Milk")))
+        val receipt = JSONObject(
+            SyncPayloads.receiptJson(Receipt(id = "r", storeName = "Tesco", purchasedAt = 1L)),
+        )
+        val line = JSONObject(
+            SyncPayloads.lineJson(
+                PurchaseLine(
+                    id = "l",
+                    receiptId = "r",
+                    productKey = "milk",
+                    displayName = "Milk",
+                    unitPrice = 1.0,
+                    lineTotal = 1.0,
+                ),
+            ),
+        )
+
+        assertEquals(SyncPayloads.VERSION, item.getInt("v"))
+        assertEquals(SyncPayloads.VERSION, receipt.getInt("v"))
+        assertEquals(SyncPayloads.VERSION, line.getInt("v"))
+    }
+
+    @Test
+    fun `raw receipt text survives so price keys can be recomputed`() {
+        val line = PurchaseLine(
+            id = "line-2",
+            receiptId = "receipt-1",
+            productKey = "milk",
+            displayName = "Milk",
+            sourceText = "TESCO SEMI SKIMMED MILK 2L",
+            unitPrice = 1.15,
+            lineTotal = 1.15,
+            updatedAt = 11L,
+        )
+
+        val decoded = SyncPayloads.lineFromJson(SyncPayloads.lineJson(line))
+
+        assertEquals("TESCO SEMI SKIMMED MILK 2L", decoded.sourceText)
         assertEquals(line, decoded)
     }
 

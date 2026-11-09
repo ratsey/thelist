@@ -18,6 +18,7 @@ import { pathToFileURL } from 'node:url';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_BODY_BYTES = 1_000_000;
+const PROTOCOL_VERSION = 1;
 const MAX_OPS_PER_PUSH = 200;
 const MAX_PULL = 500;
 const ENTITIES = new Set(['item', 'receipt', 'line']);
@@ -139,7 +140,8 @@ export function createApp({ dbPath = process.env.DB_PATH || './thelist-sync.db' 
   const routes = [
     {
       match: (method, path) => method === 'GET' && path === '/health',
-      handle: async (req, res) => sendJson(res, 200, { ok: true, service: 'thelist-sync' }),
+      handle: async (req, res) =>
+        sendJson(res, 200, { ok: true, service: 'thelist-sync', protocol: PROTOCOL_VERSION }),
     },
     {
       match: (method, path) => method === 'POST' && path === '/v1/lists',

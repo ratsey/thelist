@@ -17,13 +17,37 @@ class ItemRepository(private val db: AppDatabase) {
 
     fun observeHistory(): Flow<List<Item>> = dao.observeHistory(Item.DEFAULT_LIST_ID)
 
-    suspend fun add(name: String) {
+    /** What an add actually did, so the UI can say "already on your list" instead of nothing. */
+    enum class AddOutcome { Added, Readded, AlreadyListed }
+
+    /**
+     * Adds a name, or revives the existing row (from History or a tombstone) rather than
+     * creating a second "Milk". Soft on purpose: a unique index would turn two phones adding
+     * the same thing at once into a constraint failure during sync, and merging that is worse
+     * than the rare duplicate it prevents.
+     */
+    suspend fun add(name: String): AddOutcome {
+        val trimmed = name.trim()
         val now = System.currentTimeMillis()
-        val item = Item(name = name.trim(), createdAt = now, updatedAt = now)
+        val existing = dao.findByName(Item.DEFAULT_LIST_ID, ItemNames.key(trimmed))
+
+        if (existing != null && existing.completedAt == null) return AddOutcome.AlreadyListed
+
+        if (existing != null) {
+            val revived = existing.copy(completedAt = null, updatedAt = now)
+            db.withTransaction {
+                dao.upsert(revived)
+                enqueue(revived)
+            }
+            return AddOutcome.Readded
+        }
+
+        val item = Item(name = trimmed, createdAt = now, updatedAt = now)
         db.withTransaction {
             dao.upsert(item)
             enqueue(item)
         }
+        return AddOutcome.Added
     }
 
     suspend fun complete(item: Item) {

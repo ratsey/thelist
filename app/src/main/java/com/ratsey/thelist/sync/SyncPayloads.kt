@@ -8,7 +8,15 @@ import org.json.JSONObject
 /** JSON payloads shared by the outbox, the network and the receiving device. */
 object SyncPayloads {
 
+    /**
+     * Shape of every payload below. It is written into each row so the relay holds
+     * self-describing data, and so a future change can be recognised instead of guessed at.
+     * Bump only alongside a reader that still understands the previous value.
+     */
+    const val VERSION = 1
+
     fun itemJson(item: Item): String = JSONObject().apply {
+        put("v", VERSION)
         put("id", item.id)
         put("listId", item.listId)
         put("name", item.name)
@@ -32,6 +40,7 @@ object SyncPayloads {
     }
 
     fun receiptJson(receipt: Receipt): String = JSONObject().apply {
+        put("v", VERSION)
         put("id", receipt.id)
         put("listId", receipt.listId)
         put("storeName", receipt.storeName)
@@ -61,11 +70,13 @@ object SyncPayloads {
     }
 
     fun lineJson(line: PurchaseLine): String = JSONObject().apply {
+        put("v", VERSION)
         put("id", line.id)
         put("listId", line.listId)
         put("receiptId", line.receiptId)
         put("productKey", line.productKey)
         put("displayName", line.displayName)
+        put("sourceText", line.sourceText ?: JSONObject.NULL)
         put("quantity", line.quantity)
         put("unitPrice", line.unitPrice)
         put("lineTotal", line.lineTotal)
@@ -83,6 +94,7 @@ object SyncPayloads {
             receiptId = json.getString("receiptId"),
             productKey = json.optString("productKey"),
             displayName = json.optString("displayName"),
+            sourceText = json.optStringOrNull("sourceText"),
             quantity = json.optDouble("quantity", 1.0),
             unitPrice = json.optDouble("unitPrice", 0.0),
             lineTotal = json.optDouble("lineTotal", 0.0),
