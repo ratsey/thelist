@@ -34,11 +34,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
-import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.formatPriceField
 import com.ratsey.thelist.data.parsePriceField
-import com.ratsey.thelist.ui.formatMoney
 
 /**
  * The end of a shop.
@@ -70,7 +68,6 @@ fun CheckoutSheet(
         val text = typed[item.id].orEmpty()
         text.isNotBlank() && parsed[item.id] == null
     }
-    val total = parsed.values.filterNotNull().sum()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -160,33 +157,13 @@ fun CheckoutSheet(
             }
 
             Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = stringResource(R.string.checkout_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                if (total > 0) {
-                    Spacer(Modifier.width(10.dp))
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = stringResource(R.string.checkout_total),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = formatMoney(total, DEFAULT_CURRENCY),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
+            // No basket total on purpose: this app keeps what a thing costs, and adding a
+            // per-pound rate to a per-each price would be a number that means nothing.
+            Text(
+                text = stringResource(R.string.checkout_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             if (invalid) {
                 Spacer(Modifier.height(6.dp))
                 Text(

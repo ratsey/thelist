@@ -36,6 +36,8 @@ onto the item (it survives the trip to the shelf and into next week's list), and
 history as one priced line per checkout. Those lines are the same shape the scanner used to write,
 so last/best, the chart, the brand column and the sync payload all kept working unchanged.
 
+There are no totals anywhere — not per basket, not per receipt. The app keeps what a thing costs, because a per-pound rate added to a per-each price is not money and a basket total is not a decision.
+
 **Finish shop** is also how the list cleans itself. Every line in the basket goes back onto the
 shelf, ready to be swiped on again next week, and the snackbar undoes the whole thing if you pressed
 too early. Hold any line first — in the basket, or in the sheet — to fix its shop, aisle, amount or

@@ -84,7 +84,6 @@
     <string name="checkout_title">Finish the shop</string>
     <string name="checkout_body">%1$d items go back to the shelf, ready to swipe on again next week. Any price you add here is kept in your price history.</string>
     <string name="checkout_at_shop">Bought at %1$s</string>
-    <string name="checkout_total">Total</string>
     <string name="checkout_hint">Hold a line to change its shop, aisle or amount.</string>
     <string name="checkout_invalid_price">One of those prices isn\'t a number.</string>
     <string name="checkout_confirm">Finish shop</string>

@@ -84,7 +84,9 @@ class ReceiptRepository(private val db: AppDatabase) {
         val receipt = Receipt(
             storeName = storeName?.trim().orEmpty(),
             purchasedAt = now,
-            total = purchases.sumOf { it.price },
+            // Deliberately no total: a price is a cost kept for next time, and a sum of rates in
+            // different units would not be the money that left the account anyway.
+            total = null,
             currency = DEFAULT_CURRENCY,
             createdAt = now,
             updatedAt = now,
