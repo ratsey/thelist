@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Item::class, Store::class, Receipt::class, PurchaseLine::class, SyncOp::class],
-    version = 5,
+    version = 6,
     // Schema history lives in app/schemas and is committed: without it, a migration could only
     // be written by reconstructing the previous version by hand.
     exportSchema = true,
@@ -58,9 +58,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v6 relabels what earlier builds recorded in pounds. The currency lives on each receipt, so
+         * without this the price history — and every row that shows last/best from it — keeps
+         * printing a symbol the app no longer uses. Nothing structural changes, only the values.
+         */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("UPDATE `receipts` SET `currency` = '$' WHERE `currency` = '£'")
+            }
+        }
+
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "thelist.db")
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 // No install predates v2, so older schemas are reset rather than migrated.
                 .fallbackToDestructiveMigration()
                 .build()

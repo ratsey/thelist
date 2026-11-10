@@ -80,7 +80,8 @@ fun itemMeta(
     summary: PriceSummary?,
     currentStoreId: String? = null,
 ): String? {
-    val currency = summary?.currency ?: DEFAULT_CURRENCY
+    // A planned price is typed now, so it is in the app's currency; only what the till recorded
+    // keeps its own, which is also what the arrowed best price is shown in.
     val planned = item.price
     val parts = buildList {
         placeLabel(item, storeNames, currentStoreId)?.let { add(it) }
@@ -93,7 +94,7 @@ fun itemMeta(
         // "last $3.20 · best $2.80" on every line bought no decision and squeezed out the name.
         when {
             planned != null -> {
-                add(formatMoney(planned, currency))
+                add(formatMoney(planned, DEFAULT_CURRENCY))
                 if (summary != null && summary.lowestPrice < planned - PRICE_EPSILON) {
                     add(
                         stringResource(
