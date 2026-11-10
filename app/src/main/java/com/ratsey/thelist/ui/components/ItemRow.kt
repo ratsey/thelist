@@ -43,6 +43,7 @@ import com.ratsey.thelist.R
 import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PriceSummary
+import com.ratsey.thelist.data.priceWithUnit
 import com.ratsey.thelist.ui.formatMoney
 
 /**
@@ -96,14 +97,7 @@ fun itemMeta(
             planned != null -> {
                 // "$1.25/lb" rather than "$1.25": the amount sits before it, so the two facts stay
                 // apart and a rate is never mistaken for what the whole thing costs.
-                add(
-                    buildString {
-                        append(formatMoney(planned, DEFAULT_CURRENCY))
-                        item.priceUnit?.takeIf { it.isNotBlank() }?.let { unit ->
-                            append('/').append(unit.trim())
-                        }
-                    },
-                )
+                add(priceWithUnit(formatMoney(planned, DEFAULT_CURRENCY), item.priceUnit))
                 if (summary != null && summary.lowestPrice < planned - PRICE_EPSILON) {
                     add(
                         stringResource(

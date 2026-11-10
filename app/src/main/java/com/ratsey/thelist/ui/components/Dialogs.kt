@@ -57,11 +57,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
+import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PricePrompt
 import com.ratsey.thelist.data.Store
 import com.ratsey.thelist.data.formatPriceField
 import com.ratsey.thelist.data.parsePriceField
+import com.ratsey.thelist.data.priceWithUnit
+import com.ratsey.thelist.ui.formatMoney
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -355,6 +358,15 @@ fun AboutDialog(version: String, onDismiss: () -> Unit) {
  * it should cost. Every field is optional — a corner shop has no aisles, a list in the kitchen has
  * no amounts yet, and "the freezer" is as useful as "A6".
  */
+/**
+ * Everything the shopper knows about a row, asked as two questions instead of five equal fields:
+ * **where** it lives (shop and aisle) and what it **costs** (how much, and the rate).
+ *
+ * The row the list will show is spelled out at the top as it is typed, so "$1.25" and "lb" are seen
+ * together as "$1.25/lb" before saving — the sheet's job is that string, and it should not be a
+ * surprise what the list does with it. Every field is optional: a corner shop has no aisles, a list
+ * in the kitchen has no amounts yet, and Clear puts the row back to saying nothing at all.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlacementDialog(
@@ -382,6 +394,19 @@ fun PlacementDialog(
     val priceValue = parsePriceField(price)
     // A price typed wrong is a price silently lost, so it has to be a number or nothing at all.
     val priceValid = price.isBlank() || priceValue != null
+    val storeName =
+        if (addingStore) newStoreName else stores.firstOrNull { it.id == selectedStoreId }?.name
+
+    val preview = listOfNotNull(
+        storeName?.takeIf { it.isNotBlank() }?.trim(),
+        location.trim().takeIf { it.isNotEmpty() },
+        amount.trim().takeIf { it.isNotEmpty() },
+        priceValue?.let { priceWithUnit(formatMoney(it, DEFAULT_CURRENCY), priceUnit) },
+    ).joinToString(" · ").takeIf { it.isNotEmpty() }
+
+    // Clear only means something if the row is currently saying something.
+    val hasStored = item.storeId != null || !item.location.isNullOrBlank() ||
+        !item.amount.isNullOrBlank() || item.price != null || !item.priceUnit.isNullOrBlank()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -392,28 +417,32 @@ fun PlacementDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
         ) {
             Text(
-                text = stringResource(R.string.placement_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
                 text = item.name,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.placement_store),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = preview ?: stringResource(R.string.placement_preview_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (preview == null) {
+                    MaterialTheme.colorScheme.outline
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(6.dp))
+
+            Spacer(Modifier.height(18.dp))
+            DialogLabel(stringResource(R.string.placement_where))
+            Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -444,7 +473,7 @@ fun PlacementDialog(
                         addingStore = true
                         selectedStoreId = null
                     },
-                    label = { Text(stringResource(R.string.placement_new_store)) },
+                    label = { Text(stringResource(R.string.placement_new_store_chip)) },
                 )
             }
             if (addingStore) {
@@ -457,29 +486,35 @@ fun PlacementDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
             OutlinedTextField(
                 value = location,
                 onValueChange = { location = it },
                 singleLine = true,
                 label = { Text(stringResource(R.string.placement_location)) },
                 placeholder = { Text(stringResource(R.string.placement_location_hint)) },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Spacer(Modifier.height(18.dp))
+            DialogLabel(stringResource(R.string.placement_cost))
             Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = amount,
+                onValueChange = { amount = it },
+                singleLine = true,
+                label = { Text(stringResource(R.string.placement_amount)) },
+                placeholder = { Text(stringResource(R.string.placement_amount_hint)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Bottom,
             ) {
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.placement_amount)) },
-                    placeholder = { Text(stringResource(R.string.placement_amount_hint)) },
-                    modifier = Modifier.weight(1f),
-                )
                 OutlinedTextField(
                     value = price,
                     onValueChange = { price = it },
@@ -493,24 +528,31 @@ fun PlacementDialog(
                     ),
                     modifier = Modifier.weight(1f),
                 )
+                // The unit shares the price's line because "$1.25" is only half a fact: the two are
+                // typed as one thought and read as one string.
+                OutlinedTextField(
+                    value = priceUnit,
+                    onValueChange = { priceUnit = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.placement_per)) },
+                    placeholder = { Text(stringResource(R.string.placement_per_hint)) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.weight(0.6f),
+                )
             }
-            // The unit sits next to the price because they are one thought: "$1.25" says nothing
-            // until it says what it is per.
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = priceUnit,
-                onValueChange = { priceUnit = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.placement_per)) },
-                placeholder = { Text(stringResource(R.string.placement_per_hint)) },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                TextButton(
+                    onClick = { onSave(null, null, "", null, null, null) },
+                    enabled = hasStored,
+                ) {
+                    Text(stringResource(R.string.placement_clear))
+                }
+                Spacer(Modifier.weight(1f))
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
                 TextButton(
                     onClick = {
@@ -530,6 +572,16 @@ fun PlacementDialog(
             }
         }
     }
+}
+
+/** The two questions this sheet asks, quieter than the fields under them. */
+@Composable
+private fun DialogLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /** The shops themselves. Add one here, or straight from the placement sheet while shopping. */

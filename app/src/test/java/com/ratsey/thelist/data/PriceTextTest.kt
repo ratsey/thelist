@@ -45,4 +45,16 @@ class PriceTextTest {
     fun `a negative price is not a price`() {
         assertNull(parsePriceField("-2"))
     }
+
+    @Test
+    fun `a price says what it is per`() {
+        assertEquals("$1.25/lb", priceWithUnit("$1.25", "lb"))
+        assertEquals("$1.25/each", priceWithUnit("$1.25", "  each  "))
+    }
+
+    @Test
+    fun `a price with no unit is just a price`() {
+        assertEquals("$3.50", priceWithUnit("$3.50", null))
+        assertEquals("$3.50", priceWithUnit("$3.50", "   "))
+    }
 }

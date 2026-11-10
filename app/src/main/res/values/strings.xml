@@ -40,8 +40,11 @@
 
     <string name="action_placement">Where and how much</string>
     <string name="action_prices">Price history</string>
-    <string name="placement_title">Where and how much</string>
-    <string name="placement_store">Store</string>
+    <string name="placement_where">Where</string>
+    <string name="placement_cost">Cost</string>
+    <string name="placement_clear">Clear</string>
+    <string name="placement_preview_empty">Nothing set yet</string>
+    <string name="placement_new_store_chip">New</string>
     <string name="placement_no_store">No store</string>
     <string name="placement_new_store">New store…</string>
     <string name="placement_new_store_hint">Store name</string>

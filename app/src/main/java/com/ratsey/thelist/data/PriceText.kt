@@ -10,6 +10,10 @@ fun formatPriceField(value: Double?): String = when {
     else -> value.toString()
 }
 
+/** `$1.25/lb`: a formatted price and what it is per. Without a unit it is just the price. */
+fun priceWithUnit(price: String, unit: String?): String =
+    unit?.trim()?.takeIf { it.isNotEmpty() }?.let { "$price/$it" } ?: price
+
 /**
  * A price typed by hand, or null when it is not one.
  *
