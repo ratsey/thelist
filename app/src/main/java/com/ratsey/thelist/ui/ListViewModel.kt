@@ -149,7 +149,8 @@ class ListViewModel(
     private var syncing = false
 
     private sealed interface Undo {
-        data class Moved(val item: Item, val nowActive: Boolean) : Undo
+        /** [restoreToList] is where the row has to end up: true puts it back on To buy. */
+        data class Moved(val item: Item, val restoreToList: Boolean) : Undo
         data class Deleted(val item: Item) : Undo
         data class PutAway(val item: Item) : Undo
         data class ClearedBasket(val items: List<Item>) : Undo
@@ -185,7 +186,7 @@ class ListViewModel(
         val toBasket = item.completedAt == null
         viewModelScope.launch {
             if (toBasket) repository.complete(item) else repository.restore(item)
-            lastUndo = Undo.Moved(item, nowActive = !toBasket)
+            lastUndo = Undo.Moved(item, restoreToList = toBasket)
             _hintVisible.value = false
             // The price is known at the shelf, so "when adding" asks right here. A row that already
             // has one is not asked again: the prompt is a convenience, not a gate.
@@ -318,7 +319,7 @@ class ListViewModel(
         viewModelScope.launch {
             when (undo) {
                 is Undo.Moved ->
-                    if (undo.nowActive) repository.restore(undo.item) else repository.complete(undo.item)
+                    if (undo.restoreToList) repository.restore(undo.item) else repository.complete(undo.item)
 
                 is Undo.Deleted -> repository.restoreAll(listOf(undo.item))
                 is Undo.PutAway -> repository.restoreAll(listOf(undo.item))
