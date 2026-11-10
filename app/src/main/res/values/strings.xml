@@ -57,7 +57,7 @@
     <string name="shop_pill_label">Shop you are in</string>
 
     <string name="row_last">last %1$s</string>
-    <string name="row_best">best %1$s</string>
+    <string name="row_low">\u2193%1$s</string>
 
     <string name="menu_stores">Stores</string>
     <string name="stores_title">Stores</string>

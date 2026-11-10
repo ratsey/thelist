@@ -80,19 +80,48 @@ fun itemMeta(
     summary: PriceSummary?,
     currentStoreId: String? = null,
 ): String? {
+    val currency = summary?.currency ?: DEFAULT_CURRENCY
+    val planned = item.price
     val parts = buildList {
         placeLabel(item, storeNames, currentStoreId)?.let { add(it) }
         // What you decided in the kitchen comes before what the till once charged: the amount and
         // the price you planned are the things you need with a trolley in front of you.
         item.amount?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
-        item.price?.let { add(formatMoney(it, summary?.currency ?: DEFAULT_CURRENCY)) }
-        if (summary != null) {
-            add(stringResource(R.string.row_last, formatMoney(summary.latestPrice, summary.currency)))
-            add(stringResource(R.string.row_best, formatMoney(summary.lowestPrice, summary.currency)))
+
+        // Money is the widest thing a row carries, so it gets at most two short tokens. A plan is a
+        // bare figure, and the best price earns an arrowed one only when it is genuinely cheaper:
+        // "last $3.20 · best $2.80" on every line bought no decision and squeezed out the name.
+        when {
+            planned != null -> {
+                add(formatMoney(planned, currency))
+                if (summary != null && summary.lowestPrice < planned - PRICE_EPSILON) {
+                    add(
+                        stringResource(
+                            R.string.row_low,
+                            formatMoney(summary.lowestPrice, summary.currency),
+                        ),
+                    )
+                }
+            }
+
+            summary != null -> {
+                add(stringResource(R.string.row_last, formatMoney(summary.latestPrice, summary.currency)))
+                if (summary.lowestPrice < summary.latestPrice - PRICE_EPSILON) {
+                    add(
+                        stringResource(
+                            R.string.row_low,
+                            formatMoney(summary.lowestPrice, summary.currency),
+                        ),
+                    )
+                }
+            }
         }
     }
     return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
+
+/** A cent, near enough: cheaper by less than this is not a saving worth a symbol. */
+private const val PRICE_EPSILON = 0.005
 
 /**
  * One direction of a row's swipe: what it does, how the reveal explains it, and whether it is a
