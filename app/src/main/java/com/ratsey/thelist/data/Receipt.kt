@@ -16,7 +16,7 @@ data class Receipt(
     val storeName: String,
     val purchasedAt: Long,
     val total: Double? = null,
-    val currency: String = "£",
+    val currency: String = DEFAULT_CURRENCY,
     /** Bare file name inside the app's `receipts` directory, never an absolute path: this row
      *  travels to other devices, where a local path would mean nothing. */
     val photoPath: String? = null,

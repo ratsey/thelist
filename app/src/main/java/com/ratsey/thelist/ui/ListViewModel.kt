@@ -248,7 +248,7 @@ class ListViewModel(
     /**
      * Saves what the shopper knows about a row: which shop it is bought in, where in it, how much
      * to buy and what it should cost. A shop typed straight into the sheet is created first, so
-     * "Walmart, aisle A6, 2 L, £3.50" is one gesture instead of a detour through a separate screen
+     * "Walmart, aisle A6, 2 L, $3.50" is one gesture instead of a detour through a separate screen
      * to set the shop up before it can be chosen.
      */
     fun setDetails(

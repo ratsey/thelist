@@ -37,7 +37,7 @@ data class PurchaseLine(
 )
 
 /** The currency prices are shown in until a receipt says otherwise. */
-const val DEFAULT_CURRENCY = "£"
+const val DEFAULT_CURRENCY = "$"
 
 /** Flattened receipt line used for price history queries. */
 data class PriceRow(

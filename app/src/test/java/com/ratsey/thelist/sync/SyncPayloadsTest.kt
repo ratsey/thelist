@@ -44,7 +44,7 @@ class SyncPayloadsTest {
             storeName = "Tesco",
             purchasedAt = 1_700_000_000_000L,
             total = null,
-            currency = "£",
+            currency = "$",
             photoPath = null,
             updatedAt = 42L,
         )

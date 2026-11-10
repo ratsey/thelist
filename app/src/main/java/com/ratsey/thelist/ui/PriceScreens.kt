@@ -339,8 +339,8 @@ private fun PurchaseRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                // The brand is what tells two purchases of the same thing apart: "coffee" at £1.40
-                // and "coffee" at £3.50 are different jars, and only the receipt remembers which.
+                // The brand is what tells two purchases of the same thing apart: "coffee" at $1.40
+                // and "coffee" at $3.50 are different jars, and only the receipt remembers which.
                 Text(
                     text = sourceText?.let(::prettyReceiptName)?.takeIf { it.isNotBlank() } ?: name,
                     style = MaterialTheme.typography.bodyLarge,

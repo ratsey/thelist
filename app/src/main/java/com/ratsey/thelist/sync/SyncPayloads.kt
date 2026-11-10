@@ -1,5 +1,6 @@
 package com.ratsey.thelist.sync
 
+import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PurchaseLine
 import com.ratsey.thelist.data.Receipt
@@ -100,7 +101,7 @@ object SyncPayloads {
             storeName = json.optString("storeName"),
             purchasedAt = json.optLong("purchasedAt", 0L),
             total = json.optDoubleOrNull("total"),
-            currency = json.optString("currency", "£"),
+            currency = json.optString("currency", DEFAULT_CURRENCY),
             photoPath = json.optStringOrNull("photoPath"),
             createdAt = json.optLong("createdAt", 0L),
             updatedAt = json.optLong("updatedAt", 0L),

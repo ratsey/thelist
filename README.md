@@ -50,8 +50,8 @@ is still one row: the name on the left, then shop, aisle, last paid and best pai
 so none of it costs vertical space. The shelf filter matches the aisle too, which makes the shelf the
 place to ask "where do we get that?".
 
-Price history still shows the brand an old scanned receipt printed, because "coffee at £1.40" and
-"coffee at £3.50" are different jars. Prices typed in by hand show the item's own name.
+Price history still shows the brand an old scanned receipt printed, because "coffee at $1.40" and
+"coffee at $3.50" are different jars. Prices typed in by hand show the item's own name.
 
 At the door there is a **shop pill** on the header line: pick the shop you are standing in and its
 rows show only the aisle, because the header already says where you are. Rows for other shops show
