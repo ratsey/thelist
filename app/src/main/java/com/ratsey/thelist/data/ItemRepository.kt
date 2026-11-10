@@ -167,18 +167,24 @@ class ItemRepository(private val db: AppDatabase) {
         }
     }
 
-    suspend fun all(): List<Item> = dao.all(Item.DEFAULT_LIST_ID)
-
-    /** Snapshot used to match receipt lines against what is still to buy. */
-    suspend fun activeNow(): List<Item> = dao.activeNow(Item.DEFAULT_LIST_ID)
-
     /**
-     * What the shopper swiped while shopping, for receipt matching. Time-bounded because the
-     * basket is long-lived: without the window, a receipt scanned today could claim an item
-     * picked up last month instead of the one still on the list.
+     * What a row cost, as typed in while shopping. The price is written straight to the row so the
+     * list, the shelf and the other phone all agree, and only that one column is touched: the row
+     * can be in the basket by the time this runs, and a whole-row write from a stale copy would
+     * quietly put it back on the list.
      */
-    suspend fun recentlyPickedUp(now: Long = System.currentTimeMillis()): List<Item> =
-        dao.pickedUpSince(Item.DEFAULT_LIST_ID, now - BASKET_WINDOW_MS)
+    suspend fun setPrice(itemId: String, price: Double?) {
+        val current = dao.byId(itemId) ?: return
+        val now = System.currentTimeMillis()
+        db.withTransaction {
+            dao.setPrice(itemId, price, now)
+            enqueue(current.copy(price = price, updatedAt = now))
+        }
+    }
+
+    suspend fun byId(itemId: String): Item? = dao.byId(itemId)
+
+    suspend fun all(): List<Item> = dao.all(Item.DEFAULT_LIST_ID)
 
     suspend fun enqueue(item: Item) {
         outbox.enqueue(
@@ -205,8 +211,4 @@ class ItemRepository(private val db: AppDatabase) {
         )
     }
 
-    companion object {
-        /** Long enough to cover shopping in the evening and scanning the receipt next morning. */
-        private const val BASKET_WINDOW_MS = 36 * 60 * 60 * 1000L
-    }
 }

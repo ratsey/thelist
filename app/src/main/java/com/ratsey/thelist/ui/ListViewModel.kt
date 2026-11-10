@@ -1,6 +1,5 @@
 package com.ratsey.thelist.ui
 
-import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -10,18 +9,15 @@ import com.ratsey.thelist.R
 import com.ratsey.thelist.data.AppContainer
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.ItemRepository
+import com.ratsey.thelist.data.ManualPrice
+import com.ratsey.thelist.data.PricePrompt
 import com.ratsey.thelist.data.PriceRow
 import com.ratsey.thelist.data.PriceSummary
-import com.ratsey.thelist.data.PurchaseLine
-import com.ratsey.thelist.data.Receipt
 import com.ratsey.thelist.data.ReceiptRepository
 import com.ratsey.thelist.data.SettingsStore
 import com.ratsey.thelist.data.Store
 import com.ratsey.thelist.data.StoreRepository
-import com.ratsey.thelist.data.prettyReceiptName
 import com.ratsey.thelist.receipt.ItemMatcher
-import com.ratsey.thelist.receipt.ReceiptOcr
-import com.ratsey.thelist.receipt.ReceiptParser
 import com.ratsey.thelist.sync.SyncClient
 import com.ratsey.thelist.sync.SyncEngine
 import com.ratsey.thelist.data.SyncSettingsRepository
@@ -40,46 +36,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.io.File
 import java.util.Locale
-import java.util.UUID
-
-sealed interface ScanUi {
-    data object Idle : ScanUi
-    data object Reading : ScanUi
-    data class Failed(@StringRes val messageRes: Int) : ScanUi
-    data class Review(val draft: ReceiptDraft) : ScanUi
-}
-
-data class ReceiptDraft(
-    val photoPath: String?,
-    val storeName: String,
-    val purchasedAt: Long,
-    val currency: String,
-    val total: Double?,
-    val lines: List<DraftLine>,
-    val markBought: Boolean = true,
-)
-
-data class DraftLine(
-    val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val quantity: Double,
-    val unitPrice: Double,
-    val lineTotal: Double,
-    val matchedItemId: String?,
-    val matchedName: String?,
-    /** True when the line matched something already swiped instead of something to buy. */
-    val matchedFromBasket: Boolean = false,
-    val include: Boolean = true,
-)
 
 enum class SyncState { Disabled, Idle, Syncing, Offline }
 
@@ -110,7 +73,6 @@ class ListViewModel(
     private val settings: SettingsStore,
     private val syncEngine: SyncEngine,
     private val syncSettings: SyncSettingsRepository,
-    private val ocr: ReceiptOcr,
 ) : ViewModel() {
 
     val activeItems: StateFlow<List<Item>> = repository.observeActive()
@@ -127,9 +89,17 @@ class ListViewModel(
     val stores: StateFlow<List<Store>> = storeRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    /** Whether a scan moves the items it matched out of the list. Set by the user in Settings. */
-    val scanMovesItems: StateFlow<Boolean> = settings.scanMovesItems
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+    /** When the app asks for a price: on the way into the basket, or all at once at the end. */
+    val pricePrompt: StateFlow<PricePrompt> = settings.pricePrompt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PricePrompt.WhenAdding)
+
+    /** The row a "what did it cost?" prompt is open for, if any. */
+    private val _priceFor = MutableStateFlow<Item?>(null)
+    val priceFor: StateFlow<Item?> = _priceFor.asStateFlow()
+
+    fun dismissPricePrompt() {
+        _priceFor.value = null
+    }
 
     /** Which shop you are in, from the header pill. Null means everywhere at once. */
     val currentStoreId: StateFlow<String?> = settings.currentStoreId
@@ -159,9 +129,6 @@ class ListViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private val _scan = MutableStateFlow<ScanUi>(ScanUi.Idle)
-    val scan: StateFlow<ScanUi> = _scan.asStateFlow()
-
     private val _syncUi = MutableStateFlow(SyncUi())
     val syncUi: StateFlow<SyncUi> = _syncUi.asStateFlow()
 
@@ -178,7 +145,6 @@ class ListViewModel(
 
     private var pendingRelease: ReleaseInfo? = null
     private var downloadJob: Job? = null
-    private var scanJob: Job? = null
     private var lastUndo: Undo? = null
     private var syncing = false
 
@@ -221,6 +187,11 @@ class ListViewModel(
             if (toBasket) repository.complete(item) else repository.restore(item)
             lastUndo = Undo.Moved(item, nowActive = !toBasket)
             _hintVisible.value = false
+            // The price is known at the shelf, so "when adding" asks right here. A row that already
+            // has one is not asked again: the prompt is a convenience, not a gate.
+            if (toBasket && item.price == null && pricePrompt.value == PricePrompt.WhenAdding) {
+                _priceFor.value = item
+            }
             _messages.send(
                 UiMessage(
                     textRes = if (toBasket) R.string.msg_moved_basket else R.string.msg_moved_active,
@@ -361,122 +332,67 @@ class ListViewModel(
         _hintVisible.value = false
     }
 
-    fun setScanMovesItems(value: Boolean) {
-        viewModelScope.launch { settings.setScanMovesItems(value) }
+    fun setPricePrompt(prompt: PricePrompt) {
+        viewModelScope.launch { settings.setPricePrompt(prompt) }
     }
 
-    // ---------------------------------------------------------------- receipts
+    // ------------------------------------------------------------------- prices
 
-    fun startScan(photoUri: Uri, photoPath: String) {
-        scanJob?.cancel()
-        _scan.value = ScanUi.Reading
-        scanJob = viewModelScope.launch {
-            val text = runCatching { ocr.readText(photoUri) }.getOrNull()
-            if (text.isNullOrBlank()) {
-                _scan.value = ScanUi.Failed(R.string.scan_failed)
-                return@launch
-            }
-
-            val parsed = ReceiptParser.parse(text, dayFirst = isDayFirst())
-            if (parsed.lines.isEmpty()) {
-                _scan.value = ScanUi.Failed(R.string.scan_no_lines)
-                return@launch
-            }
-
-            // Basket first: a swipe during the shop is the shopper's own record of buying it,
-            // so it claims the line ahead of a name that merely looks familiar.
-            val basket = repository.recentlyPickedUp()
-            val candidates = repository.activeNow()
-            val draft = ReceiptDraft(
-                photoPath = photoPath,
-                storeName = parsed.storeName.orEmpty(),
-                purchasedAt = parsed.purchasedAt ?: System.currentTimeMillis(),
-                currency = parsed.currency,
-                total = parsed.total,
-                markBought = settings.scanMovesItems.first(),
-                lines = parsed.lines.map { line ->
-                    val match = ItemMatcher.match(line.name, basket, candidates)
-                    DraftLine(
-                        name = line.name,
-                        quantity = line.quantity,
-                        unitPrice = line.unitPrice,
-                        lineTotal = line.lineTotal,
-                        matchedItemId = match?.item?.id,
-                        matchedName = match?.item?.name,
-                        matchedFromBasket = match?.source == ItemMatcher.Source.Basket,
-                    )
-                },
-            )
-            _scan.value = ScanUi.Review(draft)
-        }
-    }
-
-    fun cancelScan() {
-        scanJob?.cancel()
-        _scan.value = ScanUi.Idle
-    }
-
-    fun dismissScanError() {
-        if (_scan.value is ScanUi.Failed) _scan.value = ScanUi.Idle
-    }
-
-    fun updateDraft(transform: (ReceiptDraft) -> ReceiptDraft) {
-        val review = _scan.value as? ScanUi.Review ?: return
-        _scan.value = review.copy(draft = transform(review.draft))
-    }
-
-    fun saveDraft() {
-        val review = _scan.value as? ScanUi.Review ?: return
-        val draft = review.draft
-        val included = draft.lines.filter { it.include && it.name.isNotBlank() }
-        if (included.isEmpty()) return
-
+    /**
+     * A price typed in for one row: written onto the item, then into the price history, so the row
+     * says what you planned to spend and last/best keep learning from what you actually did.
+     */
+    fun savePrice(itemId: String, price: Double?) {
+        _priceFor.value = null
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val receipt = Receipt(
-                storeName = draft.storeName.trim().ifBlank { "Unknown store" },
-                purchasedAt = draft.purchasedAt,
-                total = draft.total,
-                currency = draft.currency,
-                // Relative name only: this row is shared with other devices.
-                photoPath = draft.photoPath?.let { File(it).name },
-                createdAt = now,
-                updatedAt = now,
-            )
-
-            val lines = included.map { line ->
-                val displayName = line.matchedName ?: prettyReceiptName(line.name)
-                PurchaseLine(
-                    receiptId = receipt.id,
-                    productKey = ItemMatcher.productKey(line.matchedName ?: line.name),
-                    displayName = displayName,
-                    sourceText = line.name,
-                    quantity = line.quantity,
-                    unitPrice = line.unitPrice,
-                    lineTotal = line.lineTotal,
-                    matchedItemId = line.matchedItemId,
-                    createdAt = now,
-                    updatedAt = now,
-                )
-            }
-
-            // Only list matches have anywhere to move to: a basket match was swiped already.
-            val matchedIds = included
-                .filterNot { it.matchedFromBasket }
-                .mapNotNull { it.matchedItemId }
-                .toSet()
-            val markBought = if (draft.markBought && matchedIds.isNotEmpty()) {
-                repository.activeNow().filter { it.id in matchedIds }
-            } else {
-                emptyList()
-            }
-
-            receipts.saveReceipt(receipt, lines, markBought)
-            _scan.value = ScanUi.Idle
-            _messages.send(UiMessage(R.string.scan_saved))
+            applyPrice(itemId, price)
             scheduleSync()
         }
     }
+
+    private suspend fun applyPrice(itemId: String, price: Double?) {
+        val item = repository.byId(itemId) ?: return
+        repository.setPrice(itemId, price)
+        if (price == null) return
+        receipts.recordPrices(
+            storeName = storeNameFor(item),
+            purchases = listOf(ManualPrice(itemId = item.id, name = item.name, price = price)),
+        )
+    }
+
+    /**
+     * The end of the shop: whatever was typed at the till is written to the rows and into the price
+     * history, then the basket empties onto the shelf. Clearing without pricing is allowed — the
+     * shop is over either way — so an unpriced basket still gets put away in one press.
+     */
+    fun finishShop(prices: Map<String, Double?>) {
+        viewModelScope.launch {
+            val basket = basketItems.value
+            val paid = mutableListOf<ManualPrice>()
+            basket.forEach { item ->
+                val price = prices[item.id]
+                if (price != item.price) repository.setPrice(item.id, price)
+                if (price != null) paid.add(ManualPrice(item.id, item.name, price))
+            }
+
+            if (paid.isNotEmpty()) {
+                val shop = stores.value.firstOrNull { it.id == currentStoreId.value }?.name
+                    ?: basket.firstNotNullOfOrNull { storeNameFor(it) }
+                receipts.recordPrices(shop, paid)
+            }
+
+            // After the prices, not before: the snapshot this returns is what undo puts back.
+            val removed = repository.clearBasket()
+            lastUndo = Undo.ClearedBasket(removed)
+            _messages.send(UiMessage(R.string.msg_shop_finished, undoable = true))
+            scheduleSync()
+        }
+    }
+
+    /** The shop a price belongs to: the row's own, or the one picked in the header. */
+    private fun storeNameFor(item: Item): String? =
+        stores.value.firstOrNull { it.id == item.storeId }?.name
+            ?: stores.value.firstOrNull { it.id == currentStoreId.value }?.name
 
     fun openProduct(productKey: String) {
         selectedProduct.value = productKey
@@ -760,7 +676,6 @@ class ListViewModel(
                         settings = container.settings,
                         syncEngine = container.sync,
                         syncSettings = container.syncSettings,
-                        ocr = container.ocr,
                     ) as T
             }
     }

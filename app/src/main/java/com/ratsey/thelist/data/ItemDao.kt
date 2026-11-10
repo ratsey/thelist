@@ -46,22 +46,9 @@ interface ItemDao {
 
     @Query(
         "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 1 " +
-            "AND completedAt IS NULL ORDER BY createdAt ASC",
-    )
-    suspend fun activeNow(listId: String): List<Item>
-
-    @Query(
-        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 1 " +
             "AND completedAt IS NOT NULL ORDER BY completedAt DESC",
     )
     suspend fun basketSnapshot(listId: String): List<Item>
-
-    /** Items swiped since [since]. Bounded so an old pickup can't claim a fresh receipt line. */
-    @Query(
-        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL AND onList = 1 " +
-            "AND completedAt IS NOT NULL AND completedAt >= :since ORDER BY completedAt DESC",
-    )
-    suspend fun pickedUpSince(listId: String, since: Long): List<Item>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(item: Item)
@@ -99,6 +86,10 @@ interface ItemDao {
         price: Double?,
         now: Long,
     )
+
+    /** What a row cost. Null clears it, which is why the other details are left untouched. */
+    @Query("UPDATE items SET price = :price, updatedAt = :now WHERE id = :id")
+    suspend fun setPrice(id: String, price: Double?, now: Long)
 
     /** Every row pointing at a shop, used when that shop is removed. */
     @Query("SELECT * FROM items WHERE storeId = :storeId")

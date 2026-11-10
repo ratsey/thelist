@@ -1,7 +1,7 @@
 # The List
 
-A shopping list that remembers what you paid. Three tabs, one gesture, and a receipt
-scanner that turns a photo into price history.
+A shopping list that remembers what you paid. Three tabs, one gesture, and prices you type in as
+you shop, kept per item so next week's list knows what milk should cost.
 
 - **Shelf** — everything off the list but kept, one swipe away.
 - **To buy** — everything you still need.
@@ -13,44 +13,45 @@ or a chart.
 Swipe a row right to move it forward through the shop — shelf, to buy, basket — and left to move it
 back a step. Tapping a row does nothing, deliberately — a thumb brushing the list while you shop should never move or
 bury anything. Hold a row to see what you have paid for it; tap its ⋮ for rename, put away and
-delete. Tap the camera to scan a receipt, and the Shelf tab to fill a list from what you kept.
+delete. The Shelf tab fills a list from what you kept, and ⋮ → **Finish shop** empties the basket
+back onto the shelf once the shopping is done.
 
-Native Android: Kotlin, Jetpack Compose, Material 3, Room, ML Kit. No account, no Play
-Services, no cloud you did not choose.
+Native Android: Kotlin, Jetpack Compose, Material 3, Room. No account, no Play Services, no cloud
+you did not choose.
 
-## Receipt scanning
+## Prices
 
-1. The camera icon launches the system camera (no CAMERA permission, no preview code).
-2. The photo is OCR'd **on the device** with ML Kit's bundled Latin model, then parsed by a
-   conservative heuristic parser: store name, date (day-first or month-first from your locale),
-   currency, total, and each `name … price` line. Footer noise — `TOTAL`, `CARD`, `CHANGE`,
-   `VAT`, `SUMME`, `TVA` — is dropped rather than guessed at.
-3. A review screen shows the photo, editable store/date/total, and every line with a checkbox.
-   Lines are matched by token overlap ("TESCO SEMI SKIMMED MILK 2L" → *Milk*) against the
-   **basket first** — what you swiped during this shop, within 36 hours — and only then against
-   what is still to buy. Swiping is your own record of picking something up, so it beats a name
-   that merely looks familiar; if you shop without swiping, the list alone is enough.
-4. A line that matched something on the list can move it to the basket as the receipt saves.
-   That is a setting (overflow menu → Settings, on by default) with a per-receipt switch on the
-   review screen, so a scan can also record prices and leave the list untouched.
-5. Saving stores the receipt and its priced lines, which is what fills the Prices tab.
+There is no scanner and no camera. A photo of a receipt was never quite accurate enough to be worth
+the 45 MB of bundled recognition model, so prices are typed in instead — and the app only asks where
+the question is welcome. That choice lives in ⋮ → Settings:
 
-Anything the parser is unsure about stays empty or editable — it never invents a price.
+- **When adding** (default) — swiping something into the basket asks what it cost. Skip is one tap,
+  and a row that already has a price is never asked twice.
+- **At checkout** — nothing interrupts the shop. ⋮ → **Finish shop** opens a sheet with a price
+  field per line, so the basket is priced in one pass at the end.
+- **Never** — prices only when you ask for one: hold a basket row and type it there.
 
-OCR runs fully offline, which is why the APK is ~45 MB: ML Kit's recognition model ships
-once per CPU architecture inside the app rather than being downloaded from Play Services.
-Per-ABI split APKs (roughly 11–18 MB each) are the obvious next size win.
+A typed price goes three places at once: onto the row (the list shows what you planned to spend),
+onto the item (it survives the trip to the shelf and into next week's list), and into the price
+history as one priced line per checkout. Those lines are the same shape the scanner used to write,
+so last/best, the chart, the brand column and the sync payload all kept working unchanged.
+
+**Finish shop** is also how the list cleans itself. Every line in the basket goes back onto the
+shelf, ready to be swiped on again next week, and the snackbar undoes the whole thing if you pressed
+too early. Hold any line first — in the basket, or in the sheet — to fix its shop, aisle, amount or
+price before it goes.
 
 ## Where things are
 
 Items can carry a shop and an aisle: coffee, Walmart, `A6`. Add shops under ⋮ → **Stores**, then
-hold an item (or tap its ⋮) and choose **Where it is** to pick the shop and type the aisle. An item
+hold an item (or tap its ⋮) and choose **Where and how much** to pick the shop and type the aisle,
+how much to buy ("2 L", "5 lb", "a quarter") and what it should cost. An item
 is still one row: the name on the left, then shop, aisle, last paid and best paid on the same line,
 so none of it costs vertical space. The shelf filter matches the aisle too, which makes the shelf the
 place to ask "where do we get that?".
 
-Price history shows the brand the receipt printed, because "coffee at £1.40" and "coffee at £3.50"
-are different jars and only the till remembers which.
+Price history still shows the brand an old scanned receipt printed, because "coffee at £1.40" and
+"coffee at £3.50" are different jars. Prices typed in by hand show the item's own name.
 
 At the door there is a **shop pill** on the header line: pick the shop you are standing in and its
 rows show only the aisle, because the header already says where you are. Rows for other shops show
@@ -122,7 +123,7 @@ cd server && node index.js        # listens on :8080
 
 Then in the app: cloud icon → paste the server address → **Start a shared list** → share the
 8-character code. On the other phone: same address, **Join with a code**. New items, swipes,
-renames and scanned receipts appear on both within a few seconds.
+renames and prices appear on both within a few seconds.
 
 How it works:
 
@@ -161,7 +162,7 @@ The layout stays quiet so the list reads like paper:
 | Swipe right = forward, swipe left = back | Colour-coded reveals teach the gesture, and no swipe destroys anything |
 | No tap changes anything; the ⋮ holds the menu | a thumb brushing a row mid-shop must not move it, bury it or open a sheet |
 | Day-grouped basket | Answers "did we already buy this?" without timestamps |
-| Receipt review before saving | OCR is good, not perfect: confirm, don't trust blindly |
+| Nothing is priced by guessing | A price is only ever one you typed, so history cannot invent one |
 | Update card inline, never a modal | An update should never interrupt a shopping trip |
 
 Dark mode inverts the same palette. Dynamic colour is intentionally not used.
@@ -269,13 +270,12 @@ app/src/main/java/com/ratsey/thelist/
 ├── MainActivity.kt          edge-to-edge Compose host
 ├── TheListApp.kt            application + container
 ├── data/                    Room entities (items, receipts, lines, outbox), DAOs, repositories
-├── receipt/                 parser, item matcher, ML Kit OCR, camera photo helpers
+├── receipt/                 product keys that price history is grouped by
 ├── sync/                    HTTP protocol, payloads, push/pull engine
 ├── update/                  GitHub releases client + download/install pipeline
 └── ui/
     ├── TheListRoot.kt       scaffold, tabs, snackbars, dialogs
-    ├── ListViewModel.kt     list state, undo, scan state, sync state, prices, updater
-    ├── ScanReviewScreen.kt  receipt confirmation and editing
+    ├── ListViewModel.kt     list state, undo, sync state, prices, finish-shop, updater
     ├── PriceScreens.kt      per-item price detail and Canvas chart
     ├── components/          header, tabs, swipe row, shelf screen, add bar, banner, sync dialog
     └── theme/               palette + type scale
@@ -297,7 +297,7 @@ These are cheap now and expensive once phones and a relay hold real data, so the
 | Decision | Value | Why now |
 | --- | --- | --- |
 | Schema history | exported, committed per version | migrations can't be authored or verified retroactively |
-| Receipt line text | `sourceText` keeps the raw OCR line | price keys are derived; without the raw text they can't be recomputed |
+| Receipt line text | `sourceText` keeps the raw line from a scanned receipt | price keys are derived from it; without the raw text they can't be recomputed |
 | Receipt photos | stored as a bare file name, never a path | the row syncs to devices where a local path means nothing |
 | Sync payloads | self-describing, `"v": 1`; relay reports `protocol: 1` | a shipped client makes shape changes a compatibility problem |
 | Conflicts | last-write-wins on `updatedAt`, incoming wins ties | works offline; switching to server ordering later would need dual support |

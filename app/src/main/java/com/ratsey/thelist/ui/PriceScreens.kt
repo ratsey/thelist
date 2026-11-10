@@ -2,7 +2,6 @@ package com.ratsey.thelist.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,11 +18,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,16 +39,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.prettyReceiptName
 import com.ratsey.thelist.data.PricePoint
 import com.ratsey.thelist.data.PriceSummary
-import com.ratsey.thelist.ui.components.EmptyState
 import com.ratsey.thelist.ui.components.SectionLabel
 import java.time.Instant
 import java.time.ZoneId
@@ -70,122 +65,6 @@ fun formatMoney(value: Double, currency: String): String =
 private fun formatDay(timestamp: Long): String =
     Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
         .format(DateTimeFormatter.ofPattern("d MMM yyyy"))
-
-@Composable
-fun PricesScreen(
-    summaries: List<PriceSummary>,
-    onOpen: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (summaries.isEmpty()) {
-        EmptyState(
-            icon = Icons.Rounded.ReceiptLong,
-            title = stringResource(R.string.prices_empty_title),
-            body = stringResource(R.string.prices_empty_body),
-            modifier = modifier,
-        )
-        return
-    }
-
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(summaries, key = { it.productKey }) { summary ->
-            PriceSummaryRow(summary = summary, onClick = { onOpen(summary.productKey) })
-        }
-    }
-}
-
-@Composable
-private fun PriceSummaryRow(summary: PriceSummary, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val showsBest = summary.lowestPrice < summary.latestPrice - 0.005
-
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = colors.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(colors.primary.copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = summary.displayName.take(1).uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colors.primary,
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = summary.displayName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = colors.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.prices_last_at,
-                        summary.latestStore,
-                        formatDay(summary.latestAt),
-                    ),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.onSurfaceVariant,
-                )
-            }
-
-            Spacer(Modifier.width(10.dp))
-
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = formatMoney(summary.latestPrice, summary.currency),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colors.onSurface,
-                )
-                if (showsBest) {
-                    Text(
-                        text = stringResource(R.string.prices_best) + " " +
-                            formatMoney(summary.lowestPrice, summary.currency),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.primary,
-                    )
-                } else {
-                    Text(
-                        text = if (summary.timesBought == 1) {
-                            stringResource(R.string.prices_one_purchase)
-                        } else {
-                            pluralStringResource(
-                                R.plurals.prices_purchases,
-                                summary.timesBought,
-                                summary.timesBought,
-                            )
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun ProductDetailScreen(detail: ProductDetail, onBack: () -> Unit) {
@@ -236,6 +115,7 @@ fun ProductDetailScreen(detail: ProductDetail, onBack: () -> Unit) {
             }
             items(detail.purchases) { purchase ->
                 PurchaseRow(
+                    name = purchase.displayName,
                     price = formatMoney(purchase.unitPrice, purchase.currency),
                     quantity = purchase.quantity,
                     store = purchase.storeName,
@@ -438,6 +318,7 @@ fun PriceChart(points: List<PricePoint>, currency: String, modifier: Modifier = 
 
 @Composable
 private fun PurchaseRow(
+    name: String,
     price: String,
     quantity: Double,
     store: String,
@@ -461,18 +342,20 @@ private fun PurchaseRow(
                 // The brand is what tells two purchases of the same thing apart: "coffee" at £1.40
                 // and "coffee" at £3.50 are different jars, and only the receipt remembers which.
                 Text(
-                    text = sourceText?.let(::prettyReceiptName)?.takeIf { it.isNotBlank() } ?: store,
+                    text = sourceText?.let(::prettyReceiptName)?.takeIf { it.isNotBlank() } ?: name,
                     style = MaterialTheme.typography.bodyLarge,
                     color = colors.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = if (quantity > 1.0) {
-                        "$store · $date · ×${quantity.toInt()}"
-                    } else {
-                        "$store · $date"
-                    },
+                    // A price typed in has no shop, so the second line starts at the date rather
+                    // than at a gap where a shop name would be.
+                    text = listOfNotNull(
+                        store.takeIf { it.isNotBlank() },
+                        date,
+                        if (quantity > 1.0) "×${quantity.toInt()}" else null,
+                    ).joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.onSurfaceVariant,
                     maxLines = 1,

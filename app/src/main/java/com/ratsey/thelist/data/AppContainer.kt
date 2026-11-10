@@ -1,7 +1,6 @@
 package com.ratsey.thelist.data
 
 import android.content.Context
-import com.ratsey.thelist.receipt.ReceiptOcr
 import com.ratsey.thelist.sync.SyncEngine
 import com.ratsey.thelist.update.UpdateManager
 
@@ -19,6 +18,5 @@ class AppContainer(context: Context) {
     val stores = StoreRepository(database)
     val receipts = ReceiptRepository(database)
     val updates = UpdateManager(appContext, settings)
-    val ocr = ReceiptOcr(appContext)
     val sync = SyncEngine(database, syncSettings, items, stores, receipts)
 }

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -58,7 +58,10 @@ import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
+import com.ratsey.thelist.data.PricePrompt
 import com.ratsey.thelist.data.Store
+import com.ratsey.thelist.data.formatPriceField
+import com.ratsey.thelist.data.parsePriceField
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +72,7 @@ fun ItemActionsSheet(
     onToggle: () -> Unit,
     onRename: () -> Unit,
     onPlacement: () -> Unit,
+    onOpenPrices: () -> Unit,
     onPutAway: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -110,6 +114,12 @@ fun ItemActionsSheet(
                 icon = Icons.Rounded.Place,
                 label = stringResource(R.string.action_placement),
                 onClick = onPlacement,
+            )
+            // In the basket the long press now sets a price, so the history needs a door of its own.
+            SheetAction(
+                icon = Icons.Rounded.ReceiptLong,
+                label = stringResource(R.string.action_prices),
+                onClick = onOpenPrices,
             )
             SheetAction(
                 icon = Icons.Rounded.Archive,
@@ -251,32 +261,53 @@ fun RenameDialog(
     )
 }
 
-/** The only user choice so far: whether a scanned receipt clears the list as it saves. */
+/** The one thing worth choosing: when the app interrupts to ask what you paid. */
 @Composable
 fun SettingsDialog(
-    scanMovesItems: Boolean,
-    onScanMovesChange: (Boolean) -> Unit,
+    pricePrompt: PricePrompt,
+    onPricePromptChange: (PricePrompt) -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_title)) },
         text = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.settings_scan_moves),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.settings_scan_moves_body),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_price_prompt),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.settings_price_prompt_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    PricePrompt.entries.forEach { option ->
+                        FilterChip(
+                            selected = option == pricePrompt,
+                            onClick = { onPricePromptChange(option) },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        when (option) {
+                                            PricePrompt.Off -> R.string.price_prompt_off
+                                            PricePrompt.WhenAdding -> R.string.price_prompt_when_adding
+                                            PricePrompt.AtCheckout -> R.string.price_prompt_at_checkout
+                                        },
+                                    ),
+                                )
+                            },
+                        )
+                    }
                 }
-                Spacer(Modifier.width(12.dp))
-                Switch(checked = scanMovesItems, onCheckedChange = onScanMovesChange)
             }
         },
         confirmButton = {
@@ -342,11 +373,11 @@ fun PlacementDialog(
     var selectedStoreId by remember { mutableStateOf(item.storeId) }
     var location by remember { mutableStateOf(item.location.orEmpty()) }
     var amount by remember { mutableStateOf(item.amount.orEmpty()) }
-    var price by remember { mutableStateOf(item.price?.let(::formatPriceField).orEmpty()) }
+    var price by remember { mutableStateOf(formatPriceField(item.price)) }
     var addingStore by remember { mutableStateOf(false) }
     var newStoreName by remember { mutableStateOf("") }
 
-    val priceValue = price.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    val priceValue = parsePriceField(price)
     // A price typed wrong is a price silently lost, so it has to be a number or nothing at all.
     val priceValid = price.isBlank() || priceValue != null
 
@@ -611,9 +642,65 @@ fun StoresSheet(
     }
 }
 
-/** Prices are edited as typed: 3.5 rather than 3.50, and a whole number stays whole. */
-private fun formatPriceField(value: Double): String =
-    if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
+/**
+ * The "what did it cost?" prompt, shown as something goes into the basket.
+ *
+ * Deliberately the smallest thing that can hold one number: skipping is a single tap and leaves the
+ * row alone, because half the time the price is still on the shelf edge and can be caught later.
+ */
+@Composable
+fun PricePromptDialog(
+    item: Item,
+    onSave: (Double) -> Unit,
+    onSkip: () -> Unit,
+) {
+    var price by remember(item.id) { mutableStateOf(formatPriceField(item.price)) }
+    val value = parsePriceField(price)
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(item.id) { focusRequester.requestFocus() }
+
+    AlertDialog(
+        onDismissRequest = onSkip,
+        title = { Text(stringResource(R.string.price_prompt_title)) },
+        text = {
+            Column {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    singleLine = true,
+                    isError = price.isNotBlank() && value == null,
+                    label = { Text(stringResource(R.string.placement_price)) },
+                    placeholder = { Text(stringResource(R.string.placement_price_hint)) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { value?.let(onSave) }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { value?.let(onSave) }, enabled = value != null) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onSkip) { Text(stringResource(R.string.price_prompt_skip)) }
+        },
+    )
+}
 
 @Composable
 fun ConfirmDialog(

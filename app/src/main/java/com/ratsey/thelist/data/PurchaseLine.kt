@@ -24,9 +24,8 @@ data class PurchaseLine(
     val receiptId: String,
     val productKey: String,
     val displayName: String,
-    /** The line exactly as OCR found it. [displayName] may be replaced by the matched list
-     *  item's name, so without this the original text is unrecoverable and price keys could
-     *  never be recomputed for receipts already saved. */
+    /** A line from a receipt scanned before the camera went, exactly as it was read: prices
+     *  typed in by hand have none, and older rows keep the brand this preserved. */
     val sourceText: String? = null,
     val quantity: Double = 1.0,
     val unitPrice: Double,
@@ -36,6 +35,9 @@ data class PurchaseLine(
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
 )
+
+/** The currency prices are shown in until a receipt says otherwise. */
+const val DEFAULT_CURRENCY = "£"
 
 /** Flattened receipt line used for price history queries. */
 data class PriceRow(

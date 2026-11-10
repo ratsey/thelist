@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
+import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PriceSummary
 import com.ratsey.thelist.ui.formatMoney
@@ -84,7 +85,7 @@ fun itemMeta(
         // What you decided in the kitchen comes before what the till once charged: the amount and
         // the price you planned are the things you need with a trolley in front of you.
         item.amount?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
-        item.price?.let { add(formatMoney(it, summary?.currency ?: FALLBACK_CURRENCY)) }
+        item.price?.let { add(formatMoney(it, summary?.currency ?: DEFAULT_CURRENCY)) }
         if (summary != null) {
             add(stringResource(R.string.row_last, formatMoney(summary.latestPrice, summary.currency)))
             add(stringResource(R.string.row_best, formatMoney(summary.lowestPrice, summary.currency)))
@@ -92,9 +93,6 @@ fun itemMeta(
     }
     return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
-
-/** What a planned price means before any receipt has told us the till's currency. */
-private const val FALLBACK_CURRENCY = "£"
 
 /**
  * One direction of a row's swipe: what it does, how the reveal explains it, and whether it is a

@@ -1,6 +1,7 @@
 package com.ratsey.thelist.data
 
 import androidx.room.withTransaction
+import com.ratsey.thelist.receipt.ItemMatcher
 import com.ratsey.thelist.sync.SyncPayloads
 import kotlinx.coroutines.flow.Flow
 
@@ -68,6 +69,50 @@ class ReceiptRepository(private val db: AppDatabase) {
         }
     }
 
+    /**
+     * Records prices the shopper typed in as one receipt per checkout, which is the shape the price
+     * history already reads: summaries, the chart and the last/best on a row all keep working, and
+     * a shared list syncs a typed price exactly as it synced a scanned one.
+     */
+    suspend fun recordPrices(
+        storeName: String?,
+        purchases: List<ManualPrice>,
+        now: Long = System.currentTimeMillis(),
+    ) {
+        if (purchases.isEmpty()) return
+
+        val receipt = Receipt(
+            storeName = storeName?.trim().orEmpty(),
+            purchasedAt = now,
+            total = purchases.sumOf { it.price },
+            currency = DEFAULT_CURRENCY,
+            createdAt = now,
+            updatedAt = now,
+        )
+
+        saveReceipt(
+            receipt = receipt,
+            purchaseLines = purchases.map { purchase ->
+                PurchaseLine(
+                    receiptId = receipt.id,
+                    productKey = ItemMatcher.productKey(purchase.name),
+                    displayName = purchase.name,
+                    sourceText = null,
+                    quantity = 1.0,
+                    unitPrice = purchase.price,
+                    lineTotal = purchase.price,
+                    matchedItemId = purchase.itemId,
+                    createdAt = now,
+                    updatedAt = now,
+                )
+            },
+            // A price typed in is a price already paid, but it does not move anything on the list:
+            // finish-shop moves the whole basket, and swiping is the only way onto it.
+            markBought = emptyList(),
+            now = now,
+        )
+    }
+
     suspend fun allReceipts(): List<Receipt> = receipts.all(Item.DEFAULT_LIST_ID)
 
     suspend fun allLines(): List<PurchaseLine> = lines.all(Item.DEFAULT_LIST_ID)
@@ -120,3 +165,9 @@ class ReceiptRepository(private val db: AppDatabase) {
                 .map { PricePoint(it.purchasedAt, it.unitPrice, it.storeName) }
     }
 }
+
+/**
+ * A price typed in by hand: one item, one amount. The name travels with it because the price history
+ * displays what was bought, and the row may have been renamed since.
+ */
+data class ManualPrice(val itemId: String, val name: String, val price: Double)

@@ -141,9 +141,6 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
-    // On-device receipt OCR: bundled Latin model, no Play Services download.
-    implementation(libs.mlkit.text.recognition)
-
     testImplementation(libs.junit)
     // The android.jar stub throws on org.json calls; unit tests need the real implementation.
     testImplementation(libs.org.json)

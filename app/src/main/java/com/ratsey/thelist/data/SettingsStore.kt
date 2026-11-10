@@ -3,7 +3,6 @@ package com.ratsey.thelist.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -14,6 +13,24 @@ import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
+/**
+ * When the app asks what something cost. [Off] leaves it to a long press, [WhenAdding] asks as the
+ * item goes into the basket, and [AtCheckout] saves every question for the sheet that empties the
+ * basket — one interruption instead of twenty.
+ */
+enum class PricePrompt(val stored: String) {
+    Off("off"),
+    WhenAdding("basket"),
+    AtCheckout("checkout"),
+    ;
+
+    companion object {
+        /** Anything unreadable (a fresh install, a hand-edited store) asks as you shop. */
+        fun fromStored(value: String?): PricePrompt =
+            entries.firstOrNull { it.stored == value } ?: WhenAdding
+    }
+}
+
 /** Small key/value store for update bookkeeping and the handful of user choices. */
 class SettingsStore(private val context: Context) {
 
@@ -21,20 +38,19 @@ class SettingsStore(private val context: Context) {
         val lastCheck = longPreferencesKey("last_update_check")
         val pendingDownloadId = longPreferencesKey("pending_download_id")
         val pendingVersion = stringPreferencesKey("pending_download_version")
-        val scanMovesItems = booleanPreferencesKey("scan_moves_items")
         val currentStoreId = stringPreferencesKey("current_store_id")
+        val pricePrompt = stringPreferencesKey("price_prompt")
     }
 
-    /**
-     * Whether a scanned receipt should move the items it matched out of the list. On by default:
-     * scanning after a shop is how the list clears itself.
-     */
-    val scanMovesItems: Flow<Boolean> =
-        context.settingsDataStore.data.map { it[Keys.scanMovesItems] ?: true }
+    /** Whether prices are asked for while shopping, and at which moment. */
+    val pricePrompt: Flow<PricePrompt> =
+        context.settingsDataStore.data.map { PricePrompt.fromStored(it[Keys.pricePrompt]) }
 
-    suspend fun setScanMovesItems(value: Boolean) {
-        context.settingsDataStore.edit { it[Keys.scanMovesItems] = value }
+    suspend fun setPricePrompt(prompt: PricePrompt) {
+        context.settingsDataStore.edit { it[Keys.pricePrompt] = prompt.stored }
     }
+
+    suspend fun pricePromptNow(): PricePrompt = pricePrompt.first()
 
     /**
      * The shop the user is standing in, chosen from the header pill. Persisted, because the shop
@@ -73,8 +89,6 @@ class SettingsStore(private val context: Context) {
         val version = prefs[Keys.pendingVersion] ?: return null
         return if (id > 0) id to version else null
     }
-
-    suspend fun scanMovesItemsNow(): Boolean = scanMovesItems.first()
 
     suspend fun clearPendingDownload() {
         context.settingsDataStore.edit {

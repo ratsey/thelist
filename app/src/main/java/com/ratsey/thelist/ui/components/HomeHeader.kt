@@ -29,7 +29,6 @@ import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Place
-import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.DropdownMenu
@@ -76,7 +75,7 @@ fun HomeHeader(
     onSelectStore: (String?) -> Unit,
     onTabSelected: (Int) -> Unit,
     onCheckForUpdates: () -> Unit,
-    onClearBasket: () -> Unit,
+    onFinishShop: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenStores: () -> Unit,
     onAbout: () -> Unit,
@@ -84,7 +83,6 @@ fun HomeHeader(
     onInstallUpdate: () -> Unit,
     onOpenInstallPermission: () -> Unit,
     onDismissUpdate: () -> Unit,
-    onScan: () -> Unit,
     onOpenSync: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -141,14 +139,6 @@ fun HomeHeader(
                 )
             }
 
-            IconButton(onClick = onScan) {
-                Icon(
-                    imageVector = Icons.Rounded.PhotoCamera,
-                    contentDescription = stringResource(R.string.menu_scan),
-                    tint = colors.onSurfaceVariant,
-                )
-            }
-
             Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
@@ -167,11 +157,11 @@ fun HomeHeader(
                     )
                     if (tab == 2) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.menu_clear_basket)) },
+                            text = { Text(stringResource(R.string.menu_finish_shop)) },
                             enabled = basketCount > 0,
                             onClick = {
                                 menuOpen = false
-                                onClearBasket()
+                                onFinishShop()
                             },
                         )
                     }
@@ -476,7 +466,7 @@ fun BasketList(
     currentStoreId: String? = null,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
-    onOpenPrices: (Item) -> Unit,
+    onOpenDetails: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -529,7 +519,9 @@ fun BasketList(
                         icon = Icons.Rounded.Add,
                         onClick = { onToggle(item) },
                     ),
-                    onOpenPrices = { onOpenPrices(item) },
+                    // At the till the thing to change is what it cost, so the long press opens the
+                    // sheet that sets a price rather than the price history it has always shown.
+                    onOpenPrices = { onOpenDetails(item) },
                     onOpenActions = { onOpenActions(item) },
                     modifier = Modifier.animateItem(),
                 )
