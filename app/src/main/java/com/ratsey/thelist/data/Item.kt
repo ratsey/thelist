@@ -53,6 +53,12 @@ data class Item(
     val amount: String? = null,
     /** What this should cost when it is picked up, in the currency on the receipts. */
     val price: Double? = null,
+    /**
+     * What [price] is the price of: "lb", "each", "L". Keeps "buy 1 onion at $1.25/lb" as two facts
+     * instead of one number that could be the onion or the pound of them. Null means the price is
+     * for the thing itself, not for a unit of it.
+     */
+    val priceUnit: String? = null,
 ) {
     val isActive: Boolean get() = onList && completedAt == null
 

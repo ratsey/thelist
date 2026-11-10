@@ -277,8 +277,8 @@ fun TheListRoot(viewModel: ListViewModel) {
             item = item,
             stores = stores,
             onDismiss = { placementItem = null },
-            onSave = { storeId, newStoreName, location, amount, price ->
-                viewModel.setDetails(item, storeId, newStoreName, location, amount, price)
+            onSave = { storeId, newStoreName, location, amount, price, priceUnit ->
+                viewModel.setDetails(item, storeId, newStoreName, location, amount, price, priceUnit)
                 placementItem = null
             },
         )

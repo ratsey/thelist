@@ -130,9 +130,13 @@ fun CheckoutSheet(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            item.amount?.takeIf { it.isNotBlank() }?.let { amount ->
+                            val detail = listOfNotNull(
+                                item.amount?.takeIf { it.isNotBlank() }?.trim(),
+                                item.priceUnit?.takeIf { it.isNotBlank() }?.let { "per ${it.trim()}" },
+                            ).joinToString(" · ")
+                            if (detail.isNotEmpty()) {
                                 Text(
-                                    text = amount,
+                                    text = detail,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,

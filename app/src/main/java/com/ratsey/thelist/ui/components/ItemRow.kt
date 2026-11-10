@@ -94,7 +94,16 @@ fun itemMeta(
         // "last $3.20 · best $2.80" on every line bought no decision and squeezed out the name.
         when {
             planned != null -> {
-                add(formatMoney(planned, DEFAULT_CURRENCY))
+                // "$1.25/lb" rather than "$1.25": the amount sits before it, so the two facts stay
+                // apart and a rate is never mistaken for what the whole thing costs.
+                add(
+                    buildString {
+                        append(formatMoney(planned, DEFAULT_CURRENCY))
+                        item.priceUnit?.takeIf { it.isNotBlank() }?.let { unit ->
+                            append('/').append(unit.trim())
+                        }
+                    },
+                )
                 if (summary != null && summary.lowestPrice < planned - PRICE_EPSILON) {
                     add(
                         stringResource(

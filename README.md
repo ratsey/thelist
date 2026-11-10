@@ -45,7 +45,8 @@ price before it goes.
 
 Items can carry a shop and an aisle: coffee, Walmart, `A6`. Add shops under ⋮ → **Stores**, then
 hold an item (or tap its ⋮) and choose **Where and how much** to pick the shop and type the aisle,
-how much to buy ("2 L", "5 lb", "a quarter") and what it should cost. An item
+how much to buy ("2 L", "5 lb", "a quarter") and what that costs per unit — so "1 onion, $1.25,
+per lb" keeps the quantity and the rate apart instead of collapsing them into one number. An item
 is still one row: the name on the left, then shop, aisle, amount and at most two prices on the same line,
 so none of it costs vertical space. The shelf filter matches the aisle too, which makes the shelf the
 place to ask "where do we get that?".

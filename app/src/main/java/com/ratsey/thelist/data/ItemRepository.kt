@@ -140,19 +140,22 @@ class ItemRepository(private val db: AppDatabase) {
         location: String?,
         amount: String?,
         price: Double?,
+        priceUnit: String?,
     ) {
         val now = System.currentTimeMillis()
         val trimmedLocation = location?.trim()?.takeIf { it.isNotEmpty() }
         val trimmedAmount = amount?.trim()?.takeIf { it.isNotEmpty() }
+        val trimmedUnit = priceUnit?.trim()?.takeIf { it.isNotEmpty() }
         val updated = item.copy(
             storeId = storeId,
             location = trimmedLocation,
             amount = trimmedAmount,
             price = price,
+            priceUnit = trimmedUnit,
             updatedAt = now,
         )
         db.withTransaction {
-            dao.setDetails(item.id, storeId, trimmedLocation, trimmedAmount, price, now)
+            dao.setDetails(item.id, storeId, trimmedLocation, trimmedAmount, price, trimmedUnit, now)
             enqueue(updated)
         }
     }

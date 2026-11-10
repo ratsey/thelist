@@ -187,12 +187,14 @@ class SyncPayloadsTest {
             updatedAt = 6_000L,
             amount = "2 L",
             price = 1.15,
+            priceUnit = "L",
         )
 
         val decoded = SyncPayloads.itemFromJson(SyncPayloads.itemJson(item))
 
         assertEquals("2 L", decoded.amount)
         assertEquals(1.15, decoded.price!!, 0.0001)
+        assertEquals("L", decoded.priceUnit)
         assertEquals(item, decoded)
     }
 
@@ -201,11 +203,13 @@ class SyncPayloadsTest {
         val json = JSONObject(SyncPayloads.itemJson(Item(id = "i", name = "Milk")))
         json.remove("amount")
         json.remove("price")
+        json.remove("priceUnit")
 
         val decoded = SyncPayloads.itemFromJson(json.toString())
 
         assertNull(decoded.amount)
         assertNull(decoded.price)
+        assertNull(decoded.priceUnit)
     }
 
     @Test

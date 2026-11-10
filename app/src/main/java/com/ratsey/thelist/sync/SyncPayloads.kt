@@ -37,6 +37,7 @@ object SyncPayloads {
         // meant, so a payload from before amounts still reads correctly.
         put("amount", item.amount ?: JSONObject.NULL)
         put("price", item.price ?: JSONObject.NULL)
+        put("priceUnit", item.priceUnit ?: JSONObject.NULL)
     }.toString()
 
     fun itemFromJson(payload: String): Item {
@@ -54,6 +55,7 @@ object SyncPayloads {
             location = json.optStringOrNull("location"),
             amount = json.optStringOrNull("amount"),
             price = json.optDoubleOrNull("price"),
+            priceUnit = json.optStringOrNull("priceUnit"),
         )
     }
 

@@ -367,6 +367,7 @@ fun PlacementDialog(
         location: String,
         amount: String?,
         price: Double?,
+        priceUnit: String?,
     ) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -374,6 +375,7 @@ fun PlacementDialog(
     var location by remember { mutableStateOf(item.location.orEmpty()) }
     var amount by remember { mutableStateOf(item.amount.orEmpty()) }
     var price by remember { mutableStateOf(formatPriceField(item.price)) }
+    var priceUnit by remember { mutableStateOf(item.priceUnit.orEmpty()) }
     var addingStore by remember { mutableStateOf(false) }
     var newStoreName by remember { mutableStateOf("") }
 
@@ -492,6 +494,18 @@ fun PlacementDialog(
                     modifier = Modifier.weight(1f),
                 )
             }
+            // The unit sits next to the price because they are one thought: "$1.25" says nothing
+            // until it says what it is per.
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = priceUnit,
+                onValueChange = { priceUnit = it },
+                singleLine = true,
+                label = { Text(stringResource(R.string.placement_per)) },
+                placeholder = { Text(stringResource(R.string.placement_per_hint)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -506,6 +520,7 @@ fun PlacementDialog(
                             location,
                             amount.trim().takeIf { it.isNotEmpty() },
                             priceValue,
+                            priceUnit.trim().takeIf { it.isNotEmpty() },
                         )
                     },
                     enabled = !(addingStore && newStoreName.isBlank()) && priceValid,

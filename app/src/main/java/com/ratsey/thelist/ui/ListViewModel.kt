@@ -258,13 +258,14 @@ class ListViewModel(
         location: String,
         amount: String?,
         price: Double?,
+        priceUnit: String?,
     ) {
         viewModelScope.launch {
             val created = newStoreName?.let { storeRepository.add(it) }
             val target = created?.id ?: storeId
-            repository.setDetails(item, target, location, amount, price)
+            repository.setDetails(item, target, location, amount, price, priceUnit)
             val cleared = target == null && location.isBlank() &&
-                amount.isNullOrBlank() && price == null
+                amount.isNullOrBlank() && price == null && priceUnit.isNullOrBlank()
             _messages.send(
                 UiMessage(
                     if (cleared) R.string.msg_placement_cleared else R.string.msg_placement_saved,
