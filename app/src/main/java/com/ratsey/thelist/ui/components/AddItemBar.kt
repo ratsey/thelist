@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
+import androidx.compose.material3.IconButton
 
 /**
  * Thumb-reachable add bar pinned above the keyboard. Adding keeps focus and the keyboard
@@ -46,6 +48,10 @@ fun AddItemBar(
     onValueChange: (String) -> Unit,
     onAdd: () -> Unit,
     focusRequester: FocusRequester,
+    /** Whether the shelf panel is showing, and how much there is on the shelf to show. */
+    shelfFilterOn: Boolean,
+    shelfCount: Int,
+    onToggleShelfFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -59,8 +65,29 @@ fun AddItemBar(
                 .padding(horizontal = 20.dp)
                 .padding(top = 8.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            // A filter rather than a hint that may or may not appear: it shows what the shelf
+            // already has for this word, and with nothing typed it shows the shelf itself, so
+            // there is always a way to reach last week's row instead of typing it again.
+            IconButton(onClick = onToggleShelfFilter, enabled = shelfCount > 0) {
+                Icon(
+                    imageVector = Icons.Rounded.FilterList,
+                    contentDescription = stringResource(
+                        if (shelfFilterOn) {
+                            R.string.add_shelf_filter_hide
+                        } else {
+                            R.string.add_shelf_filter_show
+                        },
+                    ),
+                    tint = when {
+                        shelfFilterOn -> colors.primary
+                        shelfCount > 0 -> colors.onSurfaceVariant
+                        else -> colors.outline
+                    },
+                    modifier = Modifier.size(20.dp),
+                )
+            }
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = colors.surfaceVariant,

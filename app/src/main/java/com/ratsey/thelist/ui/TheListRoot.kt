@@ -90,6 +90,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     var showSync by remember { mutableStateOf(false) }
     var showStores by remember { mutableStateOf(false) }
     var placementItem by remember { mutableStateOf<Item?>(null) }
+    var shelfFilterOn by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
@@ -117,9 +118,19 @@ fun TheListRoot(viewModel: ListViewModel) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (selectedTab == TAB_TO_BUY) {
-                // What is already on the shelf for this word, before the word becomes a second row.
+                // What is already on the shelf for this word, before the word becomes a second
+                // row. Typing always offers the closest few; the filter widens that and, with
+                // nothing typed, shows the shelf itself so last week's row is a swipe away.
                 ShelfSuggestions(
-                    matches = remember(shelfItems, draft) { shelfMatches(shelfItems, draft) },
+                    matches = remember(shelfItems, draft, shelfFilterOn) {
+                        when {
+                            draft.isNotBlank() ->
+                                shelfMatches(shelfItems, draft, if (shelfFilterOn) 8 else 3)
+
+                            shelfFilterOn -> shelfItems.take(5)
+                            else -> emptyList()
+                        }
+                    },
                     onRevive = viewModel::reviveFromShelf,
                 )
                 AddItemBar(
@@ -133,6 +144,9 @@ fun TheListRoot(viewModel: ListViewModel) {
                         }
                     },
                     focusRequester = addFocusRequester,
+                    shelfFilterOn = shelfFilterOn,
+                    shelfCount = shelfItems.size,
+                    onToggleShelfFilter = { shelfFilterOn = !shelfFilterOn },
                 )
             }
         },
