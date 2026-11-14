@@ -86,6 +86,7 @@ import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.HorizontalDivider
+import com.ratsey.thelist.data.unitPriceOf
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -509,19 +510,7 @@ fun PlacementDialog(
 
     // What it comes to for one unit: the number two offers can actually be held against each other
     // in. A $3 bag of three pounds is $1 a pound, said while you type.
-    val priceBasis = remember(priceUnit) { parsePriceBasis(priceUnit) }
-    val unitPrice = remember(priceValue, priceBasis) {
-        if (priceValue == null || priceBasis == null) {
-            null
-        } else {
-            priceIn(
-                priceValue,
-                priceBasis,
-                PriceBasis(priceBasis.measure, priceBasis.unit, priceBasis.factor),
-            )
-        }
-    }
-    val unitPriceLabel = if (unitText.equals("count", ignoreCase = true)) "each" else unitText
+    val unitPrice = remember(priceValue, priceUnit) { unitPriceOf(priceValue, priceUnit) }
 
     // Clear only means something if the row is currently saying something.
     val hasStored = item.storeId != null || !item.location.isNullOrBlank() ||
@@ -619,13 +608,13 @@ fun PlacementDialog(
                                 modifier = Modifier.weight(1f),
                             )
                         }
-                        if (unitPrice != null) {
+                        unitPrice?.let { one ->
                             Column(horizontalAlignment = Alignment.End) {
                                 EyebrowText(stringResource(R.string.placement_unit_price))
                                 Text(
                                     text = priceWithUnit(
-                                        formatMoney(unitPrice, LocalCurrency.current),
-                                        unitPriceLabel,
+                                        formatMoney(one.per, LocalCurrency.current),
+                                        one.label,
                                     ),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,

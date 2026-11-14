@@ -49,6 +49,7 @@ import com.ratsey.thelist.data.priceIn
 import com.ratsey.thelist.data.priceWithUnit
 import com.ratsey.thelist.ui.formatMoney
 import com.ratsey.thelist.ui.LocalCurrency
+import com.ratsey.thelist.data.unitPriceOf
 
 /**
  * "Walmart · A6", or just the aisle when no shop is set, or null when nothing is known. The shop
@@ -101,6 +102,18 @@ fun itemMeta(
             planned != null -> {
                 // "$1.25/lb" rather than "$1.25": the amount sits before it, so the two facts stay
                 // apart and a rate is never mistaken for what the whole thing costs.
+                // The rate comes first because a row that runs out of width keeps its start: the
+                // figure you can compare is worth more than the one you will be charged.
+                val plannedOne = unitPriceOf(planned, item.priceUnit)
+                val perOne = plannedOne != null && plannedOne.per < planned - PRICE_EPSILON
+                if (perOne) {
+                    add(
+                        priceWithUnit(
+                            formatMoney(plannedOne.per, LocalCurrency.current),
+                            plannedOne.label,
+                        ),
+                    )
+                }
                 add(priceWithUnit(formatMoney(planned, LocalCurrency.current), item.priceUnit))
                 // The best price earns an arrow only when it is per the same thing as the plan: a
                 // kilo that merely looks cheaper than a pound is not cheaper.
@@ -127,6 +140,12 @@ fun itemMeta(
                         ),
                     ),
                 )
+                // A paid price that bought several also states what one of them cost.
+                unitPriceOf(summary.latestPrice, summary.unitLabel)?.let { one ->
+                    if (one.per < summary.latestPrice - PRICE_EPSILON) {
+                        add(priceWithUnit(formatMoney(one.per, summary.currency), one.label))
+                    }
+                }
                 if (summary.lowestPrice < summary.latestPrice - PRICE_EPSILON) {
                     add(
                         stringResource(

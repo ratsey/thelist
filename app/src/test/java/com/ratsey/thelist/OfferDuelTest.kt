@@ -6,6 +6,7 @@ import com.ratsey.thelist.data.compareOffers
 import com.ratsey.thelist.data.composePerField
 import com.ratsey.thelist.data.parsePriceBasis
 import com.ratsey.thelist.data.splitPerField
+import com.ratsey.thelist.data.unitPriceOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -98,6 +99,28 @@ class OfferDuelTest {
         assertEquals("", amount)
         assertEquals("punnet", unit)
         assertEquals("punnet", composePerField(amount, unit))
+    }
+
+    @Test
+    fun `a three pound bag at three dollars is a dollar a pound`() {
+        val one = requireNotNull(unitPriceOf(3.0, "3 lb"))
+
+        assertEquals(1.0, one.per, 0.0001)
+        assertEquals("lb", one.label)
+    }
+
+    @Test
+    fun `sixty for eight twelve is fourteen cents each`() {
+        val one = requireNotNull(unitPriceOf(8.12, "60"))
+
+        assertEquals(0.1353, one.per, 0.0005)
+        assertEquals("each", one.label)
+    }
+
+    @Test
+    fun `a price with no unit has no rate`() {
+        assertNull(unitPriceOf(2.5, null))
+        assertNull(unitPriceOf(null, "lb"))
     }
 
     @Test

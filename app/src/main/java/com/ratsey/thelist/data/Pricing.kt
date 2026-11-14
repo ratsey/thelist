@@ -167,6 +167,24 @@ enum class MeasureSystem(val stored: String) {
     }
 }
 
+/** One of what a price buys, and what that one costs: the form two offers can be compared in. */
+data class UnitPrice(val per: Double, val label: String)
+
+/**
+ * [price] restated as the price of a single unit, or null when it does not say what it is for.
+ *
+ * "$3.00 for 3 lb" is "$1.00/lb", and "$8.12 for 60" is 14 cents each: the number you can hold
+ * against the next shop's offer. Null when the price is bare money, because money with no unit has
+ * no rate to state.
+ */
+fun unitPriceOf(price: Double?, priceUnit: String?): UnitPrice? {
+    if (price == null) return null
+    val basis = parsePriceBasis(priceUnit) ?: return null
+    val per = priceIn(price, basis, PriceBasis(basis.measure, basis.unit, basis.factor)) ?: return null
+    val label = if (basis.measure == Measure.COUNT) "each" else basis.unit
+    return UnitPrice(per, label)
+}
+
 /**
  * A stored per-field, split into the amount and the unit, for the field and the chips.
  *
