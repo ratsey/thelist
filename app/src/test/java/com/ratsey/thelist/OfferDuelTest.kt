@@ -129,13 +129,30 @@ class OfferDuelTest {
     @Test
     fun `a metre is a distance and converts with feet`() {
         val metre = requireNotNull(parsePriceBasis("m"))
-        assertEquals(Measure.DISTANCE, metre.measure)
+        assertEquals(Measure.LENGTH, metre.measure)
 
         // $3 the metre against $10 the foot: a metre is 3.28 feet, so the foot price is $32.81/m.
         val duel = requireNotNull(compareOffers(3.0, metre, 10.0, parsePriceBasis("ft")))
 
         assertEquals(Cheaper.HERE, duel.cheaper)
         assertEquals(32.808, duel.otherPer, 0.001)
+    }
+
+    @Test
+    fun `a roll of fifty yards is compared with a roll of thirty metres`() {
+        // 30 m is 32.8 yd, so the 30 m roll is $12.19 worth of tape for every 50 yd on the left.
+        val duel = requireNotNull(
+            compareOffers(
+                herePrice = 12.99,
+                hereBasis = parsePriceBasis("50 yd"),
+                otherPrice = 8.0,
+                otherBasis = parsePriceBasis("30 m"),
+            ),
+        )
+
+        assertEquals(Cheaper.OTHER, duel.cheaper)
+        assertEquals(12.192, duel.otherPer, 0.01)
+        assertEquals(45.72, requireNotNull(parsePriceBasis("50 yd")).quantity * 0.9144, 0.001)
     }
 
     @Test
