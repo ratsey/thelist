@@ -51,7 +51,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.prettyReceiptName
 import com.ratsey.thelist.data.PricePoint
+import com.ratsey.thelist.data.MeasureSystem
 import com.ratsey.thelist.data.PriceBasis
+import com.ratsey.thelist.data.comparisonUnits
 import com.ratsey.thelist.data.PriceSummary
 import com.ratsey.thelist.data.parsePriceBasis
 import com.ratsey.thelist.data.priceIn
@@ -77,7 +79,11 @@ private fun formatDay(timestamp: Long): String =
         .format(DateTimeFormatter.ofPattern("d MMM yyyy"))
 
 @Composable
-fun ProductDetailScreen(detail: ProductDetail, onBack: () -> Unit) {
+fun ProductDetailScreen(
+    detail: ProductDetail,
+    measureSystem: MeasureSystem,
+    onBack: () -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
     BackHandler(onBack = onBack)
 
@@ -123,7 +129,11 @@ fun ProductDetailScreen(detail: ProductDetail, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                CompareUnits(selected = compareUnit, onSelect = { compareUnit = it })
+                CompareUnits(
+                    units = comparisonUnits(measureSystem),
+                    selected = compareUnit,
+                    onSelect = { compareUnit = it },
+                )
             }
             item {
                 LatestPriceCard(detail, compare)
@@ -423,11 +433,8 @@ private fun PurchaseRow(
     }
 }
 
-/** The units a price can be restated in. Weight with weight, volume with volume, never across. */
-private val COMPARISON_UNITS = listOf("each", "count", "g", "kg", "lb", "oz", "ml", "L")
-
 @Composable
-private fun CompareUnits(selected: String?, onSelect: (String) -> Unit) {
+private fun CompareUnits(units: List<String>, selected: String?, onSelect: (String) -> Unit) {
     Column {
         SectionLabel(text = stringResource(R.string.prices_compare))
         Spacer(Modifier.height(8.dp))
@@ -437,7 +444,7 @@ private fun CompareUnits(selected: String?, onSelect: (String) -> Unit) {
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            COMPARISON_UNITS.forEach { unit ->
+            units.forEach { unit ->
                 FilterChip(
                     selected = selected.equals(unit, ignoreCase = true),
                     onClick = { onSelect(unit) },

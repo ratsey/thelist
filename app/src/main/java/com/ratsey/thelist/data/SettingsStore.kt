@@ -40,6 +40,8 @@ class SettingsStore(private val context: Context) {
         val pendingVersion = stringPreferencesKey("pending_download_version")
         val currentStoreId = stringPreferencesKey("current_store_id")
         val pricePrompt = stringPreferencesKey("price_prompt")
+        val currency = stringPreferencesKey("currency")
+        val measureSystem = stringPreferencesKey("measure_system")
     }
 
     /** Whether prices are asked for while shopping, and at which moment. */
@@ -51,6 +53,26 @@ class SettingsStore(private val context: Context) {
     }
 
     suspend fun pricePromptNow(): PricePrompt = pricePrompt.first()
+
+    /** The money prices are typed and shown in. Storage is raw; reading is where it is cleaned up. */
+    val currency: Flow<String> = context.settingsDataStore.data.map {
+        normaliseCurrency(it[Keys.currency])
+    }
+
+    suspend fun setCurrency(symbol: String) {
+        context.settingsDataStore.edit { it[Keys.currency] = normaliseCurrency(symbol) }
+    }
+
+    /** Which measures the app offers: metric grams and litres, or imperial ounces and pounds. */
+    val measureSystem: Flow<MeasureSystem> = context.settingsDataStore.data.map {
+        MeasureSystem.fromStored(it[Keys.measureSystem])
+    }
+
+    suspend fun setMeasureSystem(system: MeasureSystem) {
+        context.settingsDataStore.edit { it[Keys.measureSystem] = system.stored }
+    }
+
+    suspend fun currencyNow(): String = currency.first()
 
     /**
      * The shop the user is standing in, chosen from the header pill. Persisted, because the shop

@@ -107,3 +107,36 @@ fun parsePriceBasis(text: String?): PriceBasis? {
 
 private fun formatQuantity(value: Double): String =
     if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
+
+/**
+ * Which set of measures the app offers. It changes what is *suggested* for comparison, never what
+ * was already typed: a price recorded in ounces stays an ounce price, it just stops being the
+ * natural thing to switch to.
+ */
+enum class MeasureSystem(val stored: String) {
+    Metric("metric"),
+    Imperial("imperial"),
+    ;
+
+    companion object {
+        /** Unreadable or absent settings fall back to imperial, which matches "$" as the default. */
+        fun fromStored(value: String?): MeasureSystem =
+            entries.firstOrNull { it.stored == value } ?: Imperial
+    }
+}
+
+/** The units offered for comparison in a measurement system, counting always included. */
+fun comparisonUnits(system: MeasureSystem): List<String> = when (system) {
+    MeasureSystem.Metric -> listOf("each", "count", "g", "kg", "ml", "L")
+    MeasureSystem.Imperial -> listOf("each", "count", "oz", "lb", "fl oz")
+}
+
+/** The hint in the "Per" field, in the units the app is set to speak. */
+fun perFieldHint(system: MeasureSystem): String = when (system) {
+    MeasureSystem.Metric -> "kg, 100 g, ml, count"
+    MeasureSystem.Imperial -> "lb, 10 oz, fl oz, count"
+}
+
+/** A currency symbol as typed: trimmed, at most three characters, "$" when nothing is left. */
+fun normaliseCurrency(text: String?): String =
+    text?.trim()?.take(3)?.takeIf { it.isNotEmpty() } ?: DEFAULT_CURRENCY

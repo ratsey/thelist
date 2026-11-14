@@ -40,13 +40,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
-import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PriceSummary
 import com.ratsey.thelist.data.parsePriceBasis
 import com.ratsey.thelist.data.priceIn
 import com.ratsey.thelist.data.priceWithUnit
 import com.ratsey.thelist.ui.formatMoney
+import com.ratsey.thelist.ui.LocalCurrency
 
 /**
  * "Walmart · A6", or just the aisle when no shop is set, or null when nothing is known. The shop
@@ -102,7 +102,7 @@ fun itemMeta(
             planned != null -> {
                 // "$1.25/lb" rather than "$1.25": the amount sits before it, so the two facts stay
                 // apart and a rate is never mistaken for what the whole thing costs.
-                add(priceWithUnit(formatMoney(planned, DEFAULT_CURRENCY), item.priceUnit))
+                add(priceWithUnit(formatMoney(planned, LocalCurrency.current), item.priceUnit))
                 // The best price earns an arrow only when it is per the same thing as the plan: a
                 // kilo that merely looks cheaper than a pound is not cheaper.
                 val best = summary?.basis?.let { basis ->
@@ -112,7 +112,7 @@ fun itemMeta(
                     add(
                         stringResource(
                             R.string.row_low,
-                            priceWithUnit(formatMoney(best, DEFAULT_CURRENCY), item.priceUnit),
+                            priceWithUnit(formatMoney(best, LocalCurrency.current), item.priceUnit),
                         ),
                     )
                 }

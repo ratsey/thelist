@@ -9,7 +9,9 @@ import com.ratsey.thelist.R
 import com.ratsey.thelist.data.AppContainer
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.ItemRepository
+import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.ManualPrice
+import com.ratsey.thelist.data.MeasureSystem
 import com.ratsey.thelist.data.historyKey
 import com.ratsey.thelist.data.PricePrompt
 import com.ratsey.thelist.data.PriceRow
@@ -100,6 +102,22 @@ class ListViewModel(
     /** When the app asks for a price: on the way into the basket, or all at once at the end. */
     val pricePrompt: StateFlow<PricePrompt> = settings.pricePrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PricePrompt.WhenAdding)
+
+    /** The money prices are typed and shown in, from the region settings. */
+    val currency: StateFlow<String> = settings.currency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_CURRENCY)
+
+    fun setCurrency(symbol: String) {
+        viewModelScope.launch { settings.setCurrency(symbol) }
+    }
+
+    /** Metric or imperial: which units are suggested for comparing prices. */
+    val measureSystem: StateFlow<MeasureSystem> = settings.measureSystem
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MeasureSystem.Imperial)
+
+    fun setMeasureSystem(system: MeasureSystem) {
+        viewModelScope.launch { settings.setMeasureSystem(system) }
+    }
 
     /**
      * The open "what did it cost?" prompt, if any. The token makes each request its own: the same
@@ -373,6 +391,7 @@ class ListViewModel(
         if (price == null) return
         receipts.recordPrices(
             storeName = storeNameFor(item),
+            currency = currency.value,
             purchases = listOf(
                 ManualPrice(
                     itemId = item.id,
@@ -405,7 +424,7 @@ class ListViewModel(
             if (paid.isNotEmpty()) {
                 val shop = stores.value.firstOrNull { it.id == currentStoreId.value }?.name
                     ?: basket.firstNotNullOfOrNull { storeNameFor(it) }
-                receipts.recordPrices(shop, paid)
+                receipts.recordPrices(shop, paid, currency = currency.value)
             }
 
             // After the prices, not before: the snapshot this returns is what undo puts back.

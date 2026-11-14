@@ -57,7 +57,6 @@
     <string name="placement_per">Per</string>
     <string name="placement_variant">Type</string>
     <string name="placement_variant_hint">bone in, semi skimmed</string>
-    <string name="placement_per_hint">lb, 100 g, count, 30 count</string>
     <string name="group_no_location">No aisle</string>
 
     <string name="shop_pill_all">All shops</string>
@@ -93,6 +92,11 @@
     <string name="checkout_invalid_price">One of those prices isn\'t a number.</string>
     <string name="checkout_confirm">Finish shop</string>
 
+    <string name="settings_region">Money and measures</string>
+    <string name="settings_region_body">What prices are written in, and which units are offered for comparing them.</string>
+    <string name="settings_currency">Currency</string>
+    <string name="measure_metric">Metric</string>
+    <string name="measure_imperial">Imperial</string>
     <string name="settings_title">Settings</string>
     <string name="settings_price_prompt">Ask for prices</string>
     <string name="settings_price_prompt_body">What you paid is typed in by hand as you shop. Choose whether to be asked for it each time something goes in the basket, all at once when you finish, or only when you hold a row.</string>

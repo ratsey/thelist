@@ -42,6 +42,8 @@ A row can also carry a **type** — bone in, boneless skinless, semi skimmed —
 
 Prices say what they are **per** — each, lb, kg, 100 g, L — because "$2.99" is not a price until it says of what. Two prices are only compared when they measure the same thing: the history restates a pound as a kilo so "best" cannot be won by quoting in a smaller unit, and a weight is never compared with a volume. The price-history screen has a **Compare per** row that restates every comparable price into the unit you pick.
 
+Settings holds the money and the measures — the currency symbol prices are written in, and whether the units offered for comparison are metric (g, kg, ml, L) or imperial (oz, lb, fl oz). Counts are offered either way, because pods, rolls and tablets are not a system.
+
 **Finish shop** is also how the list cleans itself. Every line in the basket goes back onto the
 shelf, ready to be swiped on again next week, and the snackbar undoes the whole thing if you pressed
 too early. Hold any line first — in the basket, or in the sheet — to fix its shop, aisle, amount or

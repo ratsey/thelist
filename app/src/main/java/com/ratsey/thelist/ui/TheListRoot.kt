@@ -69,6 +69,8 @@ fun TheListRoot(viewModel: ListViewModel) {
     val storeNames = remember(stores) { stores.associate { it.id to it.name } }
     val currentStoreId by viewModel.currentStoreId.collectAsStateWithLifecycle()
     val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
+    val currency by viewModel.currency.collectAsStateWithLifecycle()
+    val measureSystem by viewModel.measureSystem.collectAsStateWithLifecycle()
     val summaries = remember(priceSummaries) { priceSummaries.associateBy { it.key } }
 
     val context = LocalContext.current
@@ -100,7 +102,11 @@ fun TheListRoot(viewModel: ListViewModel) {
     }
 
     productDetail?.let { detail ->
-        ProductDetailScreen(detail = detail, onBack = viewModel::closeProduct)
+        ProductDetailScreen(
+            detail = detail,
+            measureSystem = measureSystem,
+            onBack = viewModel::closeProduct,
+        )
         return
     }
 
@@ -276,6 +282,7 @@ fun TheListRoot(viewModel: ListViewModel) {
         PlacementDialog(
             item = item,
             stores = stores,
+            measureSystem = measureSystem,
             onDismiss = { placementItem = null },
             onSave = { storeId, newStoreName, variant, location, amount, price, priceUnit ->
                 viewModel.setDetails(
@@ -326,6 +333,10 @@ fun TheListRoot(viewModel: ListViewModel) {
         SettingsDialog(
             pricePrompt = pricePrompt,
             onPricePromptChange = viewModel::setPricePrompt,
+            currency = currency,
+            onCurrencyChange = viewModel::setCurrency,
+            measureSystem = measureSystem,
+            onMeasureSystemChange = viewModel::setMeasureSystem,
             onDismiss = { showSettings = false },
         )
     }

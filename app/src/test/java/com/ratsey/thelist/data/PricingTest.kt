@@ -1,6 +1,8 @@
 package com.ratsey.thelist.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -83,5 +85,46 @@ class PricingTest {
     @Test
     fun `counts are not weighed`() {
         assertNull(parsePriceBasis("count")!!.convert(0.30, parsePriceBasis("lb")!!))
+    }
+
+    @Test
+    fun `every offered comparison unit is a real measure`() {
+        MeasureSystem.entries.forEach { system ->
+            comparisonUnits(system).forEach { unit ->
+                assertNotEquals(Measure.OTHER, parsePriceBasis(unit)!!.measure)
+            }
+        }
+    }
+
+    @Test
+    fun `each system offers its own measures and always counts`() {
+        val metric = comparisonUnits(MeasureSystem.Metric)
+        val imperial = comparisonUnits(MeasureSystem.Imperial)
+        assertTrue(metric.contains("kg"))
+        assertTrue(metric.contains("L"))
+        assertTrue(imperial.contains("lb"))
+        assertTrue(imperial.contains("fl oz"))
+        assertEquals(setOf("each", "count"), metric.intersect(imperial.toSet()))
+    }
+
+    @Test
+    fun `the per hint speaks the chosen system`() {
+        assertTrue(perFieldHint(MeasureSystem.Metric).contains("kg"))
+        assertTrue(perFieldHint(MeasureSystem.Imperial).contains("lb"))
+    }
+
+    @Test
+    fun `currency is cleaned but not guessed`() {
+        assertEquals("€", normaliseCurrency("  € "))
+        assertEquals("US$", normaliseCurrency("US$"))
+        assertEquals(DEFAULT_CURRENCY, normaliseCurrency(""))
+        assertEquals(DEFAULT_CURRENCY, normaliseCurrency(null))
+    }
+
+    @Test
+    fun `an unreadable measure system falls back instead of failing`() {
+        assertEquals(MeasureSystem.Imperial, MeasureSystem.fromStored(null))
+        assertEquals(MeasureSystem.Imperial, MeasureSystem.fromStored("furlongs"))
+        assertEquals(MeasureSystem.Metric, MeasureSystem.fromStored("metric"))
     }
 }

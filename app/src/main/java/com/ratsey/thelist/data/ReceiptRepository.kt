@@ -77,6 +77,7 @@ class ReceiptRepository(private val db: AppDatabase) {
     suspend fun recordPrices(
         storeName: String?,
         purchases: List<ManualPrice>,
+        currency: String = DEFAULT_CURRENCY,
         now: Long = System.currentTimeMillis(),
     ) {
         if (purchases.isEmpty()) return
@@ -87,7 +88,7 @@ class ReceiptRepository(private val db: AppDatabase) {
             // Deliberately no total: a price is a cost kept for next time, and a sum of rates in
             // different units would not be the money that left the account anyway.
             total = null,
-            currency = DEFAULT_CURRENCY,
+            currency = currency,
             createdAt = now,
             updatedAt = now,
         )

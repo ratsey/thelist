@@ -57,12 +57,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
-import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PricePrompt
 import com.ratsey.thelist.data.Store
 import com.ratsey.thelist.data.formatPriceField
+import com.ratsey.thelist.data.MeasureSystem
+import com.ratsey.thelist.data.comparisonUnits
 import com.ratsey.thelist.data.parsePriceField
+import com.ratsey.thelist.data.perFieldHint
+import com.ratsey.thelist.ui.LocalCurrency
 import com.ratsey.thelist.data.priceWithUnit
 import com.ratsey.thelist.ui.formatMoney
 
@@ -269,8 +272,15 @@ fun RenameDialog(
 fun SettingsDialog(
     pricePrompt: PricePrompt,
     onPricePromptChange: (PricePrompt) -> Unit,
+    currency: String,
+    onCurrencyChange: (String) -> Unit,
+    measureSystem: MeasureSystem,
+    onMeasureSystemChange: (MeasureSystem) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    // Typed locally so clearing the field does not fight the stored value: a blank field simply
+    // keeps the last currency that was set.
+    var draftCurrency by remember { mutableStateOf(currency) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_title)) },
@@ -311,6 +321,56 @@ fun SettingsDialog(
                         )
                     }
                 }
+
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    text = stringResource(R.string.settings_region),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.settings_region_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = draftCurrency,
+                    onValueChange = { raw ->
+                        val clean = raw.trim().take(3)
+                        draftCurrency = clean
+                        if (clean.isNotEmpty()) onCurrencyChange(clean)
+                    },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.settings_currency)) },
+                    placeholder = { Text("$") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MeasureSystem.entries.forEach { system ->
+                        FilterChip(
+                            selected = system == measureSystem,
+                            onClick = { onMeasureSystemChange(system) },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        when (system) {
+                                            MeasureSystem.Metric -> R.string.measure_metric
+                                            MeasureSystem.Imperial -> R.string.measure_imperial
+                                        },
+                                    ),
+                                )
+                            },
+                        )
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = comparisonUnits(measureSystem).joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         },
         confirmButton = {
@@ -372,6 +432,7 @@ fun AboutDialog(version: String, onDismiss: () -> Unit) {
 fun PlacementDialog(
     item: Item,
     stores: List<Store>,
+    measureSystem: MeasureSystem,
     onDismiss: () -> Unit,
     onSave: (
         storeId: String?,
@@ -404,7 +465,7 @@ fun PlacementDialog(
         storeName?.takeIf { it.isNotBlank() }?.trim(),
         location.trim().takeIf { it.isNotEmpty() },
         amount.trim().takeIf { it.isNotEmpty() },
-        priceValue?.let { priceWithUnit(formatMoney(it, DEFAULT_CURRENCY), priceUnit) },
+        priceValue?.let { priceWithUnit(formatMoney(it, LocalCurrency.current), priceUnit) },
     ).joinToString(" · ").takeIf { it.isNotEmpty() }
 
     // Clear only means something if the row is currently saying something.
@@ -552,7 +613,7 @@ fun PlacementDialog(
                     onValueChange = { priceUnit = it },
                     singleLine = true,
                     label = { Text(stringResource(R.string.placement_per)) },
-                    placeholder = { Text(stringResource(R.string.placement_per_hint)) },
+                    placeholder = { Text(perFieldHint(measureSystem)) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     modifier = Modifier.weight(0.6f),
                 )
