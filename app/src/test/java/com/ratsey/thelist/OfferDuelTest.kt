@@ -71,6 +71,32 @@ class OfferDuelTest {
     }
 
     @Test
+    fun `a bare number in the per field is a count`() {
+        val basis = requireNotNull(parsePriceBasis("60"))
+
+        assertEquals(com.ratsey.thelist.data.Measure.COUNT, basis.measure)
+        assertEquals(60.0, basis.quantity, 0.0)
+        assertEquals("60 count", basis.label)
+    }
+
+    @Test
+    fun `twelve for sixty against six for six is comparable`() {
+        val duel = requireNotNull(
+            compareOffers(
+                herePrice = 8.12,
+                hereBasis = parsePriceBasis("60"),
+                otherPrice = 6.0,
+                otherBasis = parsePriceBasis("6"),
+            ),
+        )
+
+        // Six for six is sixty for sixty, against eight twelve.
+        assertEquals(Cheaper.HERE, duel.cheaper)
+        assertEquals(60.0, duel.otherPer, 0.01)
+        assertEquals(0.865, duel.difference, 0.005)
+    }
+
+    @Test
     fun `prices with no unit still meet as bare money`() {
         val duel = requireNotNull(compareOffers(4.00, null, 5.00, null))
 

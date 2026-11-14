@@ -83,6 +83,9 @@ private val UNITS: Map<String, Pair<Measure, Double>> = buildMap {
 
 private val BASIS_TEXT = Regex("^([0-9]+(?:[.,][0-9]+)?)?\\s*(.+)$")
 
+/** A number on its own, with no unit word after it: "60". */
+private val BARE_COUNT = Regex("[0-9]+(?:[.,][0-9]+)?")
+
 /**
  * Reads what a price is per out of the free text typed in the "Per" field: "lb", "per lb", "each",
  * "100 g", "fl oz". Null means the price is just money, which is honest: it cannot be compared with
@@ -91,6 +94,15 @@ private val BASIS_TEXT = Regex("^([0-9]+(?:[.,][0-9]+)?)?\\s*(.+)$")
 fun parsePriceBasis(text: String?): PriceBasis? {
     val cleaned = text?.trim()?.lowercase()?.removePrefix("per")?.trim().orEmpty()
     if (cleaned.isEmpty()) return null
+
+    // "60" is "per 60 of them". Without this the digits were read as a quantity followed by a
+    // unit — "6" of "0" — so "$8.12/60" and "$6/6" landed in two unknown measures that could
+    // never be compared, which is the one thing the number was there to make possible.
+    if (BARE_COUNT.matches(cleaned)) {
+        val quantity = cleaned.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: return null
+        return PriceBasis(Measure.COUNT, "count", 1.0, quantity)
+    }
+
     val match = BASIS_TEXT.find(cleaned) ?: return null
     val quantity = match.groupValues[1].replace(',', '.').takeIf { it.isNotEmpty() }
         ?.toDoubleOrNull()?.takeIf { it > 0 } ?: 1.0
