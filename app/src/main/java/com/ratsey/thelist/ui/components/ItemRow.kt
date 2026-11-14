@@ -92,10 +92,14 @@ fun itemMeta(
     // keeps its own, which is also what the arrowed best price is shown in.
     val planned = item.price
     val currency = LocalCurrency.current
-    val plannedRate = planned?.let { unitPriceOf(it, item.priceUnit) }
-        ?.takeIf { one -> planned != null && one.per < planned - PRICE_EPSILON }
-    val paidRate = summary?.let { unitPriceOf(it.latestPrice, it.unitLabel) }
-        ?.takeIf { one -> summary != null && one.per < summary.latestPrice - PRICE_EPSILON }
+    // The rate on its own, and the rate only when it says something the total does not: "$3.00/lb"
+    // is already a rate, so the list must not print it twice, but the shelf still wants it.
+    val plannedUnit = planned?.let { unitPriceOf(it, item.priceUnit) }
+    val plannedRate = plannedUnit?.takeIf { one -> planned != null && one.per < planned - PRICE_EPSILON }
+    val paidUnit = summary?.let { unitPriceOf(it.latestPrice, it.unitLabel) }
+    val paidRate = paidUnit?.takeIf { one ->
+        summary != null && one.per < summary.latestPrice - PRICE_EPSILON
+    }
 
     fun rate(one: UnitPrice, inCurrency: String): String =
         priceWithUnit(formatMoney(one.per, inCurrency), one.label)
@@ -111,8 +115,10 @@ fun itemMeta(
             // not the pack price, not what was last paid. A row whose price says nothing about
             // units has no rate to state, and so states no money at all.
             rateOnly -> when {
-                plannedRate != null -> add(rate(plannedRate, currency))
-                summary != null && paidRate != null -> add(rate(paidRate, summary.currency))
+                // A price already quoted per unit is its own rate; a price for a pack is divided
+                // down. Either way the shelf gets one number, and never a blank where a price is.
+                plannedUnit != null -> add(rate(plannedUnit, currency))
+                summary != null && paidUnit != null -> add(rate(paidUnit, summary.currency))
             }
 
             planned != null -> {
