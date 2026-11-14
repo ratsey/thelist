@@ -44,6 +44,13 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+/**
+ * One request for a price: what to ask about, and a token identifying the asking. The prompt keys
+ * its text on the token, so two requests about the same row cannot share a typed answer.
+ */
+data class PricePromptTarget(val item: Item, val token: Long)
+
+
 enum class SyncState { Disabled, Idle, Syncing, Offline }
 
 data class SyncUi(
@@ -93,9 +100,14 @@ class ListViewModel(
     val pricePrompt: StateFlow<PricePrompt> = settings.pricePrompt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PricePrompt.WhenAdding)
 
-    /** The row a "what did it cost?" prompt is open for, if any. */
-    private val _priceFor = MutableStateFlow<Item?>(null)
-    val priceFor: StateFlow<Item?> = _priceFor.asStateFlow()
+    /**
+     * The open "what did it cost?" prompt, if any. The token makes each request its own: the same
+     * row can be asked about twice, and the second time must not open holding the first answer.
+     */
+    private val _priceFor = MutableStateFlow<PricePromptTarget?>(null)
+    val priceFor: StateFlow<PricePromptTarget?> = _priceFor.asStateFlow()
+
+    private var pricePromptToken = 0L
 
     fun dismissPricePrompt() {
         _priceFor.value = null
@@ -191,7 +203,7 @@ class ListViewModel(
             // The price is known at the shelf, so "when adding" asks right here. A row that already
             // has one is not asked again: the prompt is a convenience, not a gate.
             if (toBasket && item.price == null && pricePrompt.value == PricePrompt.WhenAdding) {
-                _priceFor.value = item
+                _priceFor.value = PricePromptTarget(item, ++pricePromptToken)
             }
             _messages.send(
                 UiMessage(

@@ -718,14 +718,19 @@ fun StoresSheet(
 @Composable
 fun PricePromptDialog(
     item: Item,
+    /** Identifies this request, so a second ask about the same row starts blank. */
+    promptToken: Long,
     onSave: (Double) -> Unit,
     onSkip: () -> Unit,
 ) {
-    var price by remember(item.id) { mutableStateOf(formatPriceField(item.price)) }
+    // Deliberately not seeded from item.price: this prompt only opens for a row that has no price,
+    // so an empty field is the whole question. A figure left over from the last thing priced is a
+    // wrong answer waiting to be tapped through.
+    var price by remember(promptToken) { mutableStateOf("") }
     val value = parsePriceField(price)
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(item.id) { focusRequester.requestFocus() }
+    LaunchedEffect(promptToken) { focusRequester.requestFocus() }
 
     AlertDialog(
         onDismissRequest = onSkip,
