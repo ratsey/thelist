@@ -460,8 +460,9 @@ fun PlacementDialog(
     val storeName =
         if (addingStore) newStoreName else stores.firstOrNull { it.id == selectedStoreId }?.name
 
+    // The meta line only: the type has its own line under the name on the card, so repeating it
+    // here would describe a row that never exists.
     val preview = listOfNotNull(
-        variant.trim().takeIf { it.isNotEmpty() },
         storeName?.takeIf { it.isNotBlank() }?.trim(),
         location.trim().takeIf { it.isNotEmpty() },
         amount.trim().takeIf { it.isNotEmpty() },

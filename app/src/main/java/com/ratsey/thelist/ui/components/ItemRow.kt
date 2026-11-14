@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
@@ -87,9 +88,6 @@ fun itemMeta(
     // keeps its own, which is also what the arrowed best price is shown in.
     val planned = item.price
     val parts = buildList {
-        // What to put in the trolley, before where to find it: "boneless skinless" decides which
-        // pack you reach for, so it earns the earliest slot in a line that ellipsises.
-        item.variant?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
         placeLabel(item, storeNames, currentStoreId)?.let { add(it) }
         // What you decided in the kitchen comes before what the till once charged: the amount and
         // the price you planned are the things you need with a trolley in front of you.
@@ -249,17 +247,33 @@ private fun ItemCard(
                 .padding(start = 16.dp, end = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = item.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = colors.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            // The name, and under it which version of the thing this is: italic, so it reads as a
+            // qualifier rather than part of the name, and only when there is one — a row without a
+            // type keeps its single line and its 44dp.
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp, top = 10.dp, bottom = 10.dp),
-            )
+            ) {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                item.variant?.trim()?.takeIf { it.isNotEmpty() }?.let { variant ->
+                    Text(
+                        text = variant,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontStyle = FontStyle.Italic,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
 
             // Shop, aisle, last and best paid, all on the same line as the name so an item stays
             // one row tall. When there is not enough width it is this that gives way, not the name.
