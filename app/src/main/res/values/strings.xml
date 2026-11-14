@@ -6,6 +6,8 @@
     <string name="tab_basket">Basket</string>
     <string name="tab_shelf">Shelf</string>
 
+    <string name="add_shelf_hint">Already on the shelf — swipe right to put it back</string>
+    <string name="add_shelf_reveal">Re-add</string>
     <string name="add_item_hint">Add an item</string>
     <string name="add_item">Add item</string>
 

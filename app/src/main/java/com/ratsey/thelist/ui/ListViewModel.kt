@@ -197,6 +197,19 @@ class ListViewModel(
 
     // ---------------------------------------------------------------- list edits
 
+    /**
+     * A shelf row swiped in from the suggestion strip. Same row, same history: this is the whole
+     * point of offering it, rather than typing a name that would create a second one.
+     */
+    fun reviveFromShelf(item: Item) {
+        viewModelScope.launch {
+            repository.bringBack(item)
+            lastUndo = null
+            _messages.send(UiMessage(R.string.msg_readded))
+            scheduleSync()
+        }
+    }
+
     fun addItem(rawName: String) {
         val name = rawName.trim()
         if (name.isEmpty()) return

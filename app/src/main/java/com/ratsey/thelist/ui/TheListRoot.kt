@@ -42,12 +42,14 @@ import com.ratsey.thelist.ui.components.ItemActionsSheet
 import com.ratsey.thelist.ui.components.PlacementDialog
 import com.ratsey.thelist.ui.components.PricePromptDialog
 import com.ratsey.thelist.ui.components.RenameDialog
+import com.ratsey.thelist.ui.components.ShelfSuggestions
 import com.ratsey.thelist.ui.components.SettingsDialog
 import com.ratsey.thelist.ui.components.StoresSheet
 import com.ratsey.thelist.ui.components.ShoppingList
 import com.ratsey.thelist.ui.components.SyncDialog
 import com.ratsey.thelist.ui.components.ShelfActionsSheet
 import com.ratsey.thelist.ui.components.ShelfScreen
+import com.ratsey.thelist.data.shelfMatches
 
 /** In the order a shop happens: what you keep, what you need, what you have picked up. */
 private const val TAB_SHELF = 0
@@ -115,6 +117,11 @@ fun TheListRoot(viewModel: ListViewModel) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (selectedTab == TAB_TO_BUY) {
+                // What is already on the shelf for this word, before the word becomes a second row.
+                ShelfSuggestions(
+                    matches = remember(shelfItems, draft) { shelfMatches(shelfItems, draft) },
+                    onRevive = viewModel::reviveFromShelf,
+                )
                 AddItemBar(
                     value = draft,
                     onValueChange = { draft = it },
