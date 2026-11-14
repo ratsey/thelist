@@ -62,4 +62,26 @@ class PricingTest {
         assertEquals("milk", historyKey("milk", "   "))
         assertEquals("milk|semi skimmed", historyKey("milk", "Semi Skimmed"))
     }
+
+    @Test
+    fun `a countable pack is a count`() {
+        val pod = parsePriceBasis("pod")!!
+        assertEquals(Measure.COUNT, pod.measure)
+        // A pod, an each and a count are one price written three ways.
+        assertEquals(0.30, pod.convert(0.30, parsePriceBasis("each")!!)!!, 0.0001)
+        assertEquals(0.30, pod.convert(0.30, parsePriceBasis("count")!!)!!, 0.0001)
+    }
+
+    @Test
+    fun `a price per n divides by n`() {
+        val perTub = parsePriceBasis("30 count")!!
+        assertEquals(30.0, perTub.quantity, 0.0001)
+        assertEquals(0.433, perTub.convert(12.99, parsePriceBasis("count")!!)!!, 0.001)
+        assertEquals("30 count", perTub.label)
+    }
+
+    @Test
+    fun `counts are not weighed`() {
+        assertNull(parsePriceBasis("count")!!.convert(0.30, parsePriceBasis("lb")!!))
+    }
 }

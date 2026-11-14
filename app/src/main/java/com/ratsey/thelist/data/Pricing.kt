@@ -57,8 +57,14 @@ fun historyKey(productKey: String, variant: String?): String {
 
 /** Base units per unit of measure: grams, millilitres, or items. */
 private val UNITS: Map<String, Pair<Measure, Double>> = buildMap {
-    listOf("each", "ea", "unit", "units", "item", "items", "pc", "pcs")
-        .forEach { put(it, Measure.COUNT to 1.0) }
+    listOf(
+        "each", "ea", "unit", "units", "item", "items", "pc", "pcs", "piece", "pieces",
+        // Anything sold as a countable pack: pods, tablets, sheets, washes. Each is a count of one,
+        // which is what makes "$0.30/pod", "$0.30/count" and "$0.30/each" the same price.
+        "count", "counts", "ct", "cts", "pod", "pods", "tablet", "tablets",
+        "capsule", "capsules", "sheet", "sheets", "roll", "rolls", "load", "loads",
+        "wash", "washes",
+    ).forEach { put(it, Measure.COUNT to 1.0) }
     listOf("g", "gram", "grams").forEach { put(it, Measure.WEIGHT to 1.0) }
     listOf("mg", "milligram", "milligrams").forEach { put(it, Measure.WEIGHT to 0.001) }
     listOf("kg", "kilo", "kilos", "kilogram", "kilograms")

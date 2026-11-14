@@ -424,7 +424,7 @@ private fun PurchaseRow(
 }
 
 /** The units a price can be restated in. Weight with weight, volume with volume, never across. */
-private val COMPARISON_UNITS = listOf("each", "g", "kg", "lb", "oz", "ml", "L")
+private val COMPARISON_UNITS = listOf("each", "count", "g", "kg", "lb", "oz", "ml", "L")
 
 @Composable
 private fun CompareUnits(selected: String?, onSelect: (String) -> Unit) {

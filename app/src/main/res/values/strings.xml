@@ -57,7 +57,7 @@
     <string name="placement_per">Per</string>
     <string name="placement_variant">Type</string>
     <string name="placement_variant_hint">bone in, semi skimmed</string>
-    <string name="placement_per_hint">lb, kg, 100 g, each, L</string>
+    <string name="placement_per_hint">lb, 100 g, count, 30 count</string>
     <string name="group_no_location">No aisle</string>
 
     <string name="shop_pill_all">All shops</string>

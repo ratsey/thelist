@@ -76,4 +76,18 @@ class PriceSummaryTest {
         assertEquals(2.0, summary.lowestPrice, 0.001)
         assertNull(summary.unitLabel)
     }
+
+    @Test
+    fun `a tub of thirty is compared per count`() {
+        val summary = ReceiptRepository.summarise(
+            listOf(
+                row("laundry pods", 0.30, 1, unit = "pod"),
+                row("laundry pods", 12.99, 2, unit = "30 count"),
+            ),
+        ).single()
+        // A pod is $9.00 per thirty, so loose pods are the cheaper way to buy them.
+        assertEquals(12.99, summary.latestPrice, 0.001)
+        assertEquals(9.00, summary.lowestPrice, 0.001)
+        assertEquals("30 count", summary.unitLabel)
+    }
 }
