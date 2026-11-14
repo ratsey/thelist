@@ -17,6 +17,13 @@
     <string name="price_match_per">Per</string>
     <string name="price_match_save">Save price</string>
     <string name="price_match_no_shop">No shop</string>
+    <string name="compare_here">On the list</string>
+    <string name="compare_other">The other</string>
+    <string name="compare_enter_both">Enter both prices to compare</string>
+    <string name="compare_incomparable">Not comparable: different measures</string>
+    <string name="compare_same">Same price for the same amount</string>
+    <string name="compare_here_cheaper">On the list is %1$s cheaper</string>
+    <string name="compare_other_cheaper">The other is %1$s cheaper</string>
     <string name="add_shelf_reveal">Re-add</string>
     <string name="add_shelf_filter_show">Show what is on the shelf</string>
     <string name="add_shelf_filter_hide">Hide the shelf</string>
