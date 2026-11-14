@@ -78,6 +78,10 @@
     <string name="placement_amount">Amount</string>
     <string name="placement_amount_hint">1 L, 5 lb, ¼</string>
     <string name="placement_price">Price</string>
+    <string name="unit_group_each">Each</string>
+    <string name="unit_group_weight">Weight</string>
+    <string name="unit_group_volume">Volume</string>
+    <string name="unit_group_length">Length</string>
     <string name="placement_unit_price">Unit price</string>
     <string name="placement_for">for</string>
     <string name="placement_unit_other">Other</string>

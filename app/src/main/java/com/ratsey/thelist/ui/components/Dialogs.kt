@@ -87,6 +87,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.HorizontalDivider
 import com.ratsey.thelist.data.unitPriceOf
+import com.ratsey.thelist.data.unitGroups
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -468,7 +471,7 @@ fun AboutDialog(version: String, onDismiss: () -> Unit) {
  * rather than a word you have to spell the way the app expects. Every field is optional: a corner shop has no aisles, a list
  * in the kitchen has no amounts yet, and Clear puts the row back to saying nothing at all.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PlacementDialog(
     item: Item,
@@ -663,21 +666,36 @@ fun PlacementDialog(
 
                     Spacer(Modifier.height(12.dp))
 
-                    Row(
+                    // Both systems, grouped, in a panel that scrolls where it stands: a strip of
+                    // thirteen units meant the last ones were never seen, and a shopper here needs
+                    // ounces and grams on the same screen.
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .heightIn(max = 176.dp)
+                            .verticalScroll(rememberScrollState()),
                     ) {
-                        comparisonUnits(measureSystem).forEach { unit ->
-                            PillChip(
-                                selected = !customUnit && unitText.equals(unit, ignoreCase = true),
-                                label = unit,
-                                onClick = {
-                                    customUnit = false
-                                    unitText = unit
-                                },
-                            )
+                        unitGroups(measureSystem).forEach { group ->
+                            EyebrowText(groupTitle(group.key))
+                            Spacer(Modifier.height(6.dp))
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                group.units.forEach { unit ->
+                                    PillChip(
+                                        selected = !customUnit &&
+                                            unitText.equals(unit, ignoreCase = true),
+                                        label = unit,
+                                        onClick = {
+                                            customUnit = false
+                                            unitText = unit
+                                        },
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
                         }
                         PillChip(
                             selected = customUnit,
@@ -843,6 +861,17 @@ fun PlacementDialog(
         }
     }
 }
+
+/** What a group of units measures, said the way the sheet says things. */
+@Composable
+private fun groupTitle(key: String): String = stringResource(
+    when (key) {
+        "weight" -> R.string.unit_group_weight
+        "volume" -> R.string.unit_group_volume
+        "length" -> R.string.unit_group_length
+        else -> R.string.unit_group_each
+    },
+)
 
 /** A section's name, set small and wide so it reads as a label rather than a heading. */
 @Composable

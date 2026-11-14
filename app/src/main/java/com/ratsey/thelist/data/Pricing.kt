@@ -219,11 +219,46 @@ fun composePerField(quantity: String, unit: String): String {
     }
 }
 
-/** The units offered for comparison in a measurement system, counting always included. */
-fun comparisonUnits(system: MeasureSystem): List<String> = when (system) {
-    MeasureSystem.Metric -> listOf("each", "count", "g", "kg", "ml", "L", "cm", "m")
-    MeasureSystem.Imperial -> listOf("each", "count", "oz", "lb", "fl oz", "in", "ft", "yd")
+/**
+ * Units worth offering, grouped by the kind of thing they measure.
+ *
+ * [key] names the group so the screen can say it in its own language; the list carries the units
+ * themselves.
+ */
+data class UnitGroup(val key: String, val units: List<String>)
+
+/**
+ * Every unit, in both systems at once, grouped by what it measures.
+ *
+ * An American shopper thinks in pounds and buys in kilos: the deli sells by the ounce while the
+ * label says grams, and a foreign aisle quotes litres beside quarts. So both systems are always on
+ * offer, and [system] only decides which comes first inside a group — the order you reach for, not
+ * a limit on what exists.
+ */
+fun unitGroups(system: MeasureSystem): List<UnitGroup> {
+    val metricFirst = system == MeasureSystem.Metric
+    return listOf(
+        UnitGroup("each", listOf("each", "count")),
+        UnitGroup(
+            "weight",
+            if (metricFirst) listOf("g", "kg", "oz", "lb") else listOf("oz", "lb", "g", "kg"),
+        ),
+        UnitGroup(
+            "volume",
+            if (metricFirst) listOf("ml", "L", "fl oz") else listOf("fl oz", "ml", "L"),
+        ),
+        UnitGroup(
+            "length",
+            if (metricFirst) listOf("cm", "m", "in", "ft", "yd") else listOf("in", "ft", "yd", "cm", "m"),
+        ),
+    )
 }
+
+/**
+ * The units offered for comparison in a measurement system, counting always included — both systems
+ * flattened, since a price quoted in kilograms has to meet one quoted in pounds.
+ */
+fun comparisonUnits(system: MeasureSystem): List<String> = unitGroups(system).flatMap { it.units }
 
 /** The hint in the "Per" field, in the units the app is set to speak. */
 fun perFieldHint(system: MeasureSystem): String = when (system) {

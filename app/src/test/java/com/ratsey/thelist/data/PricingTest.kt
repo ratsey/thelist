@@ -104,7 +104,11 @@ class PricingTest {
         assertTrue(metric.contains("L"))
         assertTrue(imperial.contains("lb"))
         assertTrue(imperial.contains("fl oz"))
-        assertEquals(setOf("each", "count"), metric.intersect(imperial.toSet()))
+        // Both systems are always offered; the setting only decides the order, because a shopper
+        // here thinks in pounds and buys in kilos.
+        assertEquals(metric.toSet(), imperial.toSet())
+        assertTrue(metric.indexOf("g") < metric.indexOf("oz"))
+        assertTrue(imperial.indexOf("oz") < imperial.indexOf("g"))
     }
 
     @Test
