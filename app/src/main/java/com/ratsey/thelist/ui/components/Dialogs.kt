@@ -69,6 +69,9 @@ import com.ratsey.thelist.data.perFieldHint
 import com.ratsey.thelist.ui.LocalCurrency
 import com.ratsey.thelist.data.priceWithUnit
 import com.ratsey.thelist.ui.formatMoney
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.material3.Surface
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -612,34 +615,51 @@ fun PlacementDialog(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(10.dp))
-            Row(
+            // The cost, in the same card-and-huge-number language as the comparison sheet: the
+            // price is what you check at arm's length, the unit is the footnote you type once.
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.Bottom,
             ) {
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it },
-                    singleLine = true,
-                    isError = !priceValid,
-                    label = { Text(stringResource(R.string.placement_price)) },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Done,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-                // The unit shares the price's line because "$1.25" is only half a fact: the two are
-                // typed as one thought and read as one string.
-                OutlinedTextField(
-                    value = priceUnit,
-                    onValueChange = { priceUnit = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.placement_per)) },
-                    placeholder = { Text(perFieldHint(measureSystem)) },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.weight(0.6f),
-                )
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                    HeroNumberField(
+                        value = price,
+                        onValueChange = { price = it },
+                        label = stringResource(R.string.placement_price),
+                        currency = LocalCurrency.current,
+                        isError = !priceValid,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.placement_per),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        BasicTextField(
+                            value = priceUnit,
+                            onValueChange = { priceUnit = it },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.weight(1f),
+                        )
+                        // A hint, not a value: it names units rather than a figure, so it can never
+                        // be mistaken for a price already entered.
+                        if (priceUnit.isBlank()) {
+                            Text(
+                                text = perFieldHint(measureSystem),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(Modifier.height(10.dp))
@@ -847,20 +867,15 @@ fun PricePromptDialog(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
+                HeroNumberField(
                     value = price,
                     onValueChange = { price = it },
-                    singleLine = true,
+                    label = stringResource(R.string.placement_price),
+                    currency = LocalCurrency.current,
                     isError = price.isNotBlank() && value == null,
-                    label = { Text(stringResource(R.string.placement_price)) },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(onDone = { value?.let(onSave) }),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester),
+                    onDone = { value?.let(onSave) },
+                    focusRequester = focusRequester,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
