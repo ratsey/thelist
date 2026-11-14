@@ -39,6 +39,7 @@ import com.ratsey.thelist.ui.components.BasketList
 import com.ratsey.thelist.ui.components.CheckoutSheet
 import com.ratsey.thelist.ui.components.HomeHeader
 import com.ratsey.thelist.ui.components.ItemActionsSheet
+import com.ratsey.thelist.ui.components.PriceMatchDialog
 import com.ratsey.thelist.ui.components.PlacementDialog
 import com.ratsey.thelist.ui.components.PricePromptDialog
 import com.ratsey.thelist.ui.components.RenameDialog
@@ -104,6 +105,16 @@ fun TheListRoot(viewModel: ListViewModel) {
             )
             if (result == SnackbarResult.ActionPerformed) viewModel.undoLast()
         }
+    }
+
+    val compareDetail by viewModel.compareDetail.collectAsStateWithLifecycle()
+
+    compareDetail?.let { detail ->
+        PriceMatchDialog(
+            detail = detail,
+            onOpenHistory = { viewModel.showPricesFor(detail.summary.key) },
+            onDismiss = viewModel::dismissCompare,
+        )
     }
 
     productDetail?.let { detail ->
@@ -236,6 +247,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,
                             onOpenPrices = { viewModel.showPricesFor(it) },
+                            onCompare = viewModel::comparePrices,
                             onOpenActions = { actionSheetItem = it },
                             onDismissHint = viewModel::dismissHint,
                         )

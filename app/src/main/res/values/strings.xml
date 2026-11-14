@@ -7,6 +7,12 @@
     <string name="tab_shelf">Shelf</string>
 
     <string name="add_shelf_hint">Swipe right to add to the list</string>
+    <string name="action_compare_prices">Compare prices</string>
+    <string name="price_match_best">Cheapest price at each shop</string>
+    <string name="price_match_none">No prices recorded for this yet.</string>
+    <string name="price_match_one_shop">Only one shop has priced this.</string>
+    <string name="price_match_history">History</string>
+    <string name="price_match_done">Done</string>
     <string name="add_shelf_reveal">Re-add</string>
     <string name="add_shelf_filter_show">Show what is on the shelf</string>
     <string name="add_shelf_filter_hide">Hide the shelf</string>

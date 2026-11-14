@@ -148,18 +148,27 @@ class ListViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val selectedProduct = MutableStateFlow<String?>(null)
+    private val comparedProduct = MutableStateFlow<String?>(null)
 
-    val productDetail: StateFlow<ProductDetail?> = combine(priceRows, selectedProduct) { rows, key ->
-        if (key == null) return@combine null
-        val summary = ReceiptRepository.summarise(rows).firstOrNull { it.key == key }
-            ?: return@combine null
-        ProductDetail(
+    private fun detailFor(rows: List<PriceRow>, key: String?): ProductDetail? {
+        if (key == null) return null
+        val summary = ReceiptRepository.summarise(rows).firstOrNull { it.key == key } ?: return null
+        return ProductDetail(
             summary = summary,
             points = ReceiptRepository.pointsFor(rows, key),
             purchases = rows.filter { historyKey(it.productKey, it.variant) == key }
                 .sortedByDescending { it.purchasedAt },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    }
+
+    val productDetail: StateFlow<ProductDetail?> =
+        combine(priceRows, selectedProduct) { rows, key -> detailFor(rows, key) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The popup's subject, kept apart from [selectedProduct] because that one is a whole screen. */
+    val compareDetail: StateFlow<ProductDetail?> =
+        combine(priceRows, comparedProduct) { rows, key -> detailFor(rows, key) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _syncUi = MutableStateFlow(SyncUi())
     val syncUi: StateFlow<SyncUi> = _syncUi.asStateFlow()
@@ -474,6 +483,26 @@ class ListViewModel(
         } else {
             viewModelScope.launch { _messages.send(UiMessage(R.string.prices_none_for_item)) }
         }
+    }
+
+    /** The per-shop comparison popup for a row on the list. */
+    fun comparePrices(item: Item) {
+        val key = historyKey(ItemMatcher.productKey(item.name), item.variant)
+        if (priceRows.value.any { historyKey(it.productKey, it.variant) == key }) {
+            comparedProduct.value = key
+        } else {
+            viewModelScope.launch { _messages.send(UiMessage(R.string.prices_none_for_item)) }
+        }
+    }
+
+    fun dismissCompare() {
+        comparedProduct.value = null
+    }
+
+    /** From the popup into the full history of the same thing. */
+    fun showPricesFor(key: String) {
+        comparedProduct.value = null
+        selectedProduct.value = key
     }
 
     // ---------------------------------------------------------------- sharing

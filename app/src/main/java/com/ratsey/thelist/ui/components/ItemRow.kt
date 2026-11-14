@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -173,6 +174,8 @@ fun ItemRow(
     swipeLeft: SwipeAction,
     onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
+    /** Opens the per-shop comparison; null on rows with no history to compare. */
+    onCompare: (() -> Unit)? = null,
     /** Shop, aisle, last and best paid, already joined; null when the row knows none of it. */
     meta: String? = null,
     modifier: Modifier = Modifier,
@@ -218,6 +221,7 @@ fun ItemRow(
             meta = meta,
             onOpenPrices = onOpenPrices,
             onOpenActions = onOpenActions,
+            onCompare = onCompare,
         )
     }
 }
@@ -229,6 +233,7 @@ private fun ItemCard(
     meta: String?,
     onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
+    onCompare: (() -> Unit)?,
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -289,6 +294,21 @@ private fun ItemCard(
                         .weight(1f, fill = false)
                         .padding(end = 4.dp, top = 10.dp, bottom = 10.dp),
                 )
+            }
+
+            // Only on a row with history: an icon that opens "nothing recorded" is a dead end.
+            if (onCompare != null) {
+                IconButton(
+                    onClick = onCompare,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CompareArrows,
+                        contentDescription = stringResource(R.string.action_compare_prices),
+                        tint = colors.outline,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
 
             IconButton(

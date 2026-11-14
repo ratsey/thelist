@@ -321,6 +321,7 @@ fun ShoppingList(
     showHint: Boolean,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
+    onCompare: (Item) -> Unit,
     onOpenPrices: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     onDismissHint: () -> Unit,
@@ -365,6 +366,7 @@ fun ShoppingList(
                         onToggle = onToggle,
                         onPutAway = onPutAway,
                         onOpenPrices = onOpenPrices,
+                        onCompare = onCompare,
                         onOpenActions = onOpenActions,
                         modifier = Modifier.animateItem(),
                     )
@@ -380,6 +382,7 @@ fun ShoppingList(
                     onToggle = onToggle,
                     onPutAway = onPutAway,
                     onOpenPrices = onOpenPrices,
+                    onCompare = onCompare,
                     onOpenActions = onOpenActions,
                     modifier = Modifier.animateItem(),
                 )
@@ -396,18 +399,23 @@ private fun ShoppingRow(
     currentStoreId: String?,
     onToggle: (Item) -> Unit,
     onPutAway: (Item) -> Unit,
+    onCompare: (Item) -> Unit,
     onOpenPrices: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // One lookup, used both for the meta line and to decide whether comparing is possible.
+    val summary = summaries[historyKey(ItemMatcher.productKey(item.name), item.variant)]
+
     ItemRow(
         item = item,
         meta = itemMeta(
             item = item,
             storeNames = storeNames,
-            summary = summaries[historyKey(ItemMatcher.productKey(item.name), item.variant)],
+            summary = summary,
             currentStoreId = currentStoreId,
         ),
+        onCompare = summary?.let { { onCompare(item) } },
         swipeRight = SwipeAction(
             label = R.string.swipe_got_it,
             icon = Icons.Rounded.Check,
