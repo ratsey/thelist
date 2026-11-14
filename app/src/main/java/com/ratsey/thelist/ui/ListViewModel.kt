@@ -75,6 +75,15 @@ sealed interface UpdateUi {
 
 data class UiMessage(@StringRes val textRes: Int, val undoable: Boolean = false)
 
+/**
+ * What the comparison popup is showing: the row, and its history if it has any. A row never priced
+ * still opens, because the popup is also how a price gets recorded.
+ */
+data class CompareState(
+    val item: Item,
+    val detail: ProductDetail?,
+)
+
 class ListViewModel(
     private val repository: ItemRepository,
     private val storeRepository: StoreRepository,
@@ -148,7 +157,7 @@ class ListViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val selectedProduct = MutableStateFlow<String?>(null)
-    private val comparedProduct = MutableStateFlow<String?>(null)
+    private val comparedItem = MutableStateFlow<Item?>(null)
 
     private fun detailFor(rows: List<PriceRow>, key: String?): ProductDetail? {
         if (key == null) return null
@@ -165,10 +174,19 @@ class ListViewModel(
         combine(priceRows, selectedProduct) { rows, key -> detailFor(rows, key) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /** The popup's subject, kept apart from [selectedProduct] because that one is a whole screen. */
-    val compareDetail: StateFlow<ProductDetail?> =
-        combine(priceRows, comparedProduct) { rows, key -> detailFor(rows, key) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    /**
+     * The popup's subject, kept apart from [selectedProduct] because that one is a whole screen.
+     * The detail is null for something never priced — the popup then offers to record the first
+     * price rather than refusing to open.
+     */
+    val compareState: StateFlow<CompareState?> =
+        combine(comparedItem, priceRows) { item, rows ->
+            if (item == null) return@combine null
+            CompareState(
+                item = item,
+                detail = detailFor(rows, historyKey(ItemMatcher.productKey(item.name), item.variant)),
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _syncUi = MutableStateFlow(SyncUi())
     val syncUi: StateFlow<SyncUi> = _syncUi.asStateFlow()
@@ -485,24 +503,52 @@ class ListViewModel(
         }
     }
 
-    /** The per-shop comparison popup for a row on the list. */
+    /** The comparison popup for a row on the list, priced or not. */
     fun comparePrices(item: Item) {
-        val key = historyKey(ItemMatcher.productKey(item.name), item.variant)
-        if (priceRows.value.any { historyKey(it.productKey, it.variant) == key }) {
-            comparedProduct.value = key
-        } else {
-            viewModelScope.launch { _messages.send(UiMessage(R.string.prices_none_for_item)) }
-        }
+        comparedItem.value = item
     }
 
     fun dismissCompare() {
-        comparedProduct.value = null
+        comparedItem.value = null
     }
 
     /** From the popup into the full history of the same thing. */
     fun showPricesFor(key: String) {
-        comparedProduct.value = null
+        comparedItem.value = null
         selectedProduct.value = key
+    }
+
+    /**
+     * A price found while comparing: onto the row as what you plan to pay, and into the history at
+     * the row's shop, which is what the comparison above it is built from.
+     */
+    fun capturePrice(itemId: String, price: Double, priceUnit: String?) {
+        viewModelScope.launch {
+            val item = repository.byId(itemId) ?: return@launch
+            repository.setDetails(
+                item = item,
+                storeId = item.storeId,
+                location = item.location.orEmpty(),
+                variant = item.variant.orEmpty(),
+                amount = item.amount,
+                price = price,
+                priceUnit = priceUnit,
+            )
+            receipts.recordPrices(
+                storeName = storeNameFor(item),
+                currency = currency.value,
+                purchases = listOf(
+                    ManualPrice(
+                        itemId = item.id,
+                        name = item.name,
+                        price = price,
+                        variant = item.variant,
+                        priceUnit = priceUnit,
+                    ),
+                ),
+            )
+            scheduleSync()
+        }
     }
 
     // ---------------------------------------------------------------- sharing

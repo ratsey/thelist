@@ -107,12 +107,15 @@ fun TheListRoot(viewModel: ListViewModel) {
         }
     }
 
-    val compareDetail by viewModel.compareDetail.collectAsStateWithLifecycle()
+    val compareState by viewModel.compareState.collectAsStateWithLifecycle()
 
-    compareDetail?.let { detail ->
+    compareState?.let { state ->
+        val detail = state.detail
         PriceMatchDialog(
+            item = state.item,
             detail = detail,
-            onOpenHistory = { viewModel.showPricesFor(detail.summary.key) },
+            onCapture = { price, unit -> viewModel.capturePrice(state.item.id, price, unit) },
+            onOpenHistory = detail?.let { priced -> { viewModel.showPricesFor(priced.summary.key) } },
             onDismiss = viewModel::dismissCompare,
         )
     }

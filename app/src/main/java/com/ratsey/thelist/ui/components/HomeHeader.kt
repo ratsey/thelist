@@ -415,7 +415,7 @@ private fun ShoppingRow(
             summary = summary,
             currentStoreId = currentStoreId,
         ),
-        onCompare = summary?.let { { onCompare(item) } },
+        onCompare = { onCompare(item) },
         swipeRight = SwipeAction(
             label = R.string.swipe_got_it,
             icon = Icons.Rounded.Check,
