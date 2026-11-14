@@ -90,6 +90,8 @@ import com.ratsey.thelist.data.unitPriceOf
 import com.ratsey.thelist.data.unitGroups
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.imePadding
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -529,6 +531,7 @@ fun PlacementDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
@@ -582,47 +585,67 @@ fun PlacementDialog(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = LocalCurrency.current,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = colors.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            BasicTextField(
-                                value = price,
-                                onValueChange = { price = it },
-                                textStyle = MaterialTheme.typography.displayMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (priceValid) colors.onSurface else colors.error,
-                                ),
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                    imeAction = ImeAction.Done,
-                                ),
-                                cursorBrush = SolidColor(
-                                    if (priceValid) colors.primary else colors.error,
-                                ),
-                                modifier = Modifier.weight(1f),
-                            )
+                    // A folding phone's cover screen leaves this card about 320dp, where a 45sp
+                    // figure and its rate cannot share a line without one of them clipping. Below
+                    // that width the figure steps down a size and the rate takes its own line.
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        val narrow = maxWidth < 300.dp
+                        val heroStyle = if (narrow) {
+                            MaterialTheme.typography.displaySmall
+                        } else {
+                            MaterialTheme.typography.displayMedium
                         }
-                        unitPrice?.let { one ->
-                            Column(horizontalAlignment = Alignment.End) {
-                                EyebrowText(stringResource(R.string.placement_unit_price))
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
                                 Text(
-                                    text = priceWithUnit(
-                                        formatMoney(one.per, LocalCurrency.current),
-                                        one.label,
-                                    ),
+                                    text = LocalCurrency.current,
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.primary,
+                                    color = colors.onSurfaceVariant,
                                 )
+                                Spacer(Modifier.width(4.dp))
+                                BasicTextField(
+                                    value = price,
+                                    onValueChange = { price = it },
+                                    textStyle = heroStyle.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (priceValid) colors.onSurface else colors.error,
+                                    ),
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Decimal,
+                                        imeAction = ImeAction.Done,
+                                    ),
+                                    cursorBrush = SolidColor(
+                                        if (priceValid) colors.primary else colors.error,
+                                    ),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (!narrow) {
+                                    unitPrice?.let { one ->
+                                        UnitPriceBlock(
+                                            value = priceWithUnit(
+                                                formatMoney(one.per, LocalCurrency.current),
+                                                one.label,
+                                            ),
+                                            alignEnd = true,
+                                        )
+                                    }
+                                }
+                            }
+                            if (narrow) {
+                                unitPrice?.let { one ->
+                                    Spacer(Modifier.height(6.dp))
+                                    UnitPriceBlock(
+                                        value = priceWithUnit(
+                                            formatMoney(one.per, LocalCurrency.current),
+                                            one.label,
+                                        ),
+                                        alignEnd = false,
+                                    )
+                                }
                             }
                         }
                     }
@@ -861,6 +884,22 @@ fun PlacementDialog(
                 }
             }
         }
+    }
+}
+
+/** The derived rate, labelled and set in the accent: the reason the card has two numbers. */
+@Composable
+private fun UnitPriceBlock(value: String, alignEnd: Boolean) {
+    Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
+        EyebrowText(stringResource(R.string.placement_unit_price))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
