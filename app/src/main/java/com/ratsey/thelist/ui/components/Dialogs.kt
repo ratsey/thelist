@@ -666,22 +666,18 @@ fun PlacementDialog(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // Both systems, grouped, in a panel that scrolls where it stands: a strip of
-                    // thirteen units meant the last ones were never seen, and a shopper here needs
-                    // ounces and grams on the same screen.
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 176.dp)
-                            .verticalScroll(rememberScrollState()),
-                    ) {
+                    // Both systems, grouped, scrolling sideways: a vertical scroller inside a
+                    // sheet fights the sheet's own drag-to-dismiss, and a scroll meant to look
+                    // further down the units should never close the thing you are typing into.
+                    Column(Modifier.fillMaxWidth()) {
                         unitGroups(measureSystem).forEach { group ->
                             EyebrowText(groupTitle(group.key))
-                            Spacer(Modifier.height(6.dp))
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
+                            Spacer(Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 group.units.forEach { unit ->
                                     PillChip(
@@ -695,13 +691,19 @@ fun PlacementDialog(
                                     )
                                 }
                             }
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(10.dp))
                         }
-                        PillChip(
-                            selected = customUnit,
-                            label = stringResource(R.string.placement_unit_other),
-                            onClick = { customUnit = true },
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                        ) {
+                            PillChip(
+                                selected = customUnit,
+                                label = stringResource(R.string.placement_unit_other),
+                                onClick = { customUnit = true },
+                            )
+                        }
                     }
 
                     if (customUnit) {
