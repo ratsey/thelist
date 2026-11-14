@@ -250,7 +250,9 @@ private fun ItemCard(
                 .combinedClickable(onClick = {}, onLongClick = onOpenPrices)
                 .heightIn(min = 44.dp)
                 .padding(start = 16.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            // Top, not centre: with a type under the name the row is two lines tall, and a price
+            // floating halfway down the second line is a price that does not belong to the name.
+            verticalAlignment = Alignment.Top,
         ) {
             // The name, and under it which version of the thing this is: italic, so it reads as a
             // qualifier rather than part of the name, and only when there is one — a row without a
@@ -291,8 +293,8 @@ private fun ItemCard(
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.End,
                     modifier = Modifier
-                        .weight(1f, fill = false)
-                        .padding(end = 4.dp, top = 10.dp, bottom = 10.dp),
+                        .weight(1f)
+                        .padding(end = 4.dp, top = 13.dp),
                 )
             }
 
@@ -300,7 +302,9 @@ private fun ItemCard(
             if (onCompare != null) {
                 IconButton(
                     onClick = onCompare,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier
+                        .padding(top = 3.dp)
+                        .size(40.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.CompareArrows,
@@ -313,7 +317,9 @@ private fun ItemCard(
 
             IconButton(
                 onClick = onOpenActions,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier
+                    .padding(top = 3.dp)
+                    .size(40.dp),
             ) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,

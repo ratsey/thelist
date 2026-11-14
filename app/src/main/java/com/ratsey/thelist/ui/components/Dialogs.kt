@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Place
@@ -79,6 +80,7 @@ fun ItemActionsSheet(
     onRename: () -> Unit,
     onPlacement: () -> Unit,
     onOpenPrices: () -> Unit,
+    onCompare: () -> Unit,
     onPutAway: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -126,6 +128,12 @@ fun ItemActionsSheet(
                 icon = Icons.Rounded.ReceiptLong,
                 label = stringResource(R.string.action_prices),
                 onClick = onOpenPrices,
+            )
+            // The icon on the row is quick; this is the way in you can find by reading.
+            SheetAction(
+                icon = Icons.Rounded.CompareArrows,
+                label = stringResource(R.string.action_compare_prices),
+                onClick = onCompare,
             )
             SheetAction(
                 icon = Icons.Rounded.Archive,

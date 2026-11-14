@@ -338,6 +338,25 @@ class ListViewModel(
             val created = newStoreName?.let { storeRepository.add(it) }
             val target = created?.id ?: storeId
             repository.setDetails(item, target, location, variant, amount, price, priceUnit)
+            // A price typed here is a price known, not only an intention: a row showing "$3.50"
+            // whose history has never heard of it is a row that lies. Only the first one becomes
+            // history — later plans stay plans, and the till records what was actually paid.
+            val key = historyKey(ItemMatcher.productKey(item.name), variant.trim().ifBlank { null })
+            if (price != null && priceRows.value.none { historyKey(it.productKey, it.variant) == key }) {
+                receipts.recordPrices(
+                    storeName = created?.name ?: storeNameFor(item),
+                    currency = currency.value,
+                    purchases = listOf(
+                        ManualPrice(
+                            itemId = item.id,
+                            name = item.name,
+                            price = price,
+                            variant = variant.trim().ifBlank { null },
+                            priceUnit = priceUnit,
+                        ),
+                    ),
+                )
+            }
             val cleared = target == null && location.isBlank() && variant.isBlank() &&
                 amount.isNullOrBlank() && price == null && priceUnit.isNullOrBlank()
             _messages.send(

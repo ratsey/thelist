@@ -264,6 +264,10 @@ fun TheListRoot(viewModel: ListViewModel) {
         ItemActionsSheet(
             item = item,
             onDismiss = { actionSheetItem = null },
+            onCompare = {
+                actionSheetItem = null
+                viewModel.comparePrices(item)
+            },
             onToggle = {
                 viewModel.move(item)
                 actionSheetItem = null
