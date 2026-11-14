@@ -45,6 +45,9 @@ data class PriceBasis(
      */
     val label: String
         get() = when {
+            // Every countable thing is the same thing: "each", "unit", "count", "item" and "pc"
+            // are one apiece, so they all read as "each" rather than as four kinds of price.
+            measure == Measure.COUNT && quantity == 1.0 -> "each"
             quantity == 1.0 -> unit
             measure == Measure.COUNT && unit == COUNT_UNIT -> formatQuantity(quantity)
             else -> "${formatQuantity(quantity)} $unit"

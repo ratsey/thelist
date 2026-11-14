@@ -6,6 +6,7 @@ import com.ratsey.thelist.data.compareOffers
 import com.ratsey.thelist.data.composePerField
 import com.ratsey.thelist.data.parsePriceBasis
 import com.ratsey.thelist.data.splitPerField
+import com.ratsey.thelist.data.priceIn
 import com.ratsey.thelist.data.unitPriceOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -121,6 +122,35 @@ class OfferDuelTest {
     fun `a price with no unit has no rate`() {
         assertNull(unitPriceOf(2.5, null))
         assertNull(unitPriceOf(null, "lb"))
+    }
+
+    @Test
+    fun `a count, a unit and an each are one and the same thing`() {
+        val count = requireNotNull(parsePriceBasis("1 count"))
+        val unit = requireNotNull(parsePriceBasis("unit"))
+        val each = requireNotNull(parsePriceBasis("each"))
+
+        assertEquals(Measure.COUNT, count.measure)
+        assertEquals(Measure.COUNT, unit.measure)
+        assertEquals(Measure.COUNT, each.measure)
+        // One name for one thing, whichever word was typed.
+        assertEquals("each", count.label)
+        assertEquals("each", unit.label)
+        assertEquals("each", each.label)
+
+        // $2 each, $2 the unit, $2 the count: the same offer, twice.
+        assertEquals(Cheaper.SAME, requireNotNull(compareOffers(2.0, each, 2.0, unit)).cheaper)
+        assertEquals(Cheaper.SAME, requireNotNull(compareOffers(2.0, unit, 2.0, count)).cheaper)
+    }
+
+    @Test
+    fun `six of them is half a dollar off a dollar each`() {
+        val six = requireNotNull(parsePriceBasis("6 count"))
+        val each = requireNotNull(parsePriceBasis("each"))
+
+        // $3 for six is 50 cents each, and 50 cents each is $3 for six.
+        assertEquals(0.5, priceIn(3.0, six, each)!!, 0.0001)
+        assertEquals(3.0, priceIn(0.5, each, six)!!, 0.0001)
     }
 
     @Test
