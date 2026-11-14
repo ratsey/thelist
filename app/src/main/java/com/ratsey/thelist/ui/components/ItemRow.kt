@@ -249,7 +249,7 @@ private fun ItemCard(
                 // A tap lands nowhere on purpose: a long press shows prices, the ⋮ opens the menu.
                 .combinedClickable(onClick = {}, onLongClick = onOpenPrices)
                 .heightIn(min = 44.dp)
-                .padding(start = 16.dp, end = 2.dp),
+                .padding(start = 16.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // The name, and under it which version of the thing this is: italic, so it reads as a
@@ -305,8 +305,8 @@ private fun ItemCard(
                     Icon(
                         imageVector = Icons.Rounded.CompareArrows,
                         contentDescription = stringResource(R.string.action_compare_prices),
-                        tint = colors.outline,
-                        modifier = Modifier.size(16.dp),
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(21.dp),
                     )
                 }
             }
@@ -318,8 +318,8 @@ private fun ItemCard(
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
                     contentDescription = stringResource(R.string.action_menu),
-                    tint = colors.outline,
-                    modifier = Modifier.size(16.dp),
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.size(21.dp),
                 )
             }
         }
