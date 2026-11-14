@@ -79,7 +79,7 @@ class PricingTest {
         val perTub = parsePriceBasis("30 count")!!
         assertEquals(30.0, perTub.quantity, 0.0001)
         assertEquals(0.433, perTub.convert(12.99, parsePriceBasis("count")!!)!!, 0.001)
-        assertEquals("30 count", perTub.label)
+        assertEquals("30", perTub.label)
     }
 
     @Test

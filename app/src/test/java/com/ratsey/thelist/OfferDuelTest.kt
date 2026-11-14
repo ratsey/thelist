@@ -76,7 +76,7 @@ class OfferDuelTest {
 
         assertEquals(com.ratsey.thelist.data.Measure.COUNT, basis.measure)
         assertEquals(60.0, basis.quantity, 0.0)
-        assertEquals("60 count", basis.label)
+        assertEquals("60", basis.label)
     }
 
     @Test

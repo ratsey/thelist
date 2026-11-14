@@ -34,9 +34,18 @@ data class PriceBasis(
         return rate * other.factor * other.quantity
     }
 
-    /** "lb", or "100 g" when the price is for more than one of them. */
+    /**
+     * "lb", or "100 g" when the price is for more than one of them.
+     *
+     * A count says the number once: "$8.12/60", not "$8.12/60 count", because the figure is the
+     * count. A named pack keeps its noun — "$3.00/30 pods" is not "$3.00/30".
+     */
     val label: String
-        get() = if (quantity == 1.0) unit else "${formatQuantity(quantity)} $unit"
+        get() = when {
+            quantity == 1.0 -> unit
+            measure == Measure.COUNT && unit == COUNT_UNIT -> formatQuantity(quantity)
+            else -> "${formatQuantity(quantity)} $unit"
+        }
 }
 
 /** [price] restated from [from] into [to], or null when the two cannot honestly be compared. */
@@ -85,6 +94,9 @@ private val BASIS_TEXT = Regex("^([0-9]+(?:[.,][0-9]+)?)?\\s*(.+)$")
 
 /** A number on its own, with no unit word after it: "60". */
 private val BARE_COUNT = Regex("[0-9]+(?:[.,][0-9]+)?")
+
+/** The canonical unit a bare number means, and the one word worth leaving out. */
+private const val COUNT_UNIT = "count"
 
 /**
  * Reads what a price is per out of the free text typed in the "Per" field: "lb", "per lb", "each",
