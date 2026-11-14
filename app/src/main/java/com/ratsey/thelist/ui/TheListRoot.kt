@@ -278,8 +278,8 @@ fun TheListRoot(viewModel: ListViewModel) {
         RenameDialog(
             item = item,
             onDismiss = { renameTarget = null },
-            onConfirm = { name ->
-                viewModel.rename(item, name)
+            onConfirm = { name, variant ->
+                viewModel.rename(item, name, variant)
                 renameTarget = null
             },
         )

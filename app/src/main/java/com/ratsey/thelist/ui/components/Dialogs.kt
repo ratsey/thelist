@@ -113,7 +113,7 @@ fun ItemActionsSheet(
             )
             SheetAction(
                 icon = Icons.Rounded.Edit,
-                label = stringResource(R.string.action_rename),
+                label = stringResource(R.string.action_name_and_type),
                 onClick = onRename,
             )
             SheetAction(
@@ -185,7 +185,7 @@ fun ShelfActionsSheet(
             )
             SheetAction(
                 icon = Icons.Rounded.Edit,
-                label = stringResource(R.string.action_rename),
+                label = stringResource(R.string.action_name_and_type),
                 onClick = onRename,
             )
             SheetAction(
@@ -229,33 +229,48 @@ private fun SheetAction(
 fun RenameDialog(
     item: Item,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
+    onConfirm: (name: String, variant: String) -> Unit,
 ) {
+    // The name and the type are the same question — which thing is this? — so they are asked
+    // together and saved in one write, wherever the row lives: shelf, list or basket.
     var text by remember { mutableStateOf(item.name) }
+    var variant by remember { mutableStateOf(item.variant.orEmpty()) }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.rename_title)) },
+        title = { Text(stringResource(R.string.action_name_and_type)) },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = { if (text.isNotBlank()) onConfirm(text) },
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-            )
+            Column {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = variant,
+                    onValueChange = { variant = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.rename_variant)) },
+                    placeholder = { Text(stringResource(R.string.rename_variant_hint)) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (text.isNotBlank()) onConfirm(text, variant) },
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
         confirmButton = {
             TextButton(
-                onClick = { if (text.isNotBlank()) onConfirm(text) },
+                onClick = { if (text.isNotBlank()) onConfirm(text, variant) },
                 enabled = text.isNotBlank(),
             ) {
                 Text(stringResource(R.string.action_save))

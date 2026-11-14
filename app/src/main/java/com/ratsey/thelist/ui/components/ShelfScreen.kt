@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
@@ -130,6 +131,7 @@ fun ShelfScreen(
                 items(shown, key = { it.id }) { item ->
                     ShelfRow(
                         name = item.name,
+                        variant = item.variant,
                         meta = itemMeta(
                             item = item,
                             storeNames = storeNames,
@@ -150,6 +152,7 @@ fun ShelfScreen(
 @Composable
 private fun ShelfRow(
     name: String,
+    variant: String?,
     meta: String?,
     onAdd: () -> Unit,
     onOpenActions: () -> Unit,
@@ -193,16 +196,31 @@ private fun ShelfRow(
                     .padding(start = 18.dp, end = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                // Same shape as a list row: the type is the line under the name, in italics, and
+                // only when there is one, so the shelf reads like the list it feeds.
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 8.dp, top = 13.dp, bottom = 13.dp),
-                )
+                ) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    variant?.trim()?.takeIf { it.isNotEmpty() }?.let { type ->
+                        Text(
+                            text = type,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontStyle = FontStyle.Italic,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
 
                 if (meta != null) {
                     Text(

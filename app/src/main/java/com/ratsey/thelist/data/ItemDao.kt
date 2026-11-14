@@ -56,6 +56,10 @@ interface ItemDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(items: List<Item>)
 
+    /** The name and the type together: they are one decision, made in one dialog. */
+    @Query("UPDATE items SET name = :name, variant = :variant, updatedAt = :now WHERE id = :id")
+    suspend fun setNameAndVariant(id: String, name: String, variant: String?, now: Long)
+
     @Query("UPDATE items SET name = :name, updatedAt = :now WHERE id = :id")
     suspend fun rename(id: String, name: String, now: Long)
 

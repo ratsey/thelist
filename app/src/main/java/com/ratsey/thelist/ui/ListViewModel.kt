@@ -257,11 +257,12 @@ class ListViewModel(
         }
     }
 
-    fun rename(item: Item, rawName: String) {
+    fun rename(item: Item, rawName: String, variant: String? = null) {
         val name = rawName.trim()
-        if (name.isEmpty() || name == item.name) return
+        if (name.isEmpty()) return
+        if (name == item.name && variant?.trim().orEmpty() == item.variant.orEmpty()) return
         viewModelScope.launch {
-            repository.rename(item, name)
+            repository.rename(item, name, variant)
             lastUndo = null
             _messages.send(UiMessage(R.string.msg_renamed))
             scheduleSync()

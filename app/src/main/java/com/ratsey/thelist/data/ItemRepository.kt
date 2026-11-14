@@ -73,11 +73,13 @@ class ItemRepository(private val db: AppDatabase) {
         }
     }
 
-    suspend fun rename(item: Item, name: String) {
+    suspend fun rename(item: Item, name: String, variant: String?) {
         val now = System.currentTimeMillis()
-        val updated = item.copy(name = name.trim(), updatedAt = now)
+        val trimmedName = name.trim()
+        val trimmedVariant = variant?.trim()?.takeIf { it.isNotEmpty() }
+        val updated = item.copy(name = trimmedName, variant = trimmedVariant, updatedAt = now)
         db.withTransaction {
-            dao.rename(item.id, name.trim(), now)
+            dao.setNameAndVariant(item.id, trimmedName, trimmedVariant, now)
             enqueue(updated)
         }
     }
