@@ -17,6 +17,7 @@
     <string name="price_match_per">Per</string>
     <string name="price_match_save">Save price</string>
     <string name="price_match_no_shop">No shop</string>
+    <string name="compare_title">Compare</string>
     <string name="compare_here">On the list</string>
     <string name="compare_other">The other</string>
     <string name="compare_enter_both">Enter both prices to compare</string>

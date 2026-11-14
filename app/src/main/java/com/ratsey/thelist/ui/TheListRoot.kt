@@ -39,7 +39,7 @@ import com.ratsey.thelist.ui.components.BasketList
 import com.ratsey.thelist.ui.components.CheckoutSheet
 import com.ratsey.thelist.ui.components.HomeHeader
 import com.ratsey.thelist.ui.components.ItemActionsSheet
-import com.ratsey.thelist.ui.components.PriceMatchDialog
+import com.ratsey.thelist.ui.components.PriceCompareSheet
 import com.ratsey.thelist.ui.components.PlacementDialog
 import com.ratsey.thelist.ui.components.PricePromptDialog
 import com.ratsey.thelist.ui.components.RenameDialog
@@ -111,7 +111,7 @@ fun TheListRoot(viewModel: ListViewModel) {
 
     compareState?.let { state ->
         val detail = state.detail
-        PriceMatchDialog(
+        PriceCompareSheet(
             item = state.item,
             detail = detail,
             onCapture = { price, unit -> viewModel.capturePrice(state.item.id, price, unit) },
