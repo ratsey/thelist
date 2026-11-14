@@ -77,6 +77,15 @@ import com.ratsey.thelist.data.composePerField
 import com.ratsey.thelist.data.parsePriceBasis
 import com.ratsey.thelist.data.priceIn
 import com.ratsey.thelist.data.splitPerField
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.HorizontalDivider
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -453,9 +462,9 @@ fun AboutDialog(version: String, onDismiss: () -> Unit) {
  * Everything the shopper knows about a row, asked as two questions instead of five equal fields:
  * **where** it lives (shop and aisle) and what it **costs** (how much, and the rate).
  *
- * The row the list will show is spelled out at the top as it is typed, so "$1.25" and "lb" are seen
- * together as "$1.25/lb" before saving — the sheet's job is that string, and it should not be a
- * surprise what the list does with it. Every field is optional: a corner shop has no aisles, a list
+ * The price states what it buys in the same card: "$3.00" beside "$1.00/lb", so the conversion is
+ * visible while typing rather than discovered afterwards, and the unit it is for is a chip you tap
+ * rather than a word you have to spell the way the app expects. Every field is optional: a corner shop has no aisles, a list
  * in the kitchen has no amounts yet, and Clear puts the row back to saying nothing at all.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -475,13 +484,13 @@ fun PlacementDialog(
         priceUnit: String?,
     ) -> Unit,
 ) {
+    val colors = MaterialTheme.colorScheme
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedStoreId by remember { mutableStateOf(item.storeId) }
     var location by remember { mutableStateOf(item.location.orEmpty()) }
     var amount by remember { mutableStateOf(item.amount.orEmpty()) }
     var price by remember { mutableStateOf(formatPriceField(item.price)) }
-    // The unit is picked, not spelt: the chips are the units the app can actually convert, and
-    // "Other" keeps a name it has never heard of — a punnet is still a punnet.
+    // The unit is picked, not spelt: the chips are the units the app can actually convert.
     val storedPer = remember { splitPerField(item.priceUnit) }
     var packQty by remember { mutableStateOf(storedPer.first) }
     var unitText by remember { mutableStateOf(storedPer.second) }
@@ -490,17 +499,16 @@ fun PlacementDialog(
             storedPer.second.isNotEmpty() && storedPer.second !in comparisonUnits(measureSystem),
         )
     }
-    val priceUnit = composePerField(packQty, unitText)
     var variant by remember { mutableStateOf(item.variant.orEmpty()) }
     var addingStore by remember { mutableStateOf(false) }
     var newStoreName by remember { mutableStateOf("") }
 
+    val priceUnit = composePerField(packQty, unitText)
     val priceValue = parsePriceField(price)
-    // A price typed wrong is a price silently lost, so it has to be a number or nothing at all.
     val priceValid = price.isBlank() || priceValue != null
 
-    // What the price comes to for one unit, which is the only form two offers can be held against
-    // each other in: a $3 bag of three pounds is $1 a pound, and that is the comparable number.
+    // What it comes to for one unit: the number two offers can actually be held against each other
+    // in. A $3 bag of three pounds is $1 a pound, said while you type.
     val priceBasis = remember(priceUnit) { parsePriceBasis(priceUnit) }
     val unitPrice = remember(priceValue, priceBasis) {
         if (priceValue == null || priceBasis == null) {
@@ -514,17 +522,6 @@ fun PlacementDialog(
         }
     }
     val unitPriceLabel = if (unitText.equals("count", ignoreCase = true)) "each" else unitText
-    val storeName =
-        if (addingStore) newStoreName else stores.firstOrNull { it.id == selectedStoreId }?.name
-
-    // The meta line only: the type has its own line under the name on the card, so repeating it
-    // here would describe a row that never exists.
-    val preview = listOfNotNull(
-        storeName?.takeIf { it.isNotBlank() }?.trim(),
-        location.trim().takeIf { it.isNotEmpty() },
-        amount.trim().takeIf { it.isNotEmpty() },
-        priceValue?.let { priceWithUnit(formatMoney(it, LocalCurrency.current), priceUnit) },
-    ).joinToString(" · ").takeIf { it.isNotEmpty() }
 
     // Clear only means something if the row is currently saying something.
     val hasStored = item.storeId != null || !item.location.isNullOrBlank() ||
@@ -534,181 +531,149 @@ fun PlacementDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = colors.surface,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
         ) {
+            EyebrowText(stringResource(R.string.placement_cost))
             Text(
                 text = item.name,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = preview ?: stringResource(R.string.placement_preview_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (preview == null) {
-                    MaterialTheme.colorScheme.outline
-                } else {
-                    MaterialTheme.colorScheme.primary
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Spacer(Modifier.height(16.dp))
-            // Which version of the thing: typing a type here is how one row on the list stands for
-            // "chicken thighs" without the list carrying a line for every way they come.
-            OutlinedTextField(
+            // Which version of the thing, edited where it is read: italic, like the row's own type.
+            BasicTextField(
                 value = variant,
                 onValueChange = { variant = it },
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = colors.onSurfaceVariant,
+                    fontStyle = FontStyle.Italic,
+                ),
                 singleLine = true,
-                label = { Text(stringResource(R.string.placement_variant)) },
-                placeholder = { Text(stringResource(R.string.placement_variant_hint)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(18.dp))
-            DialogLabel(stringResource(R.string.placement_where))
-            Spacer(Modifier.height(8.dp))
-            Row(
+                cursorBrush = SolidColor(colors.primary),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = !addingStore && selectedStoreId == null,
-                    onClick = {
-                        addingStore = false
-                        selectedStoreId = null
-                    },
-                    label = { Text(stringResource(R.string.placement_no_store)) },
-                )
-                stores.forEach { store ->
-                    FilterChip(
-                        selected = !addingStore && selectedStoreId == store.id,
-                        onClick = {
-                            addingStore = false
-                            selectedStoreId = store.id
-                        },
-                        label = { Text(store.name) },
-                    )
-                }
-                FilterChip(
-                    selected = addingStore,
-                    onClick = {
-                        addingStore = true
-                        selectedStoreId = null
-                    },
-                    label = { Text(stringResource(R.string.placement_new_store_chip)) },
-                )
-            }
-            if (addingStore) {
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = newStoreName,
-                    onValueChange = { newStoreName = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.placement_new_store_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            OutlinedTextField(
-                value = location,
-                onValueChange = { location = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.placement_location)) },
-                placeholder = { Text(stringResource(R.string.placement_location_hint)) },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
+                    .padding(top = 2.dp),
+                decorationBox = { inner ->
+                    Box {
+                        if (variant.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.placement_variant_hint),
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontStyle = FontStyle.Italic,
+                                ),
+                                color = colors.outline,
+                            )
+                        }
+                        inner()
+                    }
+                },
             )
 
-            Spacer(Modifier.height(18.dp))
-            DialogLabel(stringResource(R.string.placement_cost))
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = amount,
-                onValueChange = { amount = it },
-                singleLine = true,
-                label = { Text(stringResource(R.string.placement_amount)) },
-                placeholder = { Text(stringResource(R.string.placement_amount_hint)) },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(10.dp))
-            // The cost, in the same card-and-huge-number language as the comparison sheet: the
-            // price is what you check at arm's length, the unit is the footnote you type once.
+            Spacer(Modifier.height(20.dp))
+
+            // The cost card: the figure is the loudest thing on the screen, and the unit price is
+            // never far from it.
             Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(24.dp),
+                color = colors.surfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                    HeroNumberField(
-                        value = price,
-                        onValueChange = { price = it },
-                        label = stringResource(R.string.placement_price),
-                        currency = LocalCurrency.current,
-                        isError = !priceValid,
+                Column(Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = LocalCurrency.current,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = colors.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            BasicTextField(
+                                value = price,
+                                onValueChange = { price = it },
+                                textStyle = MaterialTheme.typography.displayMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (priceValid) colors.onSurface else colors.error,
+                                ),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Decimal,
+                                    imeAction = ImeAction.Done,
+                                ),
+                                cursorBrush = SolidColor(
+                                    if (priceValid) colors.primary else colors.error,
+                                ),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (unitPrice != null) {
+                            Column(horizontalAlignment = Alignment.End) {
+                                EyebrowText(stringResource(R.string.placement_unit_price))
+                                Text(
+                                    text = priceWithUnit(
+                                        formatMoney(unitPrice, LocalCurrency.current),
+                                        unitPriceLabel,
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.primary,
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = 10.dp, bottom = 14.dp),
+                        color = colors.outlineVariant.copy(alpha = 0.5f),
                     )
-                    Spacer(Modifier.height(10.dp))
-                    // How much the price covers, and of what: a number you type, a unit you tap.
+
+                    // How much the price covers, and of what.
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = stringResource(R.string.placement_for),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.onSurfaceVariant,
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(10.dp))
                         BasicTextField(
                             value = packQty,
                             onValueChange = { typed ->
                                 packQty = typed.filter { char -> char.isDigit() || char == '.' }
                             },
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                color = colors.onSurface,
                             ),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Decimal,
                                 imeAction = ImeAction.Done,
                             ),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.width(56.dp),
+                            cursorBrush = SolidColor(colors.primary),
+                            modifier = Modifier.width(48.dp),
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(
                             text = unitText.ifBlank { stringResource(R.string.placement_per) },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (unitText.isBlank()) {
-                                MaterialTheme.colorScheme.outline
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (unitText.isBlank()) colors.outline else colors.onSurface,
                         )
-                        Spacer(Modifier.weight(1f))
-                        unitPrice?.let { rate ->
-                            Text(
-                                text = priceWithUnit(
-                                    formatMoney(rate, LocalCurrency.current),
-                                    unitPriceLabel,
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
                     }
-                    Spacer(Modifier.height(10.dp))
+
+                    Spacer(Modifier.height(12.dp))
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -716,52 +681,146 @@ fun PlacementDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         comparisonUnits(measureSystem).forEach { unit ->
-                            FilterChip(
+                            PillChip(
                                 selected = !customUnit && unitText.equals(unit, ignoreCase = true),
+                                label = unit,
                                 onClick = {
                                     customUnit = false
                                     unitText = unit
                                 },
-                                label = { Text(unit) },
                             )
                         }
-                        FilterChip(
+                        PillChip(
                             selected = customUnit,
+                            label = stringResource(R.string.placement_unit_other),
                             onClick = { customUnit = true },
-                            label = { Text(stringResource(R.string.placement_unit_other)) },
                         )
                     }
+
                     if (customUnit) {
                         Spacer(Modifier.height(10.dp))
-                        BasicTextField(
-                            value = unitText,
-                            onValueChange = { unitText = it },
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                            ),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(colors.surface)
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                        ) {
+                            BasicTextField(
+                                value = unitText,
+                                onValueChange = { unitText = it },
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    color = colors.onSurface,
+                                ),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                cursorBrush = SolidColor(colors.primary),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
-            Row(
+            Spacer(Modifier.height(14.dp))
+
+            // The where: the shop you are standing in, then the two places on a shelf you note.
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = colors.surfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(
-                    onClick = { onSave(null, null, "", "", null, null, null) },
-                    enabled = hasStored,
-                ) {
-                    Text(stringResource(R.string.placement_clear))
+                Column(Modifier.padding(20.dp)) {
+                    EyebrowText(stringResource(R.string.placement_where))
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        PillChip(
+                            selected = !addingStore && selectedStoreId == null,
+                            label = stringResource(R.string.placement_no_store),
+                            onClick = {
+                                addingStore = false
+                                selectedStoreId = null
+                            },
+                        )
+                        stores.forEach { store ->
+                            PillChip(
+                                selected = !addingStore && selectedStoreId == store.id,
+                                label = store.name,
+                                onClick = {
+                                    addingStore = false
+                                    selectedStoreId = store.id
+                                },
+                            )
+                        }
+                        PillChip(
+                            selected = addingStore,
+                            label = stringResource(R.string.placement_new_store_chip),
+                            onClick = {
+                                addingStore = true
+                                selectedStoreId = null
+                            },
+                        )
+                    }
+                    if (addingStore) {
+                        Spacer(Modifier.height(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(colors.surface)
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                        ) {
+                            BasicTextField(
+                                value = newStoreName,
+                                onValueChange = { newStoreName = it },
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    color = colors.onSurface,
+                                ),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                cursorBrush = SolidColor(colors.primary),
+                                modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { inner ->
+                                    Box {
+                                        if (newStoreName.isBlank()) {
+                                            Text(
+                                                text = stringResource(R.string.placement_new_store_hint),
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = colors.outline,
+                                            )
+                                        }
+                                        inner()
+                                    }
+                                },
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    LabeledBox(
+                        label = stringResource(R.string.placement_location),
+                        value = location,
+                        onValueChange = { location = it },
+                        placeholder = stringResource(R.string.placement_location_hint),
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    LabeledBox(
+                        label = stringResource(R.string.placement_amount),
+                        value = amount,
+                        onValueChange = { amount = it },
+                        placeholder = stringResource(R.string.placement_amount_hint),
+                    )
                 }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-                TextButton(
+            }
+
+            Spacer(Modifier.height(22.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(
                     onClick = {
                         onSave(
                             if (addingStore) null else selectedStoreId,
@@ -774,10 +833,99 @@ fun PlacementDialog(
                         )
                     },
                     enabled = !(addingStore && newStoreName.isBlank()) && priceValid,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp),
                 ) {
-                    Text(stringResource(R.string.action_save))
+                    Text(
+                        text = stringResource(R.string.action_save),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                TextButton(
+                    onClick = { onSave(null, null, "", "", null, null, null) },
+                    enabled = hasStored,
+                ) {
+                    Text(stringResource(R.string.placement_clear))
                 }
             }
+        }
+    }
+}
+
+/** A section's name, set small and wide so it reads as a label rather than a heading. */
+@Composable
+private fun EyebrowText(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** A one-tap choice: filled in the accent when chosen, a quiet tone when not. */
+@Composable
+private fun PillChip(selected: Boolean, label: String, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (selected) colors.primary else colors.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (selected) colors.onPrimary else colors.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
+}
+
+/** A labelled box for a short piece of text: the label above, the field filling it. */
+@Composable
+private fun LabeledBox(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.surface)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            EyebrowText(label)
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                cursorBrush = SolidColor(colors.primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 2.dp),
+                decorationBox = { inner ->
+                    Box {
+                        if (value.isBlank()) {
+                            Text(
+                                text = placeholder,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = colors.outline,
+                            )
+                        }
+                        inner()
+                    }
+                },
+            )
         }
     }
 }
