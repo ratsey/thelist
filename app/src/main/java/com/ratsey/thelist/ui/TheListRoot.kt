@@ -50,6 +50,8 @@ import com.ratsey.thelist.ui.components.SyncDialog
 import com.ratsey.thelist.ui.components.ShelfActionsSheet
 import com.ratsey.thelist.ui.components.ShelfScreen
 import com.ratsey.thelist.data.shelfMatches
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 /** In the order a shop happens: what you keep, what you need, what you have picked up. */
 private const val TAB_SHELF = 0
@@ -118,36 +120,45 @@ fun TheListRoot(viewModel: ListViewModel) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (selectedTab == TAB_TO_BUY) {
-                // What is already on the shelf for this word, before the word becomes a second
-                // row. Typing always offers the closest few; the filter widens that and, with
-                // nothing typed, shows the shelf itself so last week's row is a swipe away.
-                ShelfSuggestions(
-                    matches = remember(shelfItems, draft, shelfFilterOn) {
-                        when {
-                            draft.isNotBlank() ->
-                                shelfMatches(shelfItems, draft, if (shelfFilterOn) 8 else 3)
+                // One column, not two siblings: the bottom bar lays its children on top of
+                // each other, so a panel beside the field would be hidden underneath it.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .imePadding(),
+                ) {
+                    // What is already on the shelf for this word, before the word becomes a second
+                    // row. Typing always offers the closest few; the filter widens that and, with
+                    // nothing typed, shows the shelf itself so last week's row is a swipe away.
+                    ShelfSuggestions(
+                        matches = remember(shelfItems, draft, shelfFilterOn) {
+                            when {
+                                draft.isNotBlank() ->
+                                    shelfMatches(shelfItems, draft, if (shelfFilterOn) 8 else 3)
 
-                            shelfFilterOn -> shelfItems.take(5)
-                            else -> emptyList()
-                        }
-                    },
-                    onRevive = viewModel::reviveFromShelf,
-                )
-                AddItemBar(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    onAdd = {
-                        if (draft.isNotBlank()) {
-                            viewModel.addItem(draft)
-                            draft = ""
-                            addFocusRequester.requestFocus()
-                        }
-                    },
-                    focusRequester = addFocusRequester,
-                    shelfFilterOn = shelfFilterOn,
-                    shelfCount = shelfItems.size,
-                    onToggleShelfFilter = { shelfFilterOn = !shelfFilterOn },
-                )
+                                shelfFilterOn -> shelfItems.take(5)
+                                else -> emptyList()
+                            }
+                        },
+                        onRevive = viewModel::reviveFromShelf,
+                    )
+                    AddItemBar(
+                        value = draft,
+                        onValueChange = { draft = it },
+                        onAdd = {
+                            if (draft.isNotBlank()) {
+                                viewModel.addItem(draft)
+                                draft = ""
+                                addFocusRequester.requestFocus()
+                            }
+                        },
+                        focusRequester = addFocusRequester,
+                        shelfFilterOn = shelfFilterOn,
+                        shelfCount = shelfItems.size,
+                        onToggleShelfFilter = { shelfFilterOn = !shelfFilterOn },
+                    )
+                }
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),

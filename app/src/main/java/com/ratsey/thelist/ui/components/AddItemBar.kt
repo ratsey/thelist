@@ -60,8 +60,6 @@ fun AddItemBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .imePadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 8.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
