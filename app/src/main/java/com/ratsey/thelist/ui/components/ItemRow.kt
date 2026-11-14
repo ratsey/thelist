@@ -163,8 +163,9 @@ data class SwipeAction(
  * are reversible, so no swipe here can lose anything.
  *
  * Nothing on the row reacts to a tap. A thumb brushing the list while you shop should never move an
- * item or bury it, so every change of state is a deliberate swipe. A long press shows what you have
- * paid for the thing; the small ⋮ opens the menu — rename, put away, delete.
+ * item or bury it, so every change of state is a deliberate swipe. A long press opens the price
+ * comparison — two offers side by side — because that is the question a row raises while you are
+ * standing in front of it; the small ⋮ opens the menu — rename, put away, delete.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -249,7 +249,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                             showHint = hintVisible && basketItems.isEmpty() && activeItems.isNotEmpty(),
                             onToggle = viewModel::move,
                             onPutAway = viewModel::putAway,
-                            onOpenPrices = { viewModel.showPricesFor(it) },
+                            onOpenPrices = { viewModel.comparePrices(it) },
                             onCompare = viewModel::comparePrices,
                             onOpenActions = { actionSheetItem = it },
                             onDismissHint = viewModel::dismissHint,
