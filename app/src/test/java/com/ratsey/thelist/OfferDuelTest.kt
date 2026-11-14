@@ -2,7 +2,9 @@ package com.ratsey.thelist
 
 import com.ratsey.thelist.data.Cheaper
 import com.ratsey.thelist.data.compareOffers
+import com.ratsey.thelist.data.composePerField
 import com.ratsey.thelist.data.parsePriceBasis
+import com.ratsey.thelist.data.splitPerField
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -68,6 +70,33 @@ class OfferDuelTest {
 
         assertEquals(Cheaper.SAME, duel.cheaper)
         assertEquals(0.0, duel.difference, 0.0001)
+    }
+
+    @Test
+    fun `a bag of three pounds splits into a number and a unit and comes back whole`() {
+        val (amount, unit) = splitPerField("3 lb")
+
+        assertEquals("3", amount)
+        assertEquals("lb", unit)
+        assertEquals("3 lb", composePerField(amount, unit))
+    }
+
+    @Test
+    fun `a plain count splits to its number and keeps it`() {
+        val (amount, unit) = splitPerField("60")
+
+        assertEquals("60", amount)
+        assertEquals("count", unit)
+        assertEquals("60", composePerField(amount, unit))
+    }
+
+    @Test
+    fun `a unit the app has never heard of survives the round trip`() {
+        val (amount, unit) = splitPerField("punnet")
+
+        assertEquals("", amount)
+        assertEquals("punnet", unit)
+        assertEquals("punnet", composePerField(amount, unit))
     }
 
     @Test

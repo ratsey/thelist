@@ -149,6 +149,37 @@ enum class MeasureSystem(val stored: String) {
     }
 }
 
+/**
+ * A stored per-field, split into the amount and the unit, for the field and the chips.
+ *
+ * "3 lb" is how much and of what — two things a chip row and a number box can each own — and
+ * "60" is a count of sixty, which is why the unit comes back as "count" rather than nothing.
+ */
+fun splitPerField(text: String?): Pair<String, String> {
+    val raw = text?.trim().orEmpty()
+    if (raw.isEmpty()) return "" to ""
+    val basis = parsePriceBasis(raw) ?: return "" to raw
+    val quantity = if (basis.quantity == 1.0) "" else formatQuantity(basis.quantity)
+    return quantity to basis.unit
+}
+
+/**
+ * The per-field a chip row and an amount build: "3 lb", "60" for a plain count, "punnet".
+ *
+ * A count is stored as its number alone because that is how it is read and how it prints — the
+ * word "count" would only repeat the figure.
+ */
+fun composePerField(quantity: String, unit: String): String {
+    val amount = quantity.trim()
+    val name = unit.trim()
+    return when {
+        name.isEmpty() -> amount
+        name.equals("count", ignoreCase = true) && amount.isNotEmpty() -> amount
+        amount.isEmpty() -> name
+        else -> "$amount $name"
+    }
+}
+
 /** The units offered for comparison in a measurement system, counting always included. */
 fun comparisonUnits(system: MeasureSystem): List<String> = when (system) {
     MeasureSystem.Metric -> listOf("each", "count", "g", "kg", "ml", "L")

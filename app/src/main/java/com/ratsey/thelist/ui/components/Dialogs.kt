@@ -72,6 +72,11 @@ import com.ratsey.thelist.ui.formatMoney
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material3.Surface
+import com.ratsey.thelist.data.PriceBasis
+import com.ratsey.thelist.data.composePerField
+import com.ratsey.thelist.data.parsePriceBasis
+import com.ratsey.thelist.data.priceIn
+import com.ratsey.thelist.data.splitPerField
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -475,7 +480,17 @@ fun PlacementDialog(
     var location by remember { mutableStateOf(item.location.orEmpty()) }
     var amount by remember { mutableStateOf(item.amount.orEmpty()) }
     var price by remember { mutableStateOf(formatPriceField(item.price)) }
-    var priceUnit by remember { mutableStateOf(item.priceUnit.orEmpty()) }
+    // The unit is picked, not spelt: the chips are the units the app can actually convert, and
+    // "Other" keeps a name it has never heard of — a punnet is still a punnet.
+    val storedPer = remember { splitPerField(item.priceUnit) }
+    var packQty by remember { mutableStateOf(storedPer.first) }
+    var unitText by remember { mutableStateOf(storedPer.second) }
+    var customUnit by remember {
+        mutableStateOf(
+            storedPer.second.isNotEmpty() && storedPer.second !in comparisonUnits(measureSystem),
+        )
+    }
+    val priceUnit = composePerField(packQty, unitText)
     var variant by remember { mutableStateOf(item.variant.orEmpty()) }
     var addingStore by remember { mutableStateOf(false) }
     var newStoreName by remember { mutableStateOf("") }
@@ -483,6 +498,22 @@ fun PlacementDialog(
     val priceValue = parsePriceField(price)
     // A price typed wrong is a price silently lost, so it has to be a number or nothing at all.
     val priceValid = price.isBlank() || priceValue != null
+
+    // What the price comes to for one unit, which is the only form two offers can be held against
+    // each other in: a $3 bag of three pounds is $1 a pound, and that is the comparable number.
+    val priceBasis = remember(priceUnit) { parsePriceBasis(priceUnit) }
+    val unitPrice = remember(priceValue, priceBasis) {
+        if (priceValue == null || priceBasis == null) {
+            null
+        } else {
+            priceIn(
+                priceValue,
+                priceBasis,
+                PriceBasis(priceBasis.measure, priceBasis.unit, priceBasis.factor),
+            )
+        }
+    }
+    val unitPriceLabel = if (unitText.equals("count", ignoreCase = true)) "each" else unitText
     val storeName =
         if (addingStore) newStoreName else stores.firstOrNull { it.id == selectedStoreId }?.name
 
@@ -631,33 +662,88 @@ fun PlacementDialog(
                         isError = !priceValid,
                     )
                     Spacer(Modifier.height(10.dp))
+                    // How much the price covers, and of what: a number you type, a unit you tap.
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = stringResource(R.string.placement_per),
+                            text = stringResource(R.string.placement_for),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.width(8.dp))
                         BasicTextField(
-                            value = priceUnit,
-                            onValueChange = { priceUnit = it },
+                            value = packQty,
+                            onValueChange = { typed ->
+                                packQty = typed.filter { char -> char.isDigit() || char == '.' }
+                            },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Done,
+                            ),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.width(56.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = unitText.ifBlank { stringResource(R.string.placement_per) },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (unitText.isBlank()) {
+                                MaterialTheme.colorScheme.outline
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                        Spacer(Modifier.weight(1f))
+                        unitPrice?.let { rate ->
+                            Text(
+                                text = priceWithUnit(
+                                    formatMoney(rate, LocalCurrency.current),
+                                    unitPriceLabel,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        comparisonUnits(measureSystem).forEach { unit ->
+                            FilterChip(
+                                selected = !customUnit && unitText.equals(unit, ignoreCase = true),
+                                onClick = {
+                                    customUnit = false
+                                    unitText = unit
+                                },
+                                label = { Text(unit) },
+                            )
+                        }
+                        FilterChip(
+                            selected = customUnit,
+                            onClick = { customUnit = true },
+                            label = { Text(stringResource(R.string.placement_unit_other)) },
+                        )
+                    }
+                    if (customUnit) {
+                        Spacer(Modifier.height(10.dp))
+                        BasicTextField(
+                            value = unitText,
+                            onValueChange = { unitText = it },
                             textStyle = MaterialTheme.typography.bodyMedium.copy(
                                 color = MaterialTheme.colorScheme.onSurface,
                             ),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                         )
-                        // A hint, not a value: it names units rather than a figure, so it can never
-                        // be mistaken for a price already entered.
-                        if (priceUnit.isBlank()) {
-                            Text(
-                                text = perFieldHint(measureSystem),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                        }
                     }
                 }
             }
