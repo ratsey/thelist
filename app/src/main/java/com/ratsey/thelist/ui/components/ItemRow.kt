@@ -85,77 +85,114 @@ fun itemMeta(
     storeNames: Map<String, String>,
     summary: PriceSummary?,
     currentStoreId: String? = null,
+    rateOnly: Boolean = false,
 ): String? {
     // A planned price is typed now, so it is in the app's currency; only what the till recorded
     // keeps its own, which is also what the arrowed best price is shown in.
     val planned = item.price
+    val plannedOne = planned?.let { unitPriceOf(it, item.priceUnit) }
+    val plannedRate = plannedOne?.takeIf { one -> planned != null && one.per < planned - PRICE_EPSILON }
+    val paidOne = summary?.let { unitPriceOf(it.latestPrice, it.unitLabel) }
+    val paidRate = paidOne?.takeIf { one ->
+        summary != null && one.per < summary.latestPrice - PRICE_EPSILON
+    }
+
     val parts = buildList {
         placeLabel(item, storeNames, currentStoreId)?.let { add(it) }
         // What you decided in the kitchen comes before what the till once charged: the amount and
         // the price you planned are the things you need with a trolley in front of you.
         item.amount?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
 
-        // Money is the widest thing a row carries, so it gets at most two short tokens. A plan is a
-        // bare figure, and the best price earns an arrowed one only when it is genuinely cheaper:
-        // "last $3.20 · best $2.80" on every line bought no decision and squeezed out the name.
         when {
             planned != null -> {
-                // "$1.25/lb" rather than "$1.25": the amount sits before it, so the two facts stay
-                // apart and a rate is never mistaken for what the whole thing costs.
-                // The rate comes first because a row that runs out of width keeps its start: the
-                // figure you can compare is worth more than the one you will be charged.
-                val plannedOne = unitPriceOf(planned, item.priceUnit)
-                val perOne = plannedOne != null && plannedOne.per < planned - PRICE_EPSILON
-                if (perOne) {
-                    add(
+                // The shelf states the rate and stops there: one comparable number per row, so a
+                // column of them can be read down. The list states what you will be charged, with
+                // the rate beside it, because that is what a shop asks of you.
+                when {
+                    rateOnly && plannedRate != null -> add(
                         priceWithUnit(
-                            formatMoney(plannedOne.per, LocalCurrency.current),
-                            plannedOne.label,
+                            formatMoney(plannedRate.per, LocalCurrency.current),
+                            plannedRate.label,
                         ),
                     )
-                }
-                add(priceWithUnit(formatMoney(planned, LocalCurrency.current), item.priceUnit))
-                // The best price earns an arrow only when it is per the same thing as the plan: a
-                // kilo that merely looks cheaper than a pound is not cheaper.
-                val best = summary?.basis?.let { basis ->
-                    priceIn(summary.lowestPrice, basis, parsePriceBasis(item.priceUnit))
-                }
-                if (best != null && best < planned - PRICE_EPSILON) {
-                    add(
-                        stringResource(
-                            R.string.row_low,
-                            priceWithUnit(formatMoney(best, LocalCurrency.current), item.priceUnit),
-                        ),
-                    )
+
+                    else -> {
+                        // The rate goes first: a row that runs out of width keeps its start, and
+                        // the comparable figure is worth more than the one you will be charged.
+                        if (plannedRate != null) {
+                            add(
+                                priceWithUnit(
+                                    formatMoney(plannedRate.per, LocalCurrency.current),
+                                    plannedRate.label,
+                                ),
+                            )
+                        }
+                        add(
+                            priceWithUnit(
+                                formatMoney(planned, LocalCurrency.current),
+                                item.priceUnit,
+                            ),
+                        )
+                        if (!rateOnly) {
+                            // The best price earns an arrow only when it is per the same thing as
+                            // the plan: a kilo that merely looks cheaper is not cheaper.
+                            val best = summary?.basis?.let { basis ->
+                                priceIn(summary.lowestPrice, basis, parsePriceBasis(item.priceUnit))
+                            }
+                            if (best != null && best < planned - PRICE_EPSILON) {
+                                add(
+                                    stringResource(
+                                        R.string.row_low,
+                                        priceWithUnit(
+                                            formatMoney(best, LocalCurrency.current),
+                                            item.priceUnit,
+                                        ),
+                                    ),
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
             summary != null -> {
-                add(
-                    stringResource(
-                        R.string.row_last,
+                if (rateOnly && paidRate != null) {
+                    add(
                         priceWithUnit(
-                            formatMoney(summary.latestPrice, summary.currency),
-                            summary.unitLabel,
+                            formatMoney(paidRate.per, summary.currency),
+                            paidRate.label,
                         ),
-                    ),
-                )
-                // A paid price that bought several also states what one of them cost.
-                unitPriceOf(summary.latestPrice, summary.unitLabel)?.let { one ->
-                    if (one.per < summary.latestPrice - PRICE_EPSILON) {
-                        add(priceWithUnit(formatMoney(one.per, summary.currency), one.label))
-                    }
-                }
-                if (summary.lowestPrice < summary.latestPrice - PRICE_EPSILON) {
+                    )
+                } else {
                     add(
                         stringResource(
-                            R.string.row_low,
+                            R.string.row_last,
                             priceWithUnit(
-                                formatMoney(summary.lowestPrice, summary.currency),
+                                formatMoney(summary.latestPrice, summary.currency),
                                 summary.unitLabel,
                             ),
                         ),
                     )
+                    // A paid price that bought several also states what one of them cost.
+                    if (paidRate != null) {
+                        add(
+                            priceWithUnit(
+                                formatMoney(paidRate.per, summary.currency),
+                                paidRate.label,
+                            ),
+                        )
+                    }
+                    if (!rateOnly && summary.lowestPrice < summary.latestPrice - PRICE_EPSILON) {
+                        add(
+                            stringResource(
+                                R.string.row_low,
+                                priceWithUnit(
+                                    formatMoney(summary.lowestPrice, summary.currency),
+                                    summary.unitLabel,
+                                ),
+                            ),
+                        )
+                    }
                 }
             }
         }

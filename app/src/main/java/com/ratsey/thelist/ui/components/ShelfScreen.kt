@@ -137,6 +137,9 @@ fun ShelfScreen(
                             storeNames = storeNames,
                             summary = summaries[historyKey(ItemMatcher.productKey(item.name), item.variant)],
                             currentStoreId = currentStoreId,
+                            // The shelf is where things are compared, so it carries the rate and
+                            // only the rate: one column of numbers to read down.
+                            rateOnly = true,
                         ),
                         onAdd = { onAdd(item) },
                         onOpenActions = { onOpenActions(item) },
