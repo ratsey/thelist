@@ -22,7 +22,8 @@ interface ReceiptDao {
         "SELECT pl.productKey AS productKey, pl.displayName AS displayName, " +
             "pl.sourceText AS sourceText, pl.quantity AS quantity, " +
             "pl.unitPrice AS unitPrice, pl.lineTotal AS lineTotal, r.storeName AS storeName, " +
-            "r.purchasedAt AS purchasedAt, r.currency AS currency, r.id AS receiptId " +
+            "r.purchasedAt AS purchasedAt, r.currency AS currency, r.id AS receiptId, " +
+            "pl.variant AS variant, pl.priceUnit AS priceUnit " +
             "FROM purchase_lines pl JOIN receipts r ON r.id = pl.receiptId " +
             "WHERE pl.listId = :listId AND pl.deletedAt IS NULL AND r.deletedAt IS NULL " +
             "ORDER BY r.purchasedAt DESC, pl.displayName ASC",

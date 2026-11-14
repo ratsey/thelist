@@ -17,7 +17,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
@@ -28,6 +31,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +51,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.prettyReceiptName
 import com.ratsey.thelist.data.PricePoint
+import com.ratsey.thelist.data.PriceBasis
 import com.ratsey.thelist.data.PriceSummary
+import com.ratsey.thelist.data.parsePriceBasis
+import com.ratsey.thelist.data.priceIn
+import com.ratsey.thelist.data.priceWithUnit
 import com.ratsey.thelist.ui.components.SectionLabel
 import java.time.Instant
 import java.time.ZoneId
@@ -70,6 +80,14 @@ private fun formatDay(timestamp: Long): String =
 fun ProductDetailScreen(detail: ProductDetail, onBack: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     BackHandler(onBack = onBack)
+
+    // What prices are compared in: opening on the unit the last one was paid in, and any chip
+    // restates every comparable price into that unit. "$/lb" and "$/kg" are one question in two
+    // units, which is the whole reason a price has to say what it is per.
+    var compareUnit by remember(detail.summary.key) {
+        mutableStateOf(detail.summary.basis?.unit ?: detail.summary.unitLabel)
+    }
+    val compare = remember(compareUnit) { parsePriceBasis(compareUnit) }
 
     Column(
         modifier = Modifier
@@ -105,18 +123,29 @@ fun ProductDetailScreen(detail: ProductDetail, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                LatestPriceCard(detail)
+                CompareUnits(selected = compareUnit, onSelect = { compareUnit = it })
             }
             item {
-                PriceChartCard(detail)
+                LatestPriceCard(detail, compare)
+            }
+            item {
+                PriceChartCard(detail, compare)
             }
             item {
                 SectionLabel(text = stringResource(R.string.prices_history))
             }
             items(detail.purchases) { purchase ->
+                // Restated in the comparison unit when the two measure the same thing, and left
+                // exactly as paid when they do not: a litre is not a pound.
+                val converted = compare?.let { target ->
+                    priceIn(purchase.unitPrice, parsePriceBasis(purchase.priceUnit), target)
+                }
                 PurchaseRow(
                     name = purchase.displayName,
-                    price = formatMoney(purchase.unitPrice, purchase.currency),
+                    price = priceWithUnit(
+                        formatMoney(converted ?: purchase.unitPrice, purchase.currency),
+                        if (converted != null) compare?.label else purchase.priceUnit,
+                    ),
                     quantity = purchase.quantity,
                     store = purchase.storeName,
                     date = formatDay(purchase.purchasedAt),
@@ -128,8 +157,18 @@ fun ProductDetailScreen(detail: ProductDetail, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LatestPriceCard(detail: ProductDetail) {
+private fun LatestPriceCard(detail: ProductDetail, compare: PriceBasis?) {
     val colors = MaterialTheme.colorScheme
+    val summary = detail.summary
+
+    // Money with what it is per attached, in the comparison unit when that conversion is honest.
+    fun money(price: Double): String {
+        val converted = compare?.let { priceIn(price, summary.basis, it) }
+        return priceWithUnit(
+            formatMoney(converted ?: price, summary.currency),
+            if (converted != null) compare?.label else summary.unitLabel,
+        )
+    }
 
     Surface(
         shape = RoundedCornerShape(22.dp),
@@ -145,7 +184,7 @@ private fun LatestPriceCard(detail: ProductDetail) {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = formatMoney(detail.summary.latestPrice, detail.summary.currency),
+                text = money(summary.latestPrice),
                 style = MaterialTheme.typography.displaySmall,
                 color = colors.onPrimaryContainer,
             )
@@ -163,11 +202,11 @@ private fun LatestPriceCard(detail: ProductDetail) {
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 MiniStat(
                     label = stringResource(R.string.prices_best),
-                    value = formatMoney(detail.summary.lowestPrice, detail.summary.currency),
+                    value = money(summary.lowestPrice),
                 )
                 MiniStat(
                     label = stringResource(R.string.prices_average),
-                    value = formatMoney(detail.summary.averagePrice, detail.summary.currency),
+                    value = money(summary.averagePrice),
                 )
                 MiniStat(
                     label = stringResource(R.string.prices_history),
@@ -199,9 +238,21 @@ private fun MiniStat(label: String, value: String) {
 }
 
 @Composable
-private fun PriceChartCard(detail: ProductDetail) {
+private fun PriceChartCard(detail: ProductDetail, compare: PriceBasis?) {
     val colors = MaterialTheme.colorScheme
-    val points = detail.points
+    // A line mixing pounds and kilos would trend for the wrong reason, so the chart is drawn in one
+    // unit: the comparison unit when the history agrees with it, otherwise as paid.
+    val points = remember(detail.points, compare) {
+        val converted = if (compare == null) {
+            emptyList()
+        } else {
+            detail.points.mapNotNull { point ->
+                priceIn(point.unitPrice, point.basis, compare)
+                    ?.let { point.copy(unitPrice = it) }
+            }
+        }
+        converted.takeIf { it.size >= 2 } ?: detail.points
+    }
 
     Surface(
         shape = RoundedCornerShape(22.dp),
@@ -368,6 +419,31 @@ private fun PurchaseRow(
                 fontWeight = FontWeight.Medium,
                 color = colors.onSurface,
             )
+        }
+    }
+}
+
+/** The units a price can be restated in. Weight with weight, volume with volume, never across. */
+private val COMPARISON_UNITS = listOf("each", "g", "kg", "lb", "oz", "ml", "L")
+
+@Composable
+private fun CompareUnits(selected: String?, onSelect: (String) -> Unit) {
+    Column {
+        SectionLabel(text = stringResource(R.string.prices_compare))
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            COMPARISON_UNITS.forEach { unit ->
+                FilterChip(
+                    selected = selected.equals(unit, ignoreCase = true),
+                    onClick = { onSelect(unit) },
+                    label = { Text(unit) },
+                )
+            }
         }
     }
 }

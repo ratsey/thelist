@@ -30,6 +30,10 @@ data class PurchaseLine(
     val quantity: Double = 1.0,
     val unitPrice: Double,
     val lineTotal: Double,
+    /** Which version of the thing this was: semi skimmed milk is not whole milk's price. */
+    val variant: String? = null,
+    /** What [unitPrice] was per — "lb", "100 g", "each" — so two prices can be compared. */
+    val priceUnit: String? = null,
     val matchedItemId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
@@ -52,6 +56,8 @@ data class PriceRow(
     val purchasedAt: Long,
     val currency: String,
     val receiptId: String,
+    val variant: String? = null,
+    val priceUnit: String? = null,
 )
 
 /** One product rolled up across every receipt. */
@@ -65,11 +71,20 @@ data class PriceSummary(
     val averagePrice: Double,
     val timesBought: Int,
     val currency: String,
-)
+    val variant: String? = null,
+    /** What the figures are per, if the history says: the newest observation's basis. */
+    val basis: PriceBasis? = null,
+    /** The same basis as the shopper wrote it, so "100 g" is not reprinted as something else. */
+    val unitLabel: String? = null,
+) {
+    /** The identity this summary belongs to: one product, one type. */
+    val key: String get() = historyKey(productKey, variant)
+}
 
 /** A single price observation for the chart. */
 data class PricePoint(
     val purchasedAt: Long,
     val unitPrice: Double,
     val storeName: String,
+    val basis: PriceBasis? = null,
 )

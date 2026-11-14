@@ -10,6 +10,7 @@ import com.ratsey.thelist.data.AppContainer
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.ItemRepository
 import com.ratsey.thelist.data.ManualPrice
+import com.ratsey.thelist.data.historyKey
 import com.ratsey.thelist.data.PricePrompt
 import com.ratsey.thelist.data.PriceRow
 import com.ratsey.thelist.data.PriceSummary
@@ -132,12 +133,13 @@ class ListViewModel(
 
     val productDetail: StateFlow<ProductDetail?> = combine(priceRows, selectedProduct) { rows, key ->
         if (key == null) return@combine null
-        val summary = ReceiptRepository.summarise(rows).firstOrNull { it.productKey == key }
+        val summary = ReceiptRepository.summarise(rows).firstOrNull { it.key == key }
             ?: return@combine null
         ProductDetail(
             summary = summary,
             points = ReceiptRepository.pointsFor(rows, key),
-            purchases = rows.filter { it.productKey == key }.sortedByDescending { it.purchasedAt },
+            purchases = rows.filter { historyKey(it.productKey, it.variant) == key }
+                .sortedByDescending { it.purchasedAt },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -371,7 +373,15 @@ class ListViewModel(
         if (price == null) return
         receipts.recordPrices(
             storeName = storeNameFor(item),
-            purchases = listOf(ManualPrice(itemId = item.id, name = item.name, price = price)),
+            purchases = listOf(
+                ManualPrice(
+                    itemId = item.id,
+                    name = item.name,
+                    price = price,
+                    variant = item.variant,
+                    priceUnit = item.priceUnit,
+                ),
+            ),
         )
     }
 
@@ -387,7 +397,9 @@ class ListViewModel(
             basket.forEach { item ->
                 val price = prices[item.id]
                 if (price != item.price) repository.setPrice(item.id, price)
-                if (price != null) paid.add(ManualPrice(item.id, item.name, price))
+                if (price != null) {
+                    paid.add(ManualPrice(item.id, item.name, price, item.variant, item.priceUnit))
+                }
             }
 
             if (paid.isNotEmpty()) {
@@ -425,7 +437,7 @@ class ListViewModel(
     fun showPricesFor(item: Item) {
         val key = ItemMatcher.productKey(item.name)
         if (priceRows.value.any { it.productKey == key }) {
-            selectedProduct.value = key
+            selectedProduct.value = historyKey(key, item.variant)
         } else {
             viewModelScope.launch { _messages.send(UiMessage(R.string.prices_none_for_item)) }
         }

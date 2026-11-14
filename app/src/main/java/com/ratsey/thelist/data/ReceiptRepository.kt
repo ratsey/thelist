@@ -103,6 +103,8 @@ class ReceiptRepository(private val db: AppDatabase) {
                     quantity = 1.0,
                     unitPrice = purchase.price,
                     lineTotal = purchase.price,
+                    variant = purchase.variant,
+                    priceUnit = purchase.priceUnit,
                     matchedItemId = purchase.itemId,
                     createdAt = now,
                     updatedAt = now,
@@ -142,29 +144,54 @@ class ReceiptRepository(private val db: AppDatabase) {
     }
 
     companion object {
-        /** Rolls receipt lines into one summary per product, newest first. */
+        /**
+         * Rolls receipt lines into one summary per product *and type*, newest first.
+         *
+         * Prices are only compared when they are per the same measure: every observation is restated
+         * in the newest one's unit (a pound as a kilo, 100 g as lb), so "best" cannot be won by
+         * quoting something in a smaller unit. A history mixing kilos with litres reports the newest
+         * observation on its own rather than inventing a comparison.
+         */
         fun summarise(rows: List<PriceRow>): List<PriceSummary> =
-            rows.groupBy { it.productKey }
-                .mapNotNull { (key, productRows) ->
-                    val newest = productRows.maxByOrNull { it.purchasedAt } ?: return@mapNotNull null
+            rows.groupBy { historyKey(it.productKey, it.variant) }
+                .mapNotNull { (_, history) ->
+                    val newest = history.maxByOrNull { it.purchasedAt } ?: return@mapNotNull null
+                    val basis = parsePriceBasis(newest.priceUnit)
+                    val comparable = history.mapNotNull { row ->
+                        priceIn(row.unitPrice, parsePriceBasis(row.priceUnit), basis)
+                            ?.let { row to it }
+                    }
+                    val figures = comparable.map { it.second }.ifEmpty { listOf(newest.unitPrice) }
+                    val latest = comparable.maxByOrNull { it.first.purchasedAt }?.second
+                        ?: newest.unitPrice
                     PriceSummary(
-                        productKey = key,
+                        productKey = newest.productKey,
                         displayName = newest.displayName,
-                        latestPrice = newest.unitPrice,
+                        latestPrice = latest,
                         latestStore = newest.storeName,
                         latestAt = newest.purchasedAt,
-                        lowestPrice = productRows.minOf { it.unitPrice },
-                        averagePrice = productRows.map { it.unitPrice }.average(),
-                        timesBought = productRows.size,
+                        lowestPrice = figures.min(),
+                        averagePrice = figures.average(),
+                        timesBought = history.size,
                         currency = newest.currency,
+                        variant = newest.variant,
+                        basis = basis,
+                        unitLabel = newest.priceUnit?.trim()?.takeIf { it.isNotEmpty() },
                     )
                 }
                 .sortedByDescending { it.latestAt }
 
-        fun pointsFor(rows: List<PriceRow>, productKey: String): List<PricePoint> =
-            rows.filter { it.productKey == productKey }
+        fun pointsFor(rows: List<PriceRow>, key: String): List<PricePoint> =
+            rows.filter { historyKey(it.productKey, it.variant) == key }
                 .sortedBy { it.purchasedAt }
-                .map { PricePoint(it.purchasedAt, it.unitPrice, it.storeName) }
+                .map {
+                    PricePoint(
+                        it.purchasedAt,
+                        it.unitPrice,
+                        it.storeName,
+                        parsePriceBasis(it.priceUnit),
+                    )
+                }
     }
 }
 
@@ -172,4 +199,12 @@ class ReceiptRepository(private val db: AppDatabase) {
  * A price typed in by hand: one item, one amount. The name travels with it because the price history
  * displays what was bought, and the row may have been renamed since.
  */
-data class ManualPrice(val itemId: String, val name: String, val price: Double)
+data class ManualPrice(
+    val itemId: String,
+    val name: String,
+    val price: Double,
+    /** Which version was bought, so its price lands in that type's history and not another's. */
+    val variant: String? = null,
+    /** What the price was per, so it can be compared with the same measure later. */
+    val priceUnit: String? = null,
+)

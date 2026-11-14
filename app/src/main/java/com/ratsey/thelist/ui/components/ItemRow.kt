@@ -43,6 +43,8 @@ import com.ratsey.thelist.R
 import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PriceSummary
+import com.ratsey.thelist.data.parsePriceBasis
+import com.ratsey.thelist.data.priceIn
 import com.ratsey.thelist.data.priceWithUnit
 import com.ratsey.thelist.ui.formatMoney
 
@@ -101,23 +103,39 @@ fun itemMeta(
                 // "$1.25/lb" rather than "$1.25": the amount sits before it, so the two facts stay
                 // apart and a rate is never mistaken for what the whole thing costs.
                 add(priceWithUnit(formatMoney(planned, DEFAULT_CURRENCY), item.priceUnit))
-                if (summary != null && summary.lowestPrice < planned - PRICE_EPSILON) {
+                // The best price earns an arrow only when it is per the same thing as the plan: a
+                // kilo that merely looks cheaper than a pound is not cheaper.
+                val best = summary?.basis?.let { basis ->
+                    priceIn(summary.lowestPrice, basis, parsePriceBasis(item.priceUnit))
+                }
+                if (best != null && best < planned - PRICE_EPSILON) {
                     add(
                         stringResource(
                             R.string.row_low,
-                            formatMoney(summary.lowestPrice, summary.currency),
+                            priceWithUnit(formatMoney(best, DEFAULT_CURRENCY), item.priceUnit),
                         ),
                     )
                 }
             }
 
             summary != null -> {
-                add(stringResource(R.string.row_last, formatMoney(summary.latestPrice, summary.currency)))
+                add(
+                    stringResource(
+                        R.string.row_last,
+                        priceWithUnit(
+                            formatMoney(summary.latestPrice, summary.currency),
+                            summary.unitLabel,
+                        ),
+                    ),
+                )
                 if (summary.lowestPrice < summary.latestPrice - PRICE_EPSILON) {
                     add(
                         stringResource(
                             R.string.row_low,
-                            formatMoney(summary.lowestPrice, summary.currency),
+                            priceWithUnit(
+                                formatMoney(summary.lowestPrice, summary.currency),
+                                summary.unitLabel,
+                            ),
                         ),
                     )
                 }

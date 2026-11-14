@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Item::class, Store::class, Receipt::class, PurchaseLine::class, SyncOp::class],
-    version = 8,
+    version = 9,
     // Schema history lives in app/schemas and is committed: without it, a migration could only
     // be written by reconstructing the previous version by hand.
     exportSchema = true,
@@ -85,11 +85,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `purchase_lines` ADD COLUMN `variant` TEXT")
+                db.execSQL("ALTER TABLE `purchase_lines` ADD COLUMN `priceUnit` TEXT")
+            }
+        }
+
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "thelist.db")
                 .addMigrations(
                     MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-                    MIGRATION_6_7, MIGRATION_7_8,
+                    MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
                 )
                 // No install predates v2, so older schemas are reset rather than migrated.
                 .fallbackToDestructiveMigration()

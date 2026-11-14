@@ -61,6 +61,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.ratsey.thelist.data.historyKey
 
 @Composable
 fun HomeHeader(
@@ -404,7 +405,7 @@ private fun ShoppingRow(
         meta = itemMeta(
             item = item,
             storeNames = storeNames,
-            summary = summaries[ItemMatcher.productKey(item.name)],
+            summary = summaries[historyKey(ItemMatcher.productKey(item.name), item.variant)],
             currentStoreId = currentStoreId,
         ),
         swipeRight = SwipeAction(
@@ -503,7 +504,7 @@ fun BasketList(
                     meta = itemMeta(
                         item = item,
                         storeNames = storeNames,
-                        summary = summaries[ItemMatcher.productKey(item.name)],
+                        summary = summaries[historyKey(ItemMatcher.productKey(item.name), item.variant)],
                         currentStoreId = currentStoreId,
                     ),
                     // In the basket, forward is done with it: onto the shelf, as at checkout.

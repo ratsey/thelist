@@ -69,7 +69,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     val storeNames = remember(stores) { stores.associate { it.id to it.name } }
     val currentStoreId by viewModel.currentStoreId.collectAsStateWithLifecycle()
     val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
-    val summaries = remember(priceSummaries) { priceSummaries.associateBy { it.productKey } }
+    val summaries = remember(priceSummaries) { priceSummaries.associateBy { it.key } }
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }

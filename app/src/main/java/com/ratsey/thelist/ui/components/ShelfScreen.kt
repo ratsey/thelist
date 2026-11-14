@@ -52,6 +52,7 @@ import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PriceSummary
 import com.ratsey.thelist.receipt.ItemMatcher
 import java.util.Locale
+import com.ratsey.thelist.data.historyKey
 
 /**
  * The shelf, on its own tab: everything off the list but kept. One swipe, and it only ever adds —
@@ -132,7 +133,7 @@ fun ShelfScreen(
                         meta = itemMeta(
                             item = item,
                             storeNames = storeNames,
-                            summary = summaries[ItemMatcher.productKey(item.name)],
+                            summary = summaries[historyKey(ItemMatcher.productKey(item.name), item.variant)],
                             currentStoreId = currentStoreId,
                         ),
                         onAdd = { onAdd(item) },

@@ -126,6 +126,9 @@ object SyncPayloads {
         put("quantity", line.quantity)
         put("unitPrice", line.unitPrice)
         put("lineTotal", line.lineTotal)
+        // Additive: an older line simply has no type and no basis, which is what it means.
+        put("variant", line.variant ?: JSONObject.NULL)
+        put("priceUnit", line.priceUnit ?: JSONObject.NULL)
         put("matchedItemId", line.matchedItemId ?: JSONObject.NULL)
         put("createdAt", line.createdAt)
         put("updatedAt", line.updatedAt)
@@ -144,6 +147,8 @@ object SyncPayloads {
             quantity = json.optDouble("quantity", 1.0),
             unitPrice = json.optDouble("unitPrice", 0.0),
             lineTotal = json.optDouble("lineTotal", 0.0),
+            variant = json.optStringOrNull("variant"),
+            priceUnit = json.optStringOrNull("priceUnit"),
             matchedItemId = json.optStringOrNull("matchedItemId"),
             createdAt = json.optLong("createdAt", 0L),
             updatedAt = json.optLong("updatedAt", 0L),
