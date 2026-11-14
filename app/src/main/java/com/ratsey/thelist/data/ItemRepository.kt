@@ -128,34 +128,40 @@ class ItemRepository(private val db: AppDatabase) {
     }
 
     /**
-     * Records the details a shopper sets on a row: the shop and aisle it lives in, how much to buy
-     * and what it should cost. The shop is an id so a rename reaches every row; the aisle and the
-     * amount are free text because that is what they are on a sign and a shopping list. Blank text
-     * is stored as null so "cleared" and "never said" look the same everywhere, including on the
-     * other phone.
+     * Records the details a shopper sets on a row: the shop and aisle it lives in, which version of
+     * it to get, how much to buy and what it should cost. The shop is an id so a rename reaches
+     * every row; the aisle, the type and the amount are free text because that is what they are on
+     * a sign and in a mouth. Blank text is stored as null so "cleared" and "never said" look the
+     * same everywhere, including on the other phone.
      */
     suspend fun setDetails(
         item: Item,
         storeId: String?,
         location: String?,
+        variant: String?,
         amount: String?,
         price: Double?,
         priceUnit: String?,
     ) {
         val now = System.currentTimeMillis()
         val trimmedLocation = location?.trim()?.takeIf { it.isNotEmpty() }
+        val trimmedVariant = variant?.trim()?.takeIf { it.isNotEmpty() }
         val trimmedAmount = amount?.trim()?.takeIf { it.isNotEmpty() }
         val trimmedUnit = priceUnit?.trim()?.takeIf { it.isNotEmpty() }
         val updated = item.copy(
             storeId = storeId,
             location = trimmedLocation,
+            variant = trimmedVariant,
             amount = trimmedAmount,
             price = price,
             priceUnit = trimmedUnit,
             updatedAt = now,
         )
         db.withTransaction {
-            dao.setDetails(item.id, storeId, trimmedLocation, trimmedAmount, price, trimmedUnit, now)
+            dao.setDetails(
+                item.id, storeId, trimmedLocation, trimmedVariant, trimmedAmount, price,
+                trimmedUnit, now,
+            )
             enqueue(updated)
         }
     }

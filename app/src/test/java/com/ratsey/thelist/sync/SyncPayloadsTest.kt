@@ -229,4 +229,19 @@ class SyncPayloadsTest {
         assertEquals(30L, decoded.deletedAt)
         assertNull(decoded.copy(deletedAt = null).deletedAt)
     }
+
+    @Test
+    fun `a type survives a round trip`() {
+        val payload = """{"v":1,"id":"i1","listId":"groceries","name":"Chicken thighs",""" +
+            """"createdAt":1,"updatedAt":2,"variant":"boneless skinless"}"""
+        val back = SyncPayloads.itemFromJson(payload)
+        org.junit.Assert.assertEquals("boneless skinless", back.variant)
+        org.junit.Assert.assertTrue(
+            SyncPayloads.itemJson(back).contains(""""variant":"boneless skinless""""),
+        )
+
+        // A row written before types existed has none, which is what "not said" means.
+        val older = """{"v":1,"id":"i2","listId":"groceries","name":"Milk","createdAt":1,"updatedAt":2}"""
+        org.junit.Assert.assertEquals(null, SyncPayloads.itemFromJson(older).variant)
+    }
 }

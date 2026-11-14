@@ -376,6 +376,7 @@ fun PlacementDialog(
     onSave: (
         storeId: String?,
         newStoreName: String?,
+        variant: String,
         location: String,
         amount: String?,
         price: Double?,
@@ -388,6 +389,7 @@ fun PlacementDialog(
     var amount by remember { mutableStateOf(item.amount.orEmpty()) }
     var price by remember { mutableStateOf(formatPriceField(item.price)) }
     var priceUnit by remember { mutableStateOf(item.priceUnit.orEmpty()) }
+    var variant by remember { mutableStateOf(item.variant.orEmpty()) }
     var addingStore by remember { mutableStateOf(false) }
     var newStoreName by remember { mutableStateOf("") }
 
@@ -398,6 +400,7 @@ fun PlacementDialog(
         if (addingStore) newStoreName else stores.firstOrNull { it.id == selectedStoreId }?.name
 
     val preview = listOfNotNull(
+        variant.trim().takeIf { it.isNotEmpty() },
         storeName?.takeIf { it.isNotBlank() }?.trim(),
         location.trim().takeIf { it.isNotEmpty() },
         amount.trim().takeIf { it.isNotEmpty() },
@@ -406,7 +409,8 @@ fun PlacementDialog(
 
     // Clear only means something if the row is currently saying something.
     val hasStored = item.storeId != null || !item.location.isNullOrBlank() ||
-        !item.amount.isNullOrBlank() || item.price != null || !item.priceUnit.isNullOrBlank()
+        !item.variant.isNullOrBlank() || !item.amount.isNullOrBlank() || item.price != null ||
+        !item.priceUnit.isNullOrBlank()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -438,6 +442,19 @@ fun PlacementDialog(
                 },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+
+            Spacer(Modifier.height(16.dp))
+            // Which version of the thing: typing a type here is how one row on the list stands for
+            // "chicken thighs" without the list carrying a line for every way they come.
+            OutlinedTextField(
+                value = variant,
+                onValueChange = { variant = it },
+                singleLine = true,
+                label = { Text(stringResource(R.string.placement_variant)) },
+                placeholder = { Text(stringResource(R.string.placement_variant_hint)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(Modifier.height(18.dp))
@@ -547,7 +564,7 @@ fun PlacementDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(
-                    onClick = { onSave(null, null, "", null, null, null) },
+                    onClick = { onSave(null, null, "", "", null, null, null) },
                     enabled = hasStored,
                 ) {
                     Text(stringResource(R.string.placement_clear))
@@ -559,6 +576,7 @@ fun PlacementDialog(
                         onSave(
                             if (addingStore) null else selectedStoreId,
                             newStoreName.takeIf { addingStore },
+                            variant,
                             location,
                             amount.trim().takeIf { it.isNotEmpty() },
                             priceValue,

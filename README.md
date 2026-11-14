@@ -38,6 +38,8 @@ so last/best, the chart, the brand column and the sync payload all kept working 
 
 There are no totals anywhere — not per basket, not per receipt. The app keeps what a thing costs, because a per-pound rate added to a per-each price is not money and a basket total is not a decision.
 
+A row can also carry a **type** — bone in, boneless skinless, semi skimmed — so one line can change what you pick up without turning into a second line on the list. It is free text, like the amount, and it sits at the front of the row's meta because it decides which pack you reach for.
+
 **Finish shop** is also how the list cleans itself. Every line in the basket goes back onto the
 shelf, ready to be swiped on again next week, and the snackbar undoes the whole thing if you pressed
 too early. Hold any line first — in the basket, or in the sheet — to fix its shop, aisle, amount or

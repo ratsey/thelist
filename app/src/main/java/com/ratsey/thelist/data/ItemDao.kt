@@ -74,17 +74,19 @@ interface ItemDao {
     suspend fun bringBack(id: String, now: Long)
 
     /**
-     * Where a row lives, how much of it to buy and what that costs: shop, aisle, amount, price and
-     * what the price is per, all optional.
+     * Where a row lives, which version of it to get and what that costs: shop, aisle, type, amount,
+     * price and what the price is per, all optional.
      */
     @Query(
-        "UPDATE items SET storeId = :storeId, location = :location, amount = :amount, " +
-            "price = :price, priceUnit = :priceUnit, updatedAt = :now WHERE id = :id",
+        "UPDATE items SET storeId = :storeId, location = :location, variant = :variant, " +
+            "amount = :amount, price = :price, priceUnit = :priceUnit, updatedAt = :now " +
+            "WHERE id = :id",
     )
     suspend fun setDetails(
         id: String,
         storeId: String?,
         location: String?,
+        variant: String?,
         amount: String?,
         price: Double?,
         priceUnit: String?,

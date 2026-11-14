@@ -128,6 +128,7 @@ fun CheckoutSheet(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             val detail = listOfNotNull(
+                                item.variant?.takeIf { it.isNotBlank() }?.trim(),
                                 item.amount?.takeIf { it.isNotBlank() }?.trim(),
                                 item.priceUnit?.takeIf { it.isNotBlank() }?.let { "per ${it.trim()}" },
                             ).joinToString(" · ")

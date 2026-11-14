@@ -85,6 +85,9 @@ fun itemMeta(
     // keeps its own, which is also what the arrowed best price is shown in.
     val planned = item.price
     val parts = buildList {
+        // What to put in the trolley, before where to find it: "boneless skinless" decides which
+        // pack you reach for, so it earns the earliest slot in a line that ellipsises.
+        item.variant?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
         placeLabel(item, storeNames, currentStoreId)?.let { add(it) }
         // What you decided in the kitchen comes before what the till once charged: the amount and
         // the price you planned are the things you need with a trolley in front of you.

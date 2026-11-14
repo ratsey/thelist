@@ -59,6 +59,12 @@ data class Item(
      * for the thing itself, not for a unit of it.
      */
     val priceUnit: String? = null,
+    /**
+     * Which version of the thing to get: "bone in", "boneless skinless", "semi skimmed". One line on
+     * the list can then be the shopping decision without becoming three lines, and the choice is a
+     * property of the row — not of the shop it happens to be bought in.
+     */
+    val variant: String? = null,
 ) {
     val isActive: Boolean get() = onList && completedAt == null
 

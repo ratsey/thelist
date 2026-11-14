@@ -267,6 +267,7 @@ class ListViewModel(
         item: Item,
         storeId: String?,
         newStoreName: String?,
+        variant: String,
         location: String,
         amount: String?,
         price: Double?,
@@ -275,8 +276,8 @@ class ListViewModel(
         viewModelScope.launch {
             val created = newStoreName?.let { storeRepository.add(it) }
             val target = created?.id ?: storeId
-            repository.setDetails(item, target, location, amount, price, priceUnit)
-            val cleared = target == null && location.isBlank() &&
+            repository.setDetails(item, target, location, variant, amount, price, priceUnit)
+            val cleared = target == null && location.isBlank() && variant.isBlank() &&
                 amount.isNullOrBlank() && price == null && priceUnit.isNullOrBlank()
             _messages.send(
                 UiMessage(

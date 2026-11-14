@@ -38,6 +38,9 @@ object SyncPayloads {
         put("amount", item.amount ?: JSONObject.NULL)
         put("price", item.price ?: JSONObject.NULL)
         put("priceUnit", item.priceUnit ?: JSONObject.NULL)
+        // Additive again: a payload from before types simply has none, which is what "not said"
+        // means, so an older writer's rows still read correctly and the version stays put.
+        put("variant", item.variant ?: JSONObject.NULL)
     }.toString()
 
     fun itemFromJson(payload: String): Item {
@@ -56,6 +59,7 @@ object SyncPayloads {
             amount = json.optStringOrNull("amount"),
             price = json.optDoubleOrNull("price"),
             priceUnit = json.optStringOrNull("priceUnit"),
+            variant = json.optStringOrNull("variant"),
         )
     }
 
