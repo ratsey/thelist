@@ -58,7 +58,6 @@
     <string name="placement_amount">Amount</string>
     <string name="placement_amount_hint">1 L, 5 lb, ¼</string>
     <string name="placement_price">Price</string>
-    <string name="placement_price_hint">3.50</string>
     <string name="placement_per">Per</string>
     <string name="placement_variant">Type</string>
     <string name="placement_variant_hint">bone in, semi skimmed</string>

@@ -615,7 +615,6 @@ fun PlacementDialog(
                     singleLine = true,
                     isError = !priceValid,
                     label = { Text(stringResource(R.string.placement_price)) },
-                    placeholder = { Text(stringResource(R.string.placement_price_hint)) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done,
@@ -846,7 +845,6 @@ fun PricePromptDialog(
                     singleLine = true,
                     isError = price.isNotBlank() && value == null,
                     label = { Text(stringResource(R.string.placement_price)) },
-                    placeholder = { Text(stringResource(R.string.placement_price_hint)) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done,

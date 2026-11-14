@@ -149,7 +149,6 @@ fun CheckoutSheet(
                             singleLine = true,
                             isError = rowInvalid,
                             label = { Text(stringResource(R.string.placement_price)) },
-                            placeholder = { Text(stringResource(R.string.placement_price_hint)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.width(112.dp),
                         )
