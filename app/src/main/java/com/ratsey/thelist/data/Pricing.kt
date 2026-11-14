@@ -1,7 +1,10 @@
 package com.ratsey.thelist.data
 
-/** What a price is measured against: one item, a weight, a volume, or something unclassifiable. */
-enum class Measure { COUNT, WEIGHT, VOLUME, OTHER }
+/**
+ * What a price is measured against: one item, a weight, a volume, a length, or something
+ * unclassifiable.
+ */
+enum class Measure { COUNT, WEIGHT, VOLUME, DISTANCE, OTHER }
 
 /**
  * What a price is per: "each", "lb", "100 g", "L".
@@ -88,6 +91,20 @@ private val UNITS: Map<String, Pair<Measure, Double>> = buildMap {
     listOf("pt", "pint", "pints").forEach { put(it, Measure.VOLUME to 473.176473) }
     listOf("qt", "quart", "quarts").forEach { put(it, Measure.VOLUME to 946.352946) }
     listOf("gal", "gallon", "gallons").forEach { put(it, Measure.VOLUME to 3785.411784) }
+
+    // Length, in millimetres: cable, ribbon, timber, anything sold off a roll or by the metre.
+    listOf("mm", "millimetre", "millimetres", "millimeter", "millimeters")
+        .forEach { put(it, Measure.DISTANCE to 1.0) }
+    listOf("cm", "centimetre", "centimetres", "centimeter", "centimeters")
+        .forEach { put(it, Measure.DISTANCE to 10.0) }
+    listOf("m", "metre", "metres", "meter", "meters")
+        .forEach { put(it, Measure.DISTANCE to 1000.0) }
+    listOf("km", "kilometre", "kilometres", "kilometer", "kilometers")
+        .forEach { put(it, Measure.DISTANCE to 1_000_000.0) }
+    listOf("in", "inch", "inches").forEach { put(it, Measure.DISTANCE to 25.4) }
+    listOf("ft", "foot", "feet").forEach { put(it, Measure.DISTANCE to 304.8) }
+    listOf("yd", "yard", "yards").forEach { put(it, Measure.DISTANCE to 914.4) }
+    listOf("mi", "mile", "miles").forEach { put(it, Measure.DISTANCE to 1_609_344.0) }
 }
 
 private val BASIS_TEXT = Regex("^([0-9]+(?:[.,][0-9]+)?)?\\s*(.+)$")
@@ -182,14 +199,14 @@ fun composePerField(quantity: String, unit: String): String {
 
 /** The units offered for comparison in a measurement system, counting always included. */
 fun comparisonUnits(system: MeasureSystem): List<String> = when (system) {
-    MeasureSystem.Metric -> listOf("each", "count", "g", "kg", "ml", "L")
-    MeasureSystem.Imperial -> listOf("each", "count", "oz", "lb", "fl oz")
+    MeasureSystem.Metric -> listOf("each", "count", "g", "kg", "ml", "L", "cm", "m")
+    MeasureSystem.Imperial -> listOf("each", "count", "oz", "lb", "fl oz", "in", "ft")
 }
 
 /** The hint in the "Per" field, in the units the app is set to speak. */
 fun perFieldHint(system: MeasureSystem): String = when (system) {
-    MeasureSystem.Metric -> "kg, 100 g, ml, count"
-    MeasureSystem.Imperial -> "lb, 10 oz, fl oz, count"
+    MeasureSystem.Metric -> "kg, 100 g, ml, count, m"
+    MeasureSystem.Imperial -> "lb, 10 oz, fl oz, count, ft"
 }
 
 /** A currency symbol as typed: trimmed, at most three characters, "$" when nothing is left. */

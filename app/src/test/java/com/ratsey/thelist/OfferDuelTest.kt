@@ -1,6 +1,7 @@
 package com.ratsey.thelist
 
 import com.ratsey.thelist.data.Cheaper
+import com.ratsey.thelist.data.Measure
 import com.ratsey.thelist.data.compareOffers
 import com.ratsey.thelist.data.composePerField
 import com.ratsey.thelist.data.parsePriceBasis
@@ -123,6 +124,23 @@ class OfferDuelTest {
         assertEquals(Cheaper.HERE, duel.cheaper)
         assertEquals(60.0, duel.otherPer, 0.01)
         assertEquals(0.865, duel.difference, 0.005)
+    }
+
+    @Test
+    fun `a metre is a distance and converts with feet`() {
+        val metre = requireNotNull(parsePriceBasis("m"))
+        assertEquals(Measure.DISTANCE, metre.measure)
+
+        // $3 the metre against $10 the foot: a metre is 3.28 feet, so the foot price is $32.81/m.
+        val duel = requireNotNull(compareOffers(3.0, metre, 10.0, parsePriceBasis("ft")))
+
+        assertEquals(Cheaper.HERE, duel.cheaper)
+        assertEquals(32.808, duel.otherPer, 0.001)
+    }
+
+    @Test
+    fun `a length is never weighed`() {
+        assertNull(compareOffers(2.0, parsePriceBasis("m"), 3.0, parsePriceBasis("lb")))
     }
 
     @Test
