@@ -139,3 +139,17 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk
+
+      - name: Upload APK to download server
+        if: steps.version.outputs.publish == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/vps_key
+          chmod 600 ~/.ssh/vps_key
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          scp -i ~/.ssh/vps_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null             app/build/outputs/apk/release/*.apk             "$VPS_USER@$VPS_HOST:/opt/thelist-downloads/app-release.apk"
+          echo "Uploaded to https://thelist.ratsey.com/download/app-release.apk"
