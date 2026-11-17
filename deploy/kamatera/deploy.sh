@@ -30,13 +30,10 @@ remote=/opt/thelist-sync
 target="$VPS_USER@$VPS_HOST"
 
 echo "== shipping to $target:$remote =="
-rsync -az --delete \
-  --exclude node_modules \
-  --exclude '*.db' --exclude '*.db-wal' --exclude '*.db-shm' \
-  "$root/server" "$root/deploy" "$target:$remote/"
-
+# rsync is unavailable on this Windows host; ship via tar over ssh.
+tar czf -   --exclude='node_modules' --exclude='*.db' --exclude='*.db-wal' --exclude='*.db-shm'   -C "$root" server deploy   | ssh "$target" "sudo mkdir -p '$remote' && sudo tar xzf - -C '$remote/'"
 echo "== rebuilding relay + wiring Nginx on the VPS =="
-ssh "$target" bash -s -- "$SYNC_DOMAIN" "${ACME_EMAIL:-}" "$remote" <<'REMOTE'
+ssh "$target" "sudo bash -s -- '$SYNC_DOMAIN' '${ACME_EMAIL:-}' '$remote'" <<'REMOTE'
 set -euo pipefail
 SYNC_DOMAIN="$1"
 ACME_EMAIL="$2"
