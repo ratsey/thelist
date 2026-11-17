@@ -38,6 +38,8 @@ ufw allow 443/tcp
 ufw --force enable
 
 mkdir -p /opt/thelist-sync
+mkdir -p /opt/thelist-downloads
+chown root:root /opt/thelist-downloads
 
 echo
 echo "Provisioned. Nginx + certbot installed; AfPins site left untouched."
