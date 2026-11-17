@@ -38,13 +38,15 @@ set -euo pipefail
 SYNC_DOMAIN="$1"
 ACME_EMAIL="$2"
 remote="$3"
+mkdir -p /opt/thelist-downloads
+chown opsadmin:opsadmin /opt/thelist-downloads
 cd "$remote/deploy/kamatera"
 printf 'SYNC_DOMAIN=%s\nACME_EMAIL=%s\n' "$SYNC_DOMAIN" "$ACME_EMAIL" > .env
 docker compose up -d --build
 docker compose ps
 
 # Install the Nginx vhost (substitute only the domain; keep nginx $vars intact).
-sed "s/\$SYNC_DOMAIN/$SYNC_DOMAIN/g" nginx-thelist.conf > /etc/nginx/sites-available/thelist-sync
+sed 's/\$SYNC_DOMAIN/'"$SYNC_DOMAIN"'/g' nginx-thelist.conf | tee /etc/nginx/sites-available/thelist-sync > /dev/null
 ln -sf /etc/nginx/sites-available/thelist-sync /etc/nginx/sites-enabled/thelist-sync
 nginx -t
 systemctl reload nginx
