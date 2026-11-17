@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: '24'
       - name: Protocol tests
-        run: node --test server/test/
+        run: node --test 'server/test/*.mjs'
 
   release:
     name: Publish release
