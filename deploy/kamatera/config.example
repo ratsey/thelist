@@ -1,5 +1,5 @@
-# Copy to deploy.env (gitignored) and fill in. deploy.sh reads it and refuses
-# to run while the domain is still the placeholder below.
+# deploy.sh generates .env on the server from this file.
+# Copy: cp deploy/kamatera/config.example deploy/kamatera/deploy.env
 VPS_HOST=203.0.113.10
 VPS_USER=root
 SYNC_DOMAIN=sync.example.com
