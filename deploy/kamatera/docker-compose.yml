@@ -1,5 +1,6 @@
-# Kamatera deployment stub: `docker compose up -d --build` from this directory,
-# with a .env holding SYNC_DOMAIN (deploy.sh writes it for you).
+# Kamatera deployment: the sync relay only. TLS and routing are handled by the
+# existing Nginx on the host (AfPins), so no second reverse proxy is needed.
+# The relay is published to loopback only; Nginx proxies the public subdomain to it.
 services:
   sync:
     build:
@@ -10,26 +11,8 @@ services:
       DB_PATH: /data/thelist-sync.db
     volumes:
       - sync-data:/data
-    expose:
-      - "8080"
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - sync
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    environment:
-      SYNC_DOMAIN: ${SYNC_DOMAIN:?set SYNC_DOMAIN in .env}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
+      - "127.0.0.1:8080:8080"
 
 volumes:
   sync-data:
-  caddy-data:
-  caddy-config:

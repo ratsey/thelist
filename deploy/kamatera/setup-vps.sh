@@ -12,7 +12,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y ca-certificates curl gnupg rsync ufw
+apt-get install -y ca-certificates curl gnupg rsync ufw nginx certbot python3-certbot-nginx
 
 if ! command -v docker >/dev/null 2>&1; then
   install -m 0755 -d /etc/apt/keyrings
@@ -40,5 +40,6 @@ ufw --force enable
 mkdir -p /opt/thelist-sync
 
 echo
-echo "Provisioned. Remember to also allow TCP 22/80/443 in the Kamatera firewall panel."
+echo "Provisioned. Nginx + certbot installed; AfPins site left untouched."
+echo "Remember to also allow TCP 22/80/443 in the Kamatera firewall panel."
 echo "Next, from your machine: cp deploy/kamatera/config.example deploy/kamatera/deploy.env && ./deploy/kamatera/deploy.sh"
