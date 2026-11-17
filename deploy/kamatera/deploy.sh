@@ -38,8 +38,6 @@ set -euo pipefail
 SYNC_DOMAIN="$1"
 ACME_EMAIL="$2"
 remote="$3"
-mkdir -p /opt/thelist-downloads
-chown root:root /opt/thelist-downloads
 cd "$remote/deploy/kamatera"
 printf 'SYNC_DOMAIN=%s\nACME_EMAIL=%s\n' "$SYNC_DOMAIN" "$ACME_EMAIL" > .env
 docker compose up -d --build
