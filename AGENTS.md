@@ -13,7 +13,7 @@ build fails until one is set. That is the single most common first-run problem.
 ```bash
 ./gradlew assembleDebug testDebugUnitTest     # what CI runs; must stay green
 ./gradlew testDebugUnitTest                   # unit tests only, ~10s warm
-node --test server/test/                      # sync relay protocol tests
+node --test 'server/test/*.mjs'                      # sync relay protocol tests
 ```
 
 Test count after a run (the suite is the spec; read it before changing pricing maths):

@@ -89,7 +89,7 @@ but it is written on every row so shape changes are recognisable in the data its
 ## Tests
 
 ```bash
-node --test test/
+node --test 'test/*.mjs'
 ```
 
 The suite starts the server on an ephemeral port and covers create/join, member isolation,
