@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -52,6 +53,8 @@ fun AddItemBar(
     shelfFilterOn: Boolean,
     shelfCount: Int,
     onToggleShelfFilter: () -> Unit,
+    /** Open the barcode scanner: a product's code can fill the row in. */
+    onScanCode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -83,6 +86,14 @@ fun AddItemBar(
                         shelfCount > 0 -> colors.onSurfaceVariant
                         else -> colors.outline
                     },
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            IconButton(onClick = onScanCode) {
+                Icon(
+                    imageVector = Icons.Rounded.QrCodeScanner,
+                    contentDescription = stringResource(R.string.scan_open),
+                    tint = colors.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )
             }

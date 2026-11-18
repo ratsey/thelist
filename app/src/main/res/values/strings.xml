@@ -216,6 +216,26 @@
     <string name="sync_code_copied">Code copied</string>
     <string name="sync_share_text">Join my shopping list on The List — code: %1$s</string>
 
+    <!-- Scan to add: point the camera at a barcode, prefill the row from what it says. -->
+    <string name="scan_open">Scan a barcode</string>
+    <string name="scan_title">Scan code</string>
+    <string name="scan_hint">Point at a barcode</string>
+    <string name="scan_looking">Looking up…</string>
+    <string name="scan_permission_body">The camera is only on when you are scanning a code, and only the digits it reads leave the phone.</string>
+    <string name="scan_permission_grant">Allow camera</string>
+    <string name="scan_found_title">Scanned product</string>
+    <string name="scan_not_found_title">No product found</string>
+    <string name="scan_found_body">Found in the product database — check it reads right, then add it.</string>
+    <string name="scan_not_found_body">Nothing in the product database for %1$s. Add it by hand, or scan again.</string>
+    <string name="scan_offline_body">Could not reach the product database. Add it by hand, or scan again when online.</string>
+    <string name="scan_product_name">Product name</string>
+    <string name="scan_amount">Size on the pack</string>
+    <string name="scan_amount_hint">e.g. 400 g</string>
+    <string name="scan_add">Add to list</string>
+    <string name="scan_again">Scan again</string>
+    <string name="scan_detail">%1$s · %2$s</string>
+    <string name="scan_failed">The scan did not read — try again</string>
+
     <plurals name="active_count">
         <item quantity="one">%d item to pick up</item>
         <item quantity="other">%d items to pick up</item>

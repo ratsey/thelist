@@ -141,6 +141,13 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
+    // Scan to add: the camera feeds the on-device barcode model; nothing leaves the phone
+    // except the digits it read, which go to the product database for a name and a size.
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.barcode.scanning)
+
     testImplementation(libs.junit)
     // The android.jar stub throws on org.json calls; unit tests need the real implementation.
     testImplementation(libs.org.json)

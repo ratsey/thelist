@@ -36,6 +36,7 @@ import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.ui.components.AboutDialog
 import com.ratsey.thelist.ui.components.AddItemBar
 import com.ratsey.thelist.ui.components.BasketList
+import com.ratsey.thelist.ui.components.BarcodeScannerScreen
 import com.ratsey.thelist.ui.components.CheckoutSheet
 import com.ratsey.thelist.ui.components.HomeHeader
 import com.ratsey.thelist.ui.components.ItemActionsSheet
@@ -43,6 +44,7 @@ import com.ratsey.thelist.ui.components.PriceCompareSheet
 import com.ratsey.thelist.ui.components.PlacementDialog
 import com.ratsey.thelist.ui.components.PricePromptDialog
 import com.ratsey.thelist.ui.components.RenameDialog
+import com.ratsey.thelist.ui.components.ScannedProductSheet
 import com.ratsey.thelist.ui.components.ShelfSuggestions
 import com.ratsey.thelist.ui.components.SettingsDialog
 import com.ratsey.thelist.ui.components.StoresSheet
@@ -76,6 +78,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     val priceSummaries by viewModel.priceSummaries.collectAsStateWithLifecycle()
     val currency by viewModel.currency.collectAsStateWithLifecycle()
     val measureSystem by viewModel.measureSystem.collectAsStateWithLifecycle()
+    val scanUi by viewModel.scanUi.collectAsStateWithLifecycle()
     val summaries = remember(priceSummaries) { priceSummaries.associateBy { it.key } }
 
     val context = LocalContext.current
@@ -129,6 +132,16 @@ fun TheListRoot(viewModel: ListViewModel) {
         return
     }
 
+    // Scanning takes over the whole screen, as the camera does: one job at a time.
+    if (scanUi is ScanUi.Camera || scanUi is ScanUi.Looking) {
+        BarcodeScannerScreen(
+            looking = scanUi is ScanUi.Looking,
+            onBarcode = viewModel::onBarcodeScanned,
+            onClose = viewModel::dismissScan,
+        )
+        return
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -171,6 +184,7 @@ fun TheListRoot(viewModel: ListViewModel) {
                         shelfFilterOn = shelfFilterOn,
                         shelfCount = shelfItems.size,
                         onToggleShelfFilter = { shelfFilterOn = !shelfFilterOn },
+                        onScanCode = viewModel::openScanner,
                     )
                 }
             }
@@ -342,6 +356,39 @@ fun TheListRoot(viewModel: ListViewModel) {
                 placementItem = null
             },
         )
+    }
+
+    // What the scan read: a product to confirm, or the empty form for a code that led nowhere.
+    when (val scanned = scanUi) {
+        is ScanUi.Found -> {
+            val product = scanned.product
+            ScannedProductSheet(
+                initialName = product.name,
+                initialAmount = product.quantity.orEmpty(),
+                detail = listOfNotNull(product.brands, product.category)
+                    .joinToString(" · ")
+                    .ifEmpty { context.getString(R.string.scan_found_body) },
+                notFound = false,
+                onAdd = viewModel::addScanned,
+                onScanAgain = viewModel::scanAgain,
+                onDismiss = viewModel::dismissScan,
+            )
+        }
+
+        is ScanUi.NotFound -> ScannedProductSheet(
+            initialName = "",
+            initialAmount = "",
+            detail = context.getString(
+                if (scanned.offline) R.string.scan_offline_body else R.string.scan_not_found_body,
+                scanned.barcode,
+            ),
+            notFound = true,
+            onAdd = viewModel::addScanned,
+            onScanAgain = viewModel::scanAgain,
+            onDismiss = viewModel::dismissScan,
+        )
+
+        else -> Unit
     }
 
     priceFor?.let { target ->

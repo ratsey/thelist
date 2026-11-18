@@ -55,6 +55,35 @@ class ItemRepository(private val db: AppDatabase) {
         return AddOutcome.Added
     }
 
+    /**
+     * A scanned product adds like any other name, but the pack size off the label ("400 g")
+     * comes with it into the row's amount, so the shopper does not retype what the code said.
+     */
+    suspend fun addScanned(name: String, amount: String?): AddOutcome {
+        val outcome = add(name)
+        if (outcome == AddOutcome.AlreadyListed || amount.isNullOrBlank()) return outcome
+
+        val now = System.currentTimeMillis()
+        val trimmedAmount = amount.trim()
+        val item = dao.findByName(Item.DEFAULT_LIST_ID, ItemNames.key(name.trim()))
+            ?: return outcome
+        val updated = item.copy(amount = trimmedAmount, updatedAt = now)
+        db.withTransaction {
+            dao.setDetails(
+                item.id,
+                item.storeId,
+                item.location,
+                item.variant,
+                trimmedAmount,
+                item.price,
+                item.priceUnit,
+                now,
+            )
+            enqueue(updated)
+        }
+        return outcome
+    }
+
     suspend fun complete(item: Item) {
         val now = System.currentTimeMillis()
         val updated = item.copy(completedAt = now, updatedAt = now)

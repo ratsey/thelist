@@ -21,6 +21,9 @@ import com.ratsey.thelist.data.SettingsStore
 import com.ratsey.thelist.data.Store
 import com.ratsey.thelist.data.StoreRepository
 import com.ratsey.thelist.receipt.ItemMatcher
+import com.ratsey.thelist.scan.Barcodes
+import com.ratsey.thelist.scan.ProductLookup
+import com.ratsey.thelist.scan.ScannedProduct
 import com.ratsey.thelist.sync.SyncClient
 import com.ratsey.thelist.sync.SyncEngine
 import com.ratsey.thelist.data.SyncSettingsRepository
@@ -31,6 +34,7 @@ import com.ratsey.thelist.update.UpdateCheck
 import com.ratsey.thelist.update.UpdateManager
 import com.ratsey.thelist.update.isNewerThan
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -52,6 +56,21 @@ import java.util.Locale
  * its text on the token, so two requests about the same row cannot share a typed answer.
  */
 data class PricePromptTarget(val item: Item, val token: Long)
+
+/**
+ * The scan-to-add flow. The camera is up, a read code is being looked up, or the prefill form
+ * is open with what the database returned (or empty, because it returned nothing).
+ */
+sealed interface ScanUi {
+    data object Camera : ScanUi
+    data object Looking : ScanUi
+    data class Found(val product: ScannedProduct) : ScanUi
+    data class NotFound(
+        val barcode: String,
+        /** True when the database could not be reached, rather than not knowing the code. */
+        val offline: Boolean = false,
+    ) : ScanUi
+}
 
 
 enum class SyncState { Disabled, Idle, Syncing, Offline }
@@ -92,6 +111,7 @@ class ListViewModel(
     private val settings: SettingsStore,
     private val syncEngine: SyncEngine,
     private val syncSettings: SyncSettingsRepository,
+    private val productLookup: ProductLookup,
 ) : ViewModel() {
 
     val activeItems: StateFlow<List<Item>> = repository.observeActive()
@@ -251,6 +271,63 @@ class ListViewModel(
                 ItemRepository.AddOutcome.Added -> Unit
             }
             scheduleSync()
+        }
+    }
+
+    // ------------------------------------------------------------------ scan to add
+
+    private val _scanUi = MutableStateFlow<ScanUi?>(null)
+    val scanUi: StateFlow<ScanUi?> = _scanUi.asStateFlow()
+
+    fun openScanner() {
+        _scanUi.value = ScanUi.Camera
+    }
+
+    fun dismissScan() {
+        _scanUi.value = null
+    }
+
+    /** The prefill form's "scan again" for a code the database did not know. */
+    fun scanAgain() {
+        _scanUi.value = ScanUi.Camera
+    }
+
+    /**
+     * One code, one lookup: the analyzer stops at the first retail barcode it reads, the digits
+     * go to the product database, and whatever comes back — a product, an empty form, nothing —
+     * opens as the prefill sheet.
+     */
+    fun onBarcodeScanned(raw: String) {
+        val barcode = Barcodes.normalize(raw) ?: return
+        if (_scanUi.value != ScanUi.Camera) return
+        _scanUi.value = ScanUi.Looking
+        viewModelScope.launch {
+            _scanUi.value = try {
+                productLookup.lookup(barcode)?.let(ScanUi::Found) ?: ScanUi.NotFound(barcode)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                ScanUi.NotFound(barcode, offline = true)
+            }
+        }
+    }
+
+    /** Confirming the prefill form: the row goes on the list with the pack size it carried. */
+    fun addScanned(name: String, amount: String?) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            when (repository.addScanned(trimmed, amount?.trim()?.takeIf { it.isNotEmpty() })) {
+                ItemRepository.AddOutcome.AlreadyListed ->
+                    _messages.send(UiMessage(R.string.msg_already_listed))
+
+                ItemRepository.AddOutcome.Readded ->
+                    _messages.send(UiMessage(R.string.msg_readded))
+
+                ItemRepository.AddOutcome.Added -> Unit
+            }
+            scheduleSync()
+            _scanUi.value = null
         }
     }
 
@@ -830,6 +907,7 @@ class ListViewModel(
                         settings = container.settings,
                         syncEngine = container.sync,
                         syncSettings = container.syncSettings,
+                        productLookup = container.productLookup,
                     ) as T
             }
     }
