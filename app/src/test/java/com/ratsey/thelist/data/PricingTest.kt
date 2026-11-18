@@ -104,11 +104,25 @@ class PricingTest {
         assertTrue(metric.contains("L"))
         assertTrue(imperial.contains("lb"))
         assertTrue(imperial.contains("fl oz"))
+        assertTrue(imperial.contains("gal"))
         // Both systems are always offered; the setting only decides the order, because a shopper
         // here thinks in pounds and buys in kilos.
         assertEquals(metric.toSet(), imperial.toSet())
         assertTrue(metric.indexOf("g") < metric.indexOf("oz"))
         assertTrue(imperial.indexOf("oz") < imperial.indexOf("g"))
+        // The gallon is ordered with the measures it lives between: after fl oz in the US aisle,
+        // after the metric pair in the metric one.
+        assertTrue(imperial.indexOf("gal") > imperial.indexOf("fl oz"))
+        assertTrue(metric.indexOf("gal") > metric.indexOf("L"))
+    }
+
+    @Test
+    fun `a gallon price meets a litre price in either direction`() {
+        val perGal = parsePriceBasis("gal")!!
+        val perL = parsePriceBasis("L")!!
+        // $1.00/L restated per gallon: 3.7854… litres to the gallon.
+        assertEquals(3.7854, perL.convert(1.00, perGal)!!, 0.001)
+        assertEquals(1.00, perGal.convert(3.7854, perL)!!, 0.001)
     }
 
     @Test

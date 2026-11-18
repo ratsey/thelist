@@ -245,7 +245,8 @@ fun unitGroups(system: MeasureSystem): List<UnitGroup> {
         ),
         UnitGroup(
             "volume",
-            if (metricFirst) listOf("ml", "L", "fl oz") else listOf("fl oz", "ml", "L"),
+            // The gallon sits with the fl oz — a jug of milk is bought by either.
+            if (metricFirst) listOf("ml", "L", "fl oz", "gal") else listOf("fl oz", "gal", "ml", "L"),
         ),
         UnitGroup(
             "length",
