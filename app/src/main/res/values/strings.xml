@@ -28,7 +28,7 @@
     <string name="add_shelf_reveal">Re-add</string>
     <string name="add_shelf_filter_show">Show what is on the shelf</string>
     <string name="add_shelf_filter_hide">Hide the shelf</string>
-    <string name="add_item_hint">Add an item</string>
+    <string name="add_item_hint">Item or name / type</string>
     <string name="add_item">Add item</string>
 
     <string name="empty_active_title">Your list is empty</string>

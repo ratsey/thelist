@@ -48,4 +48,25 @@ class ShelfMatchesTest {
         val match = shelfMatches(listOf(shelfItem("Milk", "semi skimmed")), "milk").single()
         assertEquals("semi skimmed", match.variant)
     }
+
+    @Test
+    fun `typing a type narrows the suggestions to that type`() {
+        val shelf = listOf(shelfItem("Milk", "Skimmed"), shelfItem("Milk", "Full Fat"))
+        assertEquals(
+            listOf("Full Fat"),
+            shelfMatches(shelf, "milk / full").map { it.variant },
+        )
+    }
+
+    @Test
+    fun `typing the bare name still offers every type`() {
+        val shelf = listOf(shelfItem("Milk", "Skimmed"), shelfItem("Milk", "Full Fat"))
+        assertEquals(2, shelfMatches(shelf, "milk").size)
+    }
+
+    @Test
+    fun `an old slash-in-name row is found by its type too`() {
+        val shelf = listOf(shelfItem("Milk / Full Fat"))
+        assertEquals(1, shelfMatches(shelf, "milk / full").size)
+    }
 }

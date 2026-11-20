@@ -27,11 +27,14 @@ class ItemRepository(private val db: AppDatabase) {
      * creating a second "Milk". Soft on purpose: a unique index would turn two phones adding
      * the same thing at once into a constraint failure during sync, and merging that is worse
      * than the rare duplicate it prevents.
+     *
+     * "Milk / Full Fat" arrives as a name and a type in one typed string. They are compared
+     * together, so a skimmed milk already on the list no longer answers for the full-fat one.
      */
-    suspend fun add(name: String): AddOutcome {
-        val trimmed = name.trim()
+    suspend fun add(raw: String): AddOutcome {
+        val parsed = ItemNames.parse(raw)
         val now = System.currentTimeMillis()
-        val existing = dao.findByName(Item.DEFAULT_LIST_ID, ItemNames.key(trimmed))
+        val existing = ItemNames.findExisting(dao.live(Item.DEFAULT_LIST_ID), raw)
 
         // A shelf row is off the list with no completion time, so the check needs both flags.
         if (existing != null && existing.onList && existing.completedAt == null) {
@@ -47,7 +50,12 @@ class ItemRepository(private val db: AppDatabase) {
             return AddOutcome.Readded
         }
 
-        val item = Item(name = trimmed, createdAt = now, updatedAt = now)
+        val item = Item(
+            name = parsed.name,
+            variant = parsed.variant,
+            createdAt = now,
+            updatedAt = now,
+        )
         db.withTransaction {
             dao.upsert(item)
             enqueue(item)
@@ -65,7 +73,7 @@ class ItemRepository(private val db: AppDatabase) {
 
         val now = System.currentTimeMillis()
         val trimmedAmount = amount.trim()
-        val item = dao.findByName(Item.DEFAULT_LIST_ID, ItemNames.key(name.trim()))
+        val item = ItemNames.findExisting(dao.live(Item.DEFAULT_LIST_ID), name)
             ?: return outcome
         val updated = item.copy(amount = trimmedAmount, updatedAt = now)
         db.withTransaction {

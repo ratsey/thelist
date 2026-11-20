@@ -28,18 +28,16 @@ interface ItemDao {
     )
     fun observeShelf(listId: String): Flow<List<Item>>
 
+    /**
+     * Every live row, newest edit first. Used for duplicate checks: the product key includes the
+     * type and parses a slash inside older names, which is not something SQL should be guessing
+     * at. Personal lists are small enough that comparing in Kotlin is simpler than a hash column.
+     */
+    @Query("SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL ORDER BY updatedAt DESC")
+    suspend fun live(listId: String): List<Item>
+
     @Query("SELECT * FROM items WHERE id = :id")
     suspend fun byId(id: String): Item?
-
-    /**
-     * Duplicate check used before inserting. Matches on trimmed lowercase name, so the query
-     * must stay aligned with [ItemNames.key] (which also collapses repeated spaces).
-     */
-    @Query(
-        "SELECT * FROM items WHERE listId = :listId AND deletedAt IS NULL " +
-            "AND lower(trim(name)) = :nameKey ORDER BY updatedAt DESC LIMIT 1",
-    )
-    suspend fun findByName(listId: String, nameKey: String): Item?
 
     @Query("SELECT * FROM items WHERE listId = :listId")
     suspend fun all(listId: String): List<Item>
