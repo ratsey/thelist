@@ -1190,6 +1190,8 @@ fun ConfirmDialog(
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    /** Where "Cancel" would be evasive, name the choice being declined. */
+    dismissLabel: String? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1199,7 +1201,9 @@ fun ConfirmDialog(
             TextButton(onClick = onConfirm) { Text(confirmLabel) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            TextButton(onClick = onDismiss) {
+                Text(dismissLabel ?: stringResource(R.string.action_cancel))
+            }
         },
     )
 }

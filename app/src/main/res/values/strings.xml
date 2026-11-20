@@ -136,6 +136,10 @@
     <string name="price_prompt_at_checkout">At checkout</string>
     <string name="price_prompt_title">What did it cost?</string>
     <string name="price_prompt_skip">Skip</string>
+    <string name="price_prompt_stop_title">Stop asking for prices?</string>
+    <string name="price_prompt_stop_body">You\'ve skipped the last two price questions. You can still add a price any time by holding a row, or change this in Settings later.</string>
+    <string name="price_prompt_stop_confirm">Stop asking</string>
+    <string name="price_prompt_stop_dismiss">Keep asking</string>
 
     
     <string name="about_version">Version %1$s</string>

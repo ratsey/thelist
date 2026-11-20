@@ -157,8 +157,33 @@ class ListViewModel(
 
     private var pricePromptToken = 0L
 
-    fun dismissPricePrompt() {
+    /**
+     * Two skips in a row suggest the question is not wanted mid-shop. The offer is one-shot:
+     * declining it starts a fresh run, so the user is asked at most every second skip.
+     */
+    private var priceSkipStreak = SkipStreak()
+
+    private val _offerNoPricePrompt = MutableStateFlow(false)
+    val offerNoPricePrompt: StateFlow<Boolean> = _offerNoPricePrompt.asStateFlow()
+
+    /** Skip closes the question and counts towards the offer to stop asking altogether. */
+    fun skipPricePrompt() {
+        val outcome = PricePromptOffer.onSkip(priceSkipStreak)
+        priceSkipStreak = outcome.streak
         _priceFor.value = null
+        _offerNoPricePrompt.value = outcome.offerTurnOff
+    }
+
+    /** The "keep asking" answer to the offer: the run is over either way. */
+    fun keepPricePrompt() {
+        priceSkipStreak = PricePromptOffer.reset()
+        _offerNoPricePrompt.value = false
+    }
+
+    /** The "stop asking" answer writes the same setting the dialog in Settings edits. */
+    fun turnOffPricePrompt() {
+        _offerNoPricePrompt.value = false
+        setPricePrompt(PricePrompt.Off)
     }
 
     /** Which shop you are in, from the header pill. Null means everywhere at once. */
@@ -340,6 +365,7 @@ class ListViewModel(
             // The price is known at the shelf, so "when adding" asks right here. A row that already
             // has one is not asked again: the prompt is a convenience, not a gate.
             if (toBasket && item.price == null && pricePrompt.value == PricePrompt.WhenAdding) {
+                _offerNoPricePrompt.value = false
                 _priceFor.value = PricePromptTarget(item, ++pricePromptToken)
             }
             _messages.send(
@@ -505,6 +531,7 @@ class ListViewModel(
     }
 
     fun setPricePrompt(prompt: PricePrompt) {
+        priceSkipStreak = PricePromptOffer.reset()
         viewModelScope.launch { settings.setPricePrompt(prompt) }
     }
 
@@ -515,6 +542,7 @@ class ListViewModel(
      * says what you planned to spend and last/best keep learning from what you actually did.
      */
     fun savePrice(itemId: String, price: Double?) {
+        priceSkipStreak = PricePromptOffer.reset()
         _priceFor.value = null
         viewModelScope.launch {
             applyPrice(itemId, price)

@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
@@ -38,6 +39,7 @@ import com.ratsey.thelist.ui.components.AddItemBar
 import com.ratsey.thelist.ui.components.BasketList
 import com.ratsey.thelist.ui.components.BarcodeScannerScreen
 import com.ratsey.thelist.ui.components.CheckoutSheet
+import com.ratsey.thelist.ui.components.ConfirmDialog
 import com.ratsey.thelist.ui.components.HomeHeader
 import com.ratsey.thelist.ui.components.ItemActionsSheet
 import com.ratsey.thelist.ui.components.PriceCompareSheet
@@ -72,6 +74,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     val hintVisible by viewModel.hintVisible.collectAsStateWithLifecycle()
     val pricePrompt by viewModel.pricePrompt.collectAsStateWithLifecycle()
     val priceFor by viewModel.priceFor.collectAsStateWithLifecycle()
+    val offerNoPricePrompt by viewModel.offerNoPricePrompt.collectAsStateWithLifecycle()
     val stores by viewModel.stores.collectAsStateWithLifecycle()
     val storeNames = remember(stores) { stores.associate { it.id to it.name } }
     val currentStoreId by viewModel.currentStoreId.collectAsStateWithLifecycle()
@@ -396,7 +399,19 @@ fun TheListRoot(viewModel: ListViewModel) {
             item = target.item,
             promptToken = target.token,
             onSave = { price -> viewModel.savePrice(target.item.id, price) },
-            onSkip = viewModel::dismissPricePrompt,
+            onSkip = viewModel::skipPricePrompt,
+        )
+    }
+
+    // Two skips running: offer to change the setting instead of interrupting every item.
+    if (offerNoPricePrompt) {
+        ConfirmDialog(
+            title = stringResource(R.string.price_prompt_stop_title),
+            body = stringResource(R.string.price_prompt_stop_body),
+            confirmLabel = stringResource(R.string.price_prompt_stop_confirm),
+            dismissLabel = stringResource(R.string.price_prompt_stop_dismiss),
+            onConfirm = viewModel::turnOffPricePrompt,
+            onDismiss = viewModel::keepPricePrompt,
         )
     }
 
