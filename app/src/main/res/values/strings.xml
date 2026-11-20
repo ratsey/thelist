@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">The List</string>
     <string name="list_name">Groceries</string>
-    <string name="tab_to_buy">To buy</string>
+    <string name="tab_to_buy">To Buy</string>
     <string name="tab_basket">Basket</string>
     <string name="tab_shelf">Shelf</string>
 

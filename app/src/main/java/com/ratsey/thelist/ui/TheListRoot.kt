@@ -352,9 +352,9 @@ fun TheListRoot(viewModel: ListViewModel) {
             stores = stores,
             measureSystem = measureSystem,
             onDismiss = { placementItem = null },
-            onSave = { storeId, newStoreName, variant, location, amount, price, priceUnit ->
+            onSave = { name, storeId, newStoreName, variant, location, amount, price, priceUnit ->
                 viewModel.setDetails(
-                    item, storeId, newStoreName, variant, location, amount, price, priceUnit,
+                    item, name, storeId, newStoreName, variant, location, amount, price, priceUnit,
                 )
                 placementItem = null
             },

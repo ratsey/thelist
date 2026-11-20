@@ -80,12 +80,13 @@ interface ItemDao {
      * price and what the price is per, all optional.
      */
     @Query(
-        "UPDATE items SET storeId = :storeId, location = :location, variant = :variant, " +
+        "UPDATE items SET name = :name, storeId = :storeId, location = :location, variant = :variant, " +
             "amount = :amount, price = :price, priceUnit = :priceUnit, updatedAt = :now " +
             "WHERE id = :id",
     )
     suspend fun setDetails(
         id: String,
+        name: String,
         storeId: String?,
         location: String?,
         variant: String?,

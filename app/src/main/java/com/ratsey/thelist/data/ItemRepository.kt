@@ -79,6 +79,7 @@ class ItemRepository(private val db: AppDatabase) {
         db.withTransaction {
             dao.setDetails(
                 item.id,
+                item.name,
                 item.storeId,
                 item.location,
                 item.variant,
@@ -167,8 +168,8 @@ class ItemRepository(private val db: AppDatabase) {
     }
 
     /**
-     * Records the details a shopper sets on a row: the shop and aisle it lives in, which version of
-     * it to get, how much to buy and what it should cost. The shop is an id so a rename reaches
+     * Records the details a shopper sets on a row: its product name, the shop and aisle it lives in,
+     * which version of it to get, how much to buy and what it should cost. The shop is an id so a rename reaches
      * every row; the aisle, the type and the amount are free text because that is what they are on
      * a sign and in a mouth. Blank text is stored as null so "cleared" and "never said" look the
      * same everywhere, including on the other phone.
@@ -181,25 +182,24 @@ class ItemRepository(private val db: AppDatabase) {
         amount: String?,
         price: Double?,
         priceUnit: String?,
+        name: String? = null,
     ) {
         val now = System.currentTimeMillis()
-        val trimmedLocation = location?.trim()?.takeIf { it.isNotEmpty() }
-        val trimmedVariant = variant?.trim()?.takeIf { it.isNotEmpty() }
-        val trimmedAmount = amount?.trim()?.takeIf { it.isNotEmpty() }
-        val trimmedUnit = priceUnit?.trim()?.takeIf { it.isNotEmpty() }
-        val updated = item.copy(
+        val updated = ItemDetails.withDetails(
+            item = item,
+            name = name,
             storeId = storeId,
-            location = trimmedLocation,
-            variant = trimmedVariant,
-            amount = trimmedAmount,
+            location = location,
+            variant = variant,
+            amount = amount,
             price = price,
-            priceUnit = trimmedUnit,
-            updatedAt = now,
+            priceUnit = priceUnit,
+            now = now,
         )
         db.withTransaction {
             dao.setDetails(
-                item.id, storeId, trimmedLocation, trimmedVariant, trimmedAmount, price,
-                trimmedUnit, now,
+                updated.id, updated.name, updated.storeId, updated.location, updated.variant,
+                updated.amount, updated.price, updated.priceUnit, now,
             )
             enqueue(updated)
         }

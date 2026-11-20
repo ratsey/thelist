@@ -8,6 +8,7 @@ import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.AppContainer
 import com.ratsey.thelist.data.Item
+import com.ratsey.thelist.data.ItemDetails
 import com.ratsey.thelist.data.ItemRepository
 import com.ratsey.thelist.data.DEFAULT_CURRENCY
 import com.ratsey.thelist.data.ManualPrice
@@ -422,13 +423,14 @@ class ListViewModel(
     }
 
     /**
-     * Saves what the shopper knows about a row: which shop it is bought in, where in it, how much
-     * to buy and what it should cost. A shop typed straight into the sheet is created first, so
+     * Saves what the shopper knows about a row: its product name, which shop it is bought in, where
+     * in it, how much to buy and what it should cost. A shop typed straight into the sheet is created first, so
      * "Walmart, aisle A6, 2 L, $3.50" is one gesture instead of a detour through a separate screen
      * to set the shop up before it can be chosen.
      */
     fun setDetails(
         item: Item,
+        name: String,
         storeId: String?,
         newStoreName: String?,
         variant: String,
@@ -440,11 +442,12 @@ class ListViewModel(
         viewModelScope.launch {
             val created = newStoreName?.let { storeRepository.add(it) }
             val target = created?.id ?: storeId
-            repository.setDetails(item, target, location, variant, amount, price, priceUnit)
+            val finalName = ItemDetails.nameOrExisting(item, name)
+            repository.setDetails(item, target, location, variant, amount, price, priceUnit, finalName)
             // A price typed here is a price known, not only an intention: a row showing "$3.50"
             // whose history has never heard of it is a row that lies. Only the first one becomes
             // history — later plans stay plans, and the till records what was actually paid.
-            val key = historyKey(ItemMatcher.productKey(item.name), variant.trim().ifBlank { null })
+            val key = historyKey(ItemMatcher.productKey(finalName), variant.trim().ifBlank { null })
             if (price != null && priceRows.value.none { historyKey(it.productKey, it.variant) == key }) {
                 receipts.recordPrices(
                     storeName = created?.name ?: storeNameFor(item),
@@ -452,7 +455,7 @@ class ListViewModel(
                     purchases = listOf(
                         ManualPrice(
                             itemId = item.id,
-                            name = item.name,
+                            name = finalName,
                             price = price,
                             variant = variant.trim().ifBlank { null },
                             priceUnit = priceUnit,
@@ -460,8 +463,8 @@ class ListViewModel(
                     ),
                 )
             }
-            val cleared = target == null && location.isBlank() && variant.isBlank() &&
-                amount.isNullOrBlank() && price == null && priceUnit.isNullOrBlank()
+            val cleared = finalName == item.name && target == null && location.isBlank() &&
+                variant.isBlank() && amount.isNullOrBlank() && price == null && priceUnit.isNullOrBlank()
             _messages.send(
                 UiMessage(
                     if (cleared) R.string.msg_placement_cleared else R.string.msg_placement_saved,

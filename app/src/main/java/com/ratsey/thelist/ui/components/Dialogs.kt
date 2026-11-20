@@ -481,6 +481,7 @@ fun PlacementDialog(
     measureSystem: MeasureSystem,
     onDismiss: () -> Unit,
     onSave: (
+        name: String,
         storeId: String?,
         newStoreName: String?,
         variant: String,
@@ -492,6 +493,7 @@ fun PlacementDialog(
 ) {
     val colors = MaterialTheme.colorScheme
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var name by remember { mutableStateOf(item.name) }
     var selectedStoreId by remember { mutableStateOf(item.storeId) }
     var location by remember { mutableStateOf(item.location.orEmpty()) }
     var amount by remember { mutableStateOf(item.amount.orEmpty()) }
@@ -537,13 +539,19 @@ fun PlacementDialog(
                 .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
         ) {
             EyebrowText(stringResource(R.string.placement_cost))
-            Text(
-                text = item.name,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+            BasicTextField(
+                value = name,
+                onValueChange = { name = it },
+                textStyle = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.onSurface,
+                ),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                cursorBrush = SolidColor(colors.primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 2.dp),
             )
             // Which version of the thing, edited where it is read: italic, like the row's own type.
             BasicTextField(
@@ -855,6 +863,7 @@ fun PlacementDialog(
                 Button(
                     onClick = {
                         onSave(
+                            name,
                             if (addingStore) null else selectedStoreId,
                             newStoreName.takeIf { addingStore },
                             variant,
@@ -864,7 +873,7 @@ fun PlacementDialog(
                             priceUnit.trim().takeIf { it.isNotEmpty() },
                         )
                     },
-                    enabled = !(addingStore && newStoreName.isBlank()) && priceValid,
+                    enabled = name.isNotBlank() && !(addingStore && newStoreName.isBlank()) && priceValid,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .weight(1f)
@@ -877,7 +886,7 @@ fun PlacementDialog(
                 }
                 Spacer(Modifier.width(8.dp))
                 TextButton(
-                    onClick = { onSave(null, null, "", "", null, null, null) },
+                    onClick = { onSave(item.name, null, null, "", "", null, null, null) },
                     enabled = hasStored,
                 ) {
                     Text(stringResource(R.string.placement_clear))
