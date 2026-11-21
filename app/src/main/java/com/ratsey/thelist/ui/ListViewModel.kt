@@ -373,9 +373,10 @@ class ListViewModel(
             if (toBasket) repository.complete(item) else repository.restore(item)
             lastUndo = Undo.Moved(item, restoreToList = toBasket)
             _hintVisible.value = false
-            // The price is known at the shelf, so "when adding" asks right here. A row that already
-            // has one is not asked again: the prompt is a convenience, not a gate.
-            if (toBasket && item.price == null && pricePrompt.value == PricePrompt.WhenAdding) {
+            // "When adding" asks on every way into the basket, price or no price: the shelf edge
+            // changes, so a stored figure is a guess until the shopper agrees with it. Whatever is
+            // known is filled in, which makes agreeing one tap.
+            if (toBasket && pricePrompt.value == PricePrompt.WhenAdding) {
                 _offerNoPricePrompt.value = false
                 _priceFor.value = PricePromptTarget(item, ++pricePromptToken)
             }
@@ -581,21 +582,40 @@ class ListViewModel(
 
     /**
      * A price typed in for one row: written onto the item, then into the price history, so the row
-     * says what you planned to spend and last/best keep learning from what you actually did.
+     * says what you planned to spend and last/best keep learning from what you actually did. The
+     * aisle comes along from the same prompt: it is the other half of what you confirm on the way
+     * into the basket, and the shop is left alone, because the prompt confirms a place rather than
+     * choosing one.
      */
-    fun savePrice(itemId: String, price: Double?) {
+    fun savePrice(itemId: String, price: Double?, location: String? = null) {
         priceSkipStreak = PricePromptOffer.reset()
         _priceFor.value = null
         viewModelScope.launch {
-            applyPrice(itemId, price)
+            applyPrice(itemId, price, location)
             scheduleSync()
         }
     }
 
-    private suspend fun applyPrice(itemId: String, price: Double?) {
+    private suspend fun applyPrice(itemId: String, price: Double?, location: String? = null) {
         val item = repository.byId(itemId) ?: return
-        repository.setPrice(itemId, price)
-        if (price == null) return
+        val aisle = location?.trim()?.takeIf { it.isNotEmpty() }
+        // A figure that did not move is already in the history: confirming it again must not read
+        // as a second purchase, or last and best would drift towards whatever got swiped twice.
+        val changed = price != item.price
+        if (aisle != item.location) {
+            repository.setDetails(
+                item = item,
+                storeId = item.storeId,
+                location = aisle,
+                variant = item.variant,
+                amount = item.amount,
+                price = price,
+                priceUnit = item.priceUnit,
+            )
+        } else if (changed) {
+            repository.setPrice(itemId, price)
+        }
+        if (price == null || !changed) return
         receipts.recordPrices(
             storeName = storeNameFor(item),
             currency = currency.value,

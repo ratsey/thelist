@@ -1138,22 +1138,29 @@ fun StoresSheet(
 /**
  * The "what did it cost?" prompt, shown as something goes into the basket.
  *
- * Deliberately the smallest thing that can hold one number: skipping is a single tap and leaves the
- * row alone, because half the time the price is still on the shelf edge and can be caught later.
+ * Both answers are asked at once because both drift while you shop: the figure on the shelf edge
+ * changes from week to week, and the thing gets moved to a different aisle. What is already stored
+ * is filled in, so a row that is still right is confirmed with one tap on Save. Skipping stays a
+ * single tap and leaves the row exactly as it was.
  */
 @Composable
 fun PricePromptDialog(
     item: Item,
-    /** Identifies this request, so a second ask about the same row starts blank. */
+    /** The shop the row lives in, so the aisle field can say whose aisles are meant. */
+    storeName: String?,
+    /** Identifies this request, so each ask starts from what is stored at that moment. */
     promptToken: Long,
-    onSave: (Double) -> Unit,
+    onSave: (price: Double, location: String) -> Unit,
     onSkip: () -> Unit,
 ) {
-    // Deliberately not seeded from item.price: this prompt only opens for a row that has no price,
-    // so an empty field is the whole question. A figure left over from the last thing priced is a
-    // wrong answer waiting to be tapped through.
-    var price by remember(promptToken) { mutableStateOf("") }
+    // Seeded from the row rather than left blank: the question is "is this still right?", and a
+    // figure carried over from the last thing priced would be a wrong answer waiting to be tapped.
+    var price by remember(promptToken) { mutableStateOf(formatPriceField(item.price)) }
+    var location by remember(promptToken) { mutableStateOf(item.location.orEmpty()) }
     val value = parsePriceField(price)
+    // An aisle only means something inside a shop; without one it is a number that never shows.
+    val askAisle = storeName != null
+    val submit: () -> Unit = { value?.let { onSave(it, location) } }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(promptToken) { focusRequester.requestFocus() }
@@ -1177,14 +1184,28 @@ fun PricePromptDialog(
                     label = stringResource(R.string.placement_price),
                     currency = LocalCurrency.current,
                     isError = price.isNotBlank() && value == null,
-                    onDone = { value?.let(onSave) },
+                    imeAction = if (askAisle) ImeAction.Next else ImeAction.Done,
+                    onDone = if (askAisle) null else submit,
                     focusRequester = focusRequester,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (askAisle) {
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = location,
+                        onValueChange = { location = it },
+                        label = { Text(stringResource(R.string.price_prompt_aisle_at, storeName)) },
+                        placeholder = { Text(stringResource(R.string.placement_location_hint)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submit() }),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { value?.let(onSave) }, enabled = value != null) {
+            TextButton(onClick = submit, enabled = value != null) {
                 Text(stringResource(R.string.action_save))
             }
         },
