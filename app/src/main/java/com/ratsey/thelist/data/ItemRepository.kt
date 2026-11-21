@@ -206,11 +206,13 @@ class ItemRepository(private val db: AppDatabase) {
     }
 
     /** A shelf row tapped in the sheet: back on the list, to buy, same row. */
-    suspend fun bringBack(item: Item) {
+    suspend fun bringBack(item: Item, variant: String? = item.variant) {
         val now = System.currentTimeMillis()
-        val updated = item.copy(onList = true, completedAt = null, updatedAt = now)
+        val updated = item.copy(onList = true, completedAt = null, variant = variant, updatedAt = now)
         db.withTransaction {
             dao.bringBack(item.id, now)
+            // A version chosen at the swipe rewrites the type on the row that moves.
+            if (variant != item.variant) dao.setNameAndVariant(item.id, item.name, variant, now)
             enqueue(updated)
         }
     }

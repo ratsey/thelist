@@ -240,6 +240,8 @@
     <string name="scan_detail">%1$s · %2$s</string>
     <string name="scan_failed">The scan did not read — try again</string>
 
+    <string name="variant_prompt_title">Which one?</string>
+    <string name="variant_prompt_body">This one comes in more than one version — pick the one to put on the list.</string>
     <plurals name="active_count">
         <item quantity="one">%d item to pick up</item>
         <item quantity="other">%d items to pick up</item>

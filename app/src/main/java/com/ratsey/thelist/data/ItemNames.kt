@@ -95,3 +95,26 @@ fun shelfMatches(shelf: List<Item>, draft: String, limit: Int = 3): List<Item> {
         .sortedBy { it.name.lowercase() }
         .take(limit)
 }
+
+/**
+ * The versions of this product you already have a row for, offered when a swipe has to ask.
+ *
+ * "Milk / Skimmed" and "Milk / Full Fat" are different products to the list, and the swipe of one
+ * row says nothing about which milk you are out of — so the versions are collected from the shelf
+ * and the choice is made at the gesture rather than corrected afterwards. Duplicates collapse on
+ * case and padding, so two rows spelled differently are one choice. One version, or none, means
+ * there is nothing to ask: the row in hand is the answer.
+ */
+fun variantChoices(shelf: List<Item>, item: Item): List<String> {
+    val product = ItemNames.key(ItemNames.parse(item.name).name)
+    val versions = shelf
+        .filter { other -> ItemNames.key(ItemNames.parse(other.name).name) == product }
+        // A row written before types had a column keeps its type after the slash in the name, and
+        // that is still a version you can pick.
+        .mapNotNull { other ->
+            (other.variant ?: ItemNames.parse(other.name).variant)?.trim()?.takeIf { it.isNotEmpty() }
+        }
+        .distinctBy { ItemNames.key(it) }
+        .sortedBy { it.lowercase(Locale.ROOT) }
+    return if (versions.size > 1) versions else emptyList()
+}

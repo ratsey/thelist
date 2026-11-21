@@ -92,6 +92,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.imePadding
+import com.ratsey.thelist.data.ItemNames
+import com.ratsey.thelist.ui.VariantPrompt
 
 /** Long-press / tap menu: the calm home for rename and delete. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1215,4 +1217,68 @@ fun ConfirmDialog(
             }
         },
     )
+}
+
+/**
+ * Which version of the product the swipe meant.
+ *
+ * Asked at the gesture, because the shelf holds "Skimmed" and "Full Fat" as separate rows and
+ * swiping one of them is a statement about the product, not about the version. Tapping a chip puts
+ * that version on the list and closes the sheet: two taps, no detour through the details dialog.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun VariantSheet(
+    prompt: VariantPrompt,
+    onChoose: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val colors = MaterialTheme.colorScheme
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = colors.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+        ) {
+            EyebrowText(stringResource(R.string.variant_prompt_title))
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = prompt.item.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.variant_prompt_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(16.dp))
+            // Wrapping rather than a sideways strip: there are rarely more than three versions,
+            // and one that falls off the edge is the one you needed.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                prompt.choices.forEach { choice ->
+                    PillChip(
+                        selected = ItemNames.key(choice) == ItemNames.key(prompt.item.variant.orEmpty()),
+                        label = choice,
+                        onClick = { onChoose(choice) },
+                    )
+                }
+            }
+        }
+    }
 }

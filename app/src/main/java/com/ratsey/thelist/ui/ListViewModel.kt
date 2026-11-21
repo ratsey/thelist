@@ -51,12 +51,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.ratsey.thelist.data.ItemNames
+import com.ratsey.thelist.data.variantChoices
 
 /**
  * One request for a price: what to ask about, and a token identifying the asking. The prompt keys
  * its text on the token, so two requests about the same row cannot share a typed answer.
  */
 data class PricePromptTarget(val item: Item, val token: Long)
+
+/** The swipe that has to ask which version of the product was meant, and what it may choose. */
+data class VariantPrompt(val item: Item, val choices: List<String>)
 
 /**
  * The scan-to-add flow. The camera is up, a read code is being looked up, or the prefill form
@@ -153,6 +158,11 @@ class ListViewModel(
      * The open "what did it cost?" prompt, if any. The token makes each request its own: the same
      * row can be asked about twice, and the second time must not open holding the first answer.
      */
+    private val _variantPrompt = MutableStateFlow<VariantPrompt?>(null)
+
+    /** A shelf swipe waiting on which version of the product to put back on the list. */
+    val variantPrompt: StateFlow<VariantPrompt?> = _variantPrompt.asStateFlow()
+
     private val _priceFor = MutableStateFlow<PricePromptTarget?>(null)
     val priceFor: StateFlow<PricePromptTarget?> = _priceFor.asStateFlow()
 
@@ -485,6 +495,35 @@ class ListViewModel(
     }
 
     fun addFromShelf(item: Item) {
+        // Two milk rows on the shelf mean the swipe alone cannot say which milk you mean. Ask now,
+        // at the gesture, rather than leaving the wrong type on the list to be corrected later.
+        val choices = variantChoices(shelfItems.value, item)
+        if (choices.isNotEmpty()) {
+            _variantPrompt.value = VariantPrompt(item, choices)
+            return
+        }
+        keepBackOnList(item)
+    }
+
+    /** The version chosen while swiping: the row goes on the list already saying which one it is. */
+    fun addFromShelf(item: Item, variant: String) {
+        _variantPrompt.value = null
+        // A version with its own shelf row comes back as that row — it carries its own prices and
+        // history, so relabelling the row in hand would throw them away.
+        val product = ItemNames.key(ItemNames.parse(item.name).name)
+        val existing = shelfItems.value.firstOrNull { other ->
+            other.id != item.id &&
+                ItemNames.key(ItemNames.parse(other.name).name) == product &&
+                ItemNames.key(other.variant.orEmpty()) == ItemNames.key(variant)
+        }
+        keepBackOnList(existing ?: item.copy(variant = variant))
+    }
+
+    fun dismissVariantPrompt() {
+        _variantPrompt.value = null
+    }
+
+    private fun keepBackOnList(item: Item) {
         viewModelScope.launch {
             repository.bringBack(item)
             _hintVisible.value = false

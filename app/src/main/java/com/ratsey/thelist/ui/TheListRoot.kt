@@ -57,6 +57,7 @@ import com.ratsey.thelist.ui.components.ShelfScreen
 import com.ratsey.thelist.data.shelfMatches
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import com.ratsey.thelist.ui.components.VariantSheet
 
 /** In the order a shop happens: what you keep, what you need, what you have picked up. */
 private const val TAB_SHELF = 0
@@ -74,6 +75,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     val hintVisible by viewModel.hintVisible.collectAsStateWithLifecycle()
     val pricePrompt by viewModel.pricePrompt.collectAsStateWithLifecycle()
     val priceFor by viewModel.priceFor.collectAsStateWithLifecycle()
+    val variantPrompt by viewModel.variantPrompt.collectAsStateWithLifecycle()
     val offerNoPricePrompt by viewModel.offerNoPricePrompt.collectAsStateWithLifecycle()
     val stores by viewModel.stores.collectAsStateWithLifecycle()
     val storeNames = remember(stores) { stores.associate { it.id to it.name } }
@@ -392,6 +394,14 @@ fun TheListRoot(viewModel: ListViewModel) {
         )
 
         else -> Unit
+    }
+
+    variantPrompt?.let { prompt ->
+        VariantSheet(
+            prompt = prompt,
+            onChoose = { variant -> viewModel.addFromShelf(prompt.item, variant) },
+            onDismiss = viewModel::dismissVariantPrompt,
+        )
     }
 
     priceFor?.let { target ->
