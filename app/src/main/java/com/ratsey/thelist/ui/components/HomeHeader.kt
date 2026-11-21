@@ -337,10 +337,10 @@ fun ShoppingList(
         return
     }
 
-    // The list follows the walk: aisles in order, then everything with no aisle. Headers only
-    // appear when at least one row actually knows where it lives.
+    // The list follows the walk: aisles in order, then everything with no aisle. Bands appear only
+    // inside a chosen shop — across all shops an aisle number is one shop's fragment of a walk.
     val locationGroups = remember(items) { groupByLocation(items) }
-    val grouped = locationGroups.size > 1 || locationGroups.firstOrNull()?.label != null
+    val grouped = showsAisleBands(currentStoreId, locationGroups)
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

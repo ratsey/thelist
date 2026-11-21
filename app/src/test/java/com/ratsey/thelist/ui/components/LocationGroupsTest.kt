@@ -2,6 +2,8 @@ package com.ratsey.thelist.ui.components
 
 import com.ratsey.thelist.data.Item
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -48,5 +50,22 @@ class LocationGroupsTest {
         val groups = groupByLocation(listOf(item("Coffee", "A6"), item("Milk", "  ")))
 
         assertEquals(listOf("A6", null), groups.map { it.label })
+    }
+
+    @Test
+    fun `no aisle bands unless a shop is chosen`() {
+        val items = listOf(item("Bread", "A6"), item("Coffee", "B3"), item("Milk"))
+        val groups = groupByLocation(items)
+
+        // Across all shops the rows are not one walk, so no bands.
+        assertFalse(showsAisleBands(null, groups))
+        assertTrue(showsAisleBands("store-walmart", groups))
+    }
+
+    @Test
+    fun `nothing to band when no row knows its aisle`() {
+        val groups = groupByLocation(listOf(item("Milk"), item("Eggs")))
+
+        assertFalse(showsAisleBands("store-walmart", groups))
     }
 }

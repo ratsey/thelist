@@ -21,3 +21,14 @@ fun groupByLocation(items: List<Item>): List<LocationGroup> {
     val unplaced = byLocation[null].orEmpty()
     return if (unplaced.isEmpty()) groups else groups + LocationGroup(null, unplaced)
 }
+
+/**
+ * Whether the list draws its aisle bands.
+ *
+ * Only inside a chosen shop: under "All shops" the list holds several shops' rows at once, so one
+ * shop's A6 says nothing about where you are and a band would gather other shops' rows under it.
+ * And only when a row actually knows where it lives — otherwise the band would be a header over
+ * the whole screen saying nothing.
+ */
+fun showsAisleBands(currentStoreId: String?, groups: List<LocationGroup>): Boolean =
+    currentStoreId != null && (groups.size > 1 || groups.firstOrNull()?.label != null)
