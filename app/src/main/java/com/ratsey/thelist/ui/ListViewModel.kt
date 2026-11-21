@@ -375,8 +375,10 @@ class ListViewModel(
             _hintVisible.value = false
             // "When adding" asks on every way into the basket, price or no price: the shelf edge
             // changes, so a stored figure is a guess until the shopper agrees with it. Whatever is
-            // known is filled in, which makes agreeing one tap.
-            if (toBasket && pricePrompt.value == PricePrompt.WhenAdding) {
+            // known is filled in, which makes agreeing one tap. Only inside a shop, though — the
+            // question is half about the aisle, and with no shop picked there is no aisle.
+            val inShop = currentStoreId.value != null
+            if (toBasket && inShop && pricePrompt.value == PricePrompt.WhenAdding) {
                 _offerNoPricePrompt.value = false
                 _priceFor.value = PricePromptTarget(item, ++pricePromptToken)
             }
