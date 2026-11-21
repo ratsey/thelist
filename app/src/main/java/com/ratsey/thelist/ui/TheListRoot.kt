@@ -48,6 +48,7 @@ import com.ratsey.thelist.ui.components.PricePromptDialog
 import com.ratsey.thelist.ui.components.RenameDialog
 import com.ratsey.thelist.ui.components.ScannedProductSheet
 import com.ratsey.thelist.ui.components.ShelfSuggestions
+import com.ratsey.thelist.ui.components.ShelfTagScannerScreen
 import com.ratsey.thelist.ui.components.SettingsDialog
 import com.ratsey.thelist.ui.components.StoresSheet
 import com.ratsey.thelist.ui.components.ShoppingList
@@ -76,6 +77,8 @@ fun TheListRoot(viewModel: ListViewModel) {
     val pricePrompt by viewModel.pricePrompt.collectAsStateWithLifecycle()
     val priceFor by viewModel.priceFor.collectAsStateWithLifecycle()
     val variantPrompt by viewModel.variantPrompt.collectAsStateWithLifecycle()
+    val tagScanning by viewModel.tagScanning.collectAsStateWithLifecycle()
+    val scannedTag by viewModel.scannedTag.collectAsStateWithLifecycle()
     val offerNoPricePrompt by viewModel.offerNoPricePrompt.collectAsStateWithLifecycle()
     val stores by viewModel.stores.collectAsStateWithLifecycle()
     val storeNames = remember(stores) { stores.associate { it.id to it.name } }
@@ -133,6 +136,15 @@ fun TheListRoot(viewModel: ListViewModel) {
             detail = detail,
             measureSystem = measureSystem,
             onBack = viewModel::closeProduct,
+        )
+        return
+    }
+
+    // Reading a shelf tag covers the prompt it was opened from: what it reads lands back there.
+    if (tagScanning) {
+        ShelfTagScannerScreen(
+            onTag = viewModel::tagScanned,
+            onClose = viewModel::cancelTagScan,
         )
         return
     }
@@ -409,8 +421,10 @@ fun TheListRoot(viewModel: ListViewModel) {
             item = target.item,
             storeName = target.item.storeId?.let(storeNames::get),
             promptToken = target.token,
-            onSave = { price, location ->
-                viewModel.savePrice(target.item.id, price, location)
+            scanned = scannedTag,
+            onScanTag = viewModel::startTagScan,
+            onSave = { price, location, pack ->
+                viewModel.savePrice(target.item.id, price, location, pack)
             },
             onSkip = viewModel::skipPricePrompt,
         )

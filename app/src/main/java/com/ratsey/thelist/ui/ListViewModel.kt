@@ -19,6 +19,7 @@ import com.ratsey.thelist.data.PriceRow
 import com.ratsey.thelist.data.PriceSummary
 import com.ratsey.thelist.data.ReceiptRepository
 import com.ratsey.thelist.data.SettingsStore
+import com.ratsey.thelist.data.ShelfTag
 import com.ratsey.thelist.data.Store
 import com.ratsey.thelist.data.StoreRepository
 import com.ratsey.thelist.receipt.ItemMatcher
@@ -169,6 +170,34 @@ class ListViewModel(
     private var pricePromptToken = 0L
 
     /**
+     * The shelf-label reader: the camera is up, or it came back with what the tag said. The prompt
+     * behind the camera takes up the price, because a camera read is a suggestion until it is saved.
+     */
+    private val _tagScanning = MutableStateFlow(false)
+    val tagScanning: StateFlow<Boolean> = _tagScanning.asStateFlow()
+
+    private val _scannedTag = MutableStateFlow<ShelfTag?>(null)
+    val scannedTag: StateFlow<ShelfTag?> = _scannedTag.asStateFlow()
+
+    fun startTagScan() {
+        _scannedTag.value = null
+        _tagScanning.value = true
+    }
+
+    fun cancelTagScan() {
+        _tagScanning.value = false
+    }
+
+    fun tagScanned(tag: ShelfTag) {
+        _tagScanning.value = false
+        if (tag.price == null) {
+            viewModelScope.launch { _messages.send(UiMessage(R.string.msg_tag_unreadable)) }
+            return
+        }
+        _scannedTag.value = tag
+    }
+
+    /**
      * Two skips in a row suggest the question is not wanted mid-shop. The offer is one-shot:
      * declining it starts a fresh run, so the user is asked at most every second skip.
      */
@@ -182,6 +211,7 @@ class ListViewModel(
         val outcome = PricePromptOffer.onSkip(priceSkipStreak)
         priceSkipStreak = outcome.streak
         _priceFor.value = null
+        _scannedTag.value = null
         _offerNoPricePrompt.value = outcome.offerTurnOff
     }
 
@@ -380,6 +410,7 @@ class ListViewModel(
             val inShop = currentStoreId.value != null
             if (toBasket && inShop && pricePrompt.value == PricePrompt.WhenAdding) {
                 _offerNoPricePrompt.value = false
+                _scannedTag.value = null
                 _priceFor.value = PricePromptTarget(item, ++pricePromptToken)
             }
             _messages.send(
@@ -589,22 +620,36 @@ class ListViewModel(
      * into the basket, and the shop is left alone, because the prompt confirms a place rather than
      * choosing one.
      */
-    fun savePrice(itemId: String, price: Double?, location: String? = null) {
+    fun savePrice(
+        itemId: String,
+        price: Double?,
+        location: String? = null,
+        /** What the price buys, when a shelf tag printed a pack size. Null leaves the stored one. */
+        pack: String? = null,
+    ) {
         priceSkipStreak = PricePromptOffer.reset()
         _priceFor.value = null
+        _scannedTag.value = null
         viewModelScope.launch {
-            applyPrice(itemId, price, location)
+            applyPrice(itemId, price, location, pack)
             scheduleSync()
         }
     }
 
-    private suspend fun applyPrice(itemId: String, price: Double?, location: String? = null) {
+    private suspend fun applyPrice(
+        itemId: String,
+        price: Double?,
+        location: String? = null,
+        pack: String? = null,
+    ) {
         val item = repository.byId(itemId) ?: return
         val aisle = location?.trim()?.takeIf { it.isNotEmpty() }
+        val packText = pack?.trim()?.takeIf { it.isNotEmpty() }
         // A figure that did not move is already in the history: confirming it again must not read
         // as a second purchase, or last and best would drift towards whatever got swiped twice.
         val changed = price != item.price
-        if (aisle != item.location) {
+        val repacked = packText != null && packText != item.priceUnit
+        if (aisle != item.location || repacked) {
             repository.setDetails(
                 item = item,
                 storeId = item.storeId,
@@ -612,7 +657,7 @@ class ListViewModel(
                 variant = item.variant,
                 amount = item.amount,
                 price = price,
-                priceUnit = item.priceUnit,
+                priceUnit = if (repacked) packText else item.priceUnit,
             )
         } else if (changed) {
             repository.setPrice(itemId, price)

@@ -2,7 +2,8 @@
 
 A dense, dark Android shopping list (`com.ratsey.thelist`): three tabs — Shelf, To buy, Basket — a
 price you type in as you shop, and a home-grown self-update that ships APKs from GitHub releases.
-Kotlin + Jetpack Compose (Material 3), Room, no Hilt, no DI framework, no OCR, no network library.
+Kotlin + Jetpack Compose (Material 3), Room, no Hilt, no DI framework, no network library for prices.
+The one OCR is the on-device shelf-tag reader — a label is read from the camera, never fetched.
 
 ## Build and test
 
@@ -53,6 +54,10 @@ keyboard-related can be verified. Say so instead of claiming a screen "works".
 - **Both unit systems are always offered**; the metric/imperial setting only orders the units
   inside a group (`unitGroups`), because a US shopper buys by the pound in one aisle and the kilo
   in the next.
+- **A camera read is a suggestion.** `readShelfTag` decides what a shelf label says (retail price,
+  printed pack size), but nothing it returns is saved until the price prompt has shown it and the
+  shopper has tapped Save. The label's own unit rate is displayed, never stored: it is their
+  arithmetic, and the app computes its own from the pack.
 - **The shelf prints the rate and nothing else** (`itemMeta(rateOnly = true)`); the To buy list
   prints the pack price with the rate beside it. Money tokens are the only difference.
 

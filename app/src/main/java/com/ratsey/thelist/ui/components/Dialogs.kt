@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.ReceiptLong
@@ -60,6 +61,7 @@ import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
 import com.ratsey.thelist.data.PricePrompt
+import com.ratsey.thelist.data.ShelfTag
 import com.ratsey.thelist.data.Store
 import com.ratsey.thelist.data.formatPriceField
 import com.ratsey.thelist.data.MeasureSystem
@@ -1150,17 +1152,34 @@ fun PricePromptDialog(
     storeName: String?,
     /** Identifies this request, so each ask starts from what is stored at that moment. */
     promptToken: Long,
-    onSave: (price: Double, location: String) -> Unit,
+    /** What the camera read off the shelf label, if it has read one for this ask. */
+    scanned: ShelfTag?,
+    onScanTag: () -> Unit,
+    onSave: (price: Double, location: String, pack: String?) -> Unit,
     onSkip: () -> Unit,
 ) {
-    // Seeded from the row rather than left blank: the question is "is this still right?", and a
-    // figure carried over from the last thing priced would be a wrong answer waiting to be tapped.
-    var price by remember(promptToken) { mutableStateOf(formatPriceField(item.price)) }
+    // Seeded from the row, or from the tag just read, rather than left blank: the question is "is
+    // this still right?", and a figure carried over from the last thing priced would be a wrong
+    // answer waiting to be tapped.
+    var price by remember(promptToken, scanned) {
+        mutableStateOf(formatPriceField(scanned?.price ?: item.price))
+    }
     var location by remember(promptToken) { mutableStateOf(item.location.orEmpty()) }
     val value = parsePriceField(price)
     // An aisle only means something inside a shop; without one it is a number that never shows.
     val askAisle = storeName != null
-    val submit: () -> Unit = { value?.let { onSave(it, location) } }
+    val submit: () -> Unit = { value?.let { onSave(it, location, scanned?.pack) } }
+    // What the label said besides the figure, so its own arithmetic can be seen beside ours.
+    val tagRate = scanned?.rate
+    val rateText = if (tagRate != null) {
+        stringResource(
+            R.string.tag_scan_rate,
+            priceWithUnit(formatMoney(tagRate.per, LocalCurrency.current), tagRate.label),
+        )
+    } else {
+        null
+    }
+    val caption = listOfNotNull(scanned?.pack, rateText).joinToString(" · ")
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(promptToken) { focusRequester.requestFocus() }
@@ -1189,6 +1208,14 @@ fun PricePromptDialog(
                     focusRequester = focusRequester,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (caption.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = caption,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (askAisle) {
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
@@ -1201,6 +1228,18 @@ fun PricePromptDialog(
                         keyboardActions = KeyboardActions(onDone = { submit() }),
                         modifier = Modifier.fillMaxWidth(),
                     )
+                }
+                TextButton(
+                    onClick = onScanTag,
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DocumentScanner,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.tag_scan_action))
                 }
             }
         },

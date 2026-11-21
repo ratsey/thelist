@@ -137,6 +137,11 @@
     <string name="price_prompt_title">What did it cost?</string>
     <string name="price_prompt_skip">Skip</string>
     <string name="price_prompt_aisle_at">Aisle at %1$s</string>
+    <string name="tag_scan_action">Scan the shelf tag</string>
+    <string name="tag_scan_title">Shelf tag</string>
+    <string name="tag_scan_hint">Point at the price label</string>
+    <string name="tag_scan_rate">Label says %1$s</string>
+    <string name="msg_tag_unreadable">Nothing readable on that label</string>
     <string name="price_prompt_stop_title">Stop asking for prices?</string>
     <string name="price_prompt_stop_body">You\'ve skipped the last two price questions. You can still add a price any time by holding a row, or change this in Settings later.</string>
     <string name="price_prompt_stop_confirm">Stop asking</string>

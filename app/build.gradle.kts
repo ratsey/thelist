@@ -64,6 +64,11 @@ android {
         versionName = appVersionName
         vectorDrawables.useSupportLibrary = true
 
+        // Phones, not four architectures: the on-device OCR pipeline is 11 MB per ABI and this app
+        // ships its own updates, so the emulator-only x86 builds would cost every phone 33 MB of
+        // download for nothing. Both ARM widths stay so a 32-bit handset is not left behind.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+
         buildConfigField("String", "GITHUB_OWNER", "\"$githubOwner\"")
         buildConfigField("String", "GITHUB_REPO", "\"$githubRepo\"")
         buildConfigField("String", "RELEASES_URL", "\"https://github.com/$githubOwner/$githubRepo/releases\"")
@@ -147,6 +152,9 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.barcode.scanning)
+    // Shelf labels carry a price a barcode cannot: this reads the figures the tag prints, on the
+    // phone, so a price can be picked up in the aisle without a retailer's API or a network call.
+    implementation(libs.mlkit.text.recognition)
 
     testImplementation(libs.junit)
     // The android.jar stub throws on org.json calls; unit tests need the real implementation.
