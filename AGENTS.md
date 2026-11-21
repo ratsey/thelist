@@ -68,6 +68,11 @@ keyboard-related can be verified. Say so instead of claiming a screen "works".
 
 ## Working rules
 
+- **Fetch before you start, every time.** This repository is committed to from more than one
+  place — other machines, other agents — so a clone is out of date the moment it is made, and the
+  history here has already been rewritten once. Begin with `git fetch`, read
+  `git log --oneline HEAD..origin/main`, and rebase your work onto it. If a push is rejected as
+  non-fast-forward, fetch and rebase; never force.
 - Comments explain *why*. Do not restate the code.
 - Keep changes to what was asked; no drive-by refactors.
 - **Never commit** keystores, `keystore.properties`, `.env`, `deploy/kamatera/deploy.env`, or
