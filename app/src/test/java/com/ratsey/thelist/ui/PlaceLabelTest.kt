@@ -16,8 +16,11 @@ class PlaceLabelTest {
         Item(name = "Coffee", storeId = storeId, location = location)
 
     @Test
-    fun `with no shop chosen the row says shop and aisle`() {
-        assertEquals("Walmart · A6", placeLabel(coffee(walmart, "A6"), names))
+    fun `with no shop chosen the row names the shop but not the aisle`() {
+        // "All shops" is a view of every shop at once, so one shop's aisle number would be a
+        // fragment of a walk you are not taking.
+        assertEquals("Walmart", placeLabel(coffee(walmart, "A6"), names))
+        assertNull(placeLabel(coffee(null, "A6"), names))
     }
 
     @Test

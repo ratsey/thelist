@@ -59,6 +59,10 @@ import com.ratsey.thelist.data.UnitPrice
  * While you are standing in a shop (a [currentStoreId] chosen in the header) its rows need only the
  * aisle — repeating the shop name on every line is wasted width — and another shop's aisle says
  * nothing about the shop you are in, so only its name survives.
+ *
+ * With no shop chosen the list is not a walk through one shop, so no aisle is printed at all: "All
+ * shops" is a view of everything, and an aisle number there is one shop's numbers shown while you
+ * read all of them.
  */
 fun placeLabel(
     item: Item,
@@ -68,7 +72,8 @@ fun placeLabel(
     val store = storeNames[item.storeId]
     val aisle = item.location?.takeIf { it.isNotBlank() }
     val parts = when {
-        currentStoreId == null || item.storeId == null -> listOfNotNull(store, aisle)
+        currentStoreId == null -> listOfNotNull(store)
+        item.storeId == null -> listOfNotNull(aisle)
         item.storeId == currentStoreId -> listOfNotNull(aisle)
         else -> listOfNotNull(store)
     }
