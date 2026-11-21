@@ -89,10 +89,13 @@ fun ShelfScreen(
         if (needle.isEmpty()) {
             items
         } else {
-            // The aisle is searchable too: typing "A6" should show what is in it.
+            // The aisle is searchable too: typing "A6" should show what is in it. Searching asks
+            // what a row knows, not what the row prints — the label drops the aisle when no shop
+            // is chosen, but a shopper hunting for A6 still means A6.
             items.filter { item ->
                 item.name.lowercase(Locale.ROOT).contains(needle) ||
-                    placeLabel(item, storeNames)?.lowercase(Locale.ROOT)?.contains(needle) == true
+                    item.location?.lowercase(Locale.ROOT)?.contains(needle) == true ||
+                    storeNames[item.storeId]?.lowercase(Locale.ROOT)?.contains(needle) == true
             }
         }
     }
