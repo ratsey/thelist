@@ -28,6 +28,15 @@ private val MONEY = Regex("""([0-9]{1,4}[.,][0-9]{2})(?![0-9])""")
 /** A currency mark, or what recognition hands back in its place: `S` and `§` for `$`. */
 private val MONEY_MARK = Regex("""[${'$'}S§](?=\s?[0-9])""")
 
+/**
+ * The same price when the cents are printed small and raised (`$7⁵²`): recognition hands that back
+ * with a space where the decimal point is, as `$7 52`.
+ *
+ * The currency mark has to be there. Two numbers side by side are ordinary on a shelf label —
+ * `FAC 1 CAP 8 0302` — and only the mark says the pair is money.
+ */
+private val SPACED_MONEY = Regex("""[${'$'}S§]\s?([0-9]{1,4})\s+([0-9]{2})(?![0-9])""")
+
 /** `UNIT PRICE`, and the `PER PT` that follows the rate on the line under it. */
 private val RATE_LINE = Regex("""\b(UNIT|PER)\b""")
 
@@ -69,10 +78,17 @@ fun readShelfTag(lines: List<TagLine>): ShelfTag? {
     // Every figure on the label, and where it sits: a narrow tag can come back as one line holding
     // the price and the rate, so the words in front of a figure are what tell the two apart.
     val figures = bare.indices.flatMap { i ->
-        MONEY.findAll(bare[i]).mapNotNull { match ->
+        val withPoint = MONEY.findAll(bare[i]).mapNotNull { match ->
             val value = match.groupValues[1].replace(',', '.').toDoubleOrNull()
             value?.let { Figure(line = i, price = it, height = lines[i].height, at = match.range.first) }
-        }.toList()
+        }
+        // Marks were stripped from `bare` one for one, so an offset found on `upper` is the same
+        // offset here; the spaced form needs the mark, so it is read from the line that still has it.
+        val raised = SPACED_MONEY.findAll(upper[i]).mapNotNull { match ->
+            val value = "${match.groupValues[1]}.${match.groupValues[2]}".toDoubleOrNull()
+            value?.let { Figure(line = i, price = it, height = lines[i].height, at = match.range.first) }
+        }
+        (withPoint + raised).sortedBy { it.at }
     }
     if (figures.isEmpty()) return null
 
@@ -82,11 +98,12 @@ fun readShelfTag(lines: List<TagLine>): ShelfTag? {
         // front of the figure are read from that same line, not the raw one.
         if (RATE_BEFORE.containsMatchIn(bare[figure.line].substring(0, figure.at))) return true
         // The label often prints the words in the block and the number under them, so a lone figure
-        // beneath "UNIT PRICE" is the rate as well.
+        // beneath "UNIT PRICE" is the rate as well. Every figure counts here, decimal point or
+        // not: counting only the ones with a point let a spaced `$7 12` through as a retail price.
         val above = upper.getOrNull(figure.line - 1).orEmpty()
         return !PRICE_LINE.containsMatchIn(line) &&
             RATE_LINE.containsMatchIn(above) &&
-            MONEY.findAll(bare[figure.line]).count() == 1
+            figures.count { it.line == figure.line } == 1
     }
 
     // "UNIT PRICE $7.12 PER PT" prices a pint, not the bottle on the shelf: a rate is never the
@@ -109,7 +126,10 @@ fun readShelfTag(lines: List<TagLine>): ShelfTag? {
     // A pack size lives beside the name, not on a price or rate line, and only counts when the app
     // can parse it: "CAP 8" is a shelf capacity, not eight of anything.
     val pack = bare.indices.firstNotNullOfOrNull { i ->
-        if (MONEY.find(bare[i]) != null || RATE_LINE.containsMatchIn(upper[i])) {
+        if (MONEY.containsMatchIn(bare[i]) ||
+            SPACED_MONEY.containsMatchIn(upper[i]) ||
+            RATE_LINE.containsMatchIn(upper[i])
+        ) {
             return@firstNotNullOfOrNull null
         }
         PACK.find(bare[i])?.let { found ->

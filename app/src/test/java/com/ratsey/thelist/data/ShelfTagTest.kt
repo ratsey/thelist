@@ -100,6 +100,39 @@ class ShelfTagTest {
     }
 
     @Test
+    fun `raised cents read with a space are still the price`() {
+        // What the photographed Bertoli tag looks like to recognition: the cents are printed small
+        // and high, so the decimal point comes back as a space.
+        val tag = readShelfTag(
+            listOf(
+                TagLine("BERTOLI OO SUSTAIN", 24),
+                TagLine("35", 22),
+                TagLine("RETAIL PRICE", 22),
+                TagLine("$7 52", 88),
+                TagLine("UNIT PRICE", 20),
+                TagLine("$7 12", 44),
+                TagLine("PER", 18),
+                TagLine("PT", 18),
+                TagLine("SNAP", 16),
+                TagLine("FAC 1 CAP 8 0302", 16),
+            ),
+        )
+
+        assertEquals(7.52, tag?.price!!, 0.0001)
+        assertEquals(7.12, tag.rate!!.per, 0.0001)
+        assertEquals("pt", tag.rate!!.label)
+        assertNull(tag.pack)
+    }
+
+    @Test
+    fun `raised cents on one line still separate the price from the rate`() {
+        val tag = readShelfTag(lines("UNIT PRICE $7 12 RETAIL PRICE $7 52 PER PT"))
+
+        assertEquals(7.52, tag?.price!!, 0.0001)
+        assertEquals(7.12, tag.rate!!.per, 0.0001)
+    }
+
+    @Test
     fun `a metric pack size is kept as the app spells it`() {
         val tag = readShelfTag(lines("OLIVE OIL 500ML", "RETAIL PRICE", "$7.52"))
 
