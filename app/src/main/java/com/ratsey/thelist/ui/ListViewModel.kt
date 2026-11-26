@@ -405,10 +405,10 @@ class ListViewModel(
             _hintVisible.value = false
             // "When adding" asks on every way into the basket, price or no price: the shelf edge
             // changes, so a stored figure is a guess until the shopper agrees with it. Whatever is
-            // known is filled in, which makes agreeing one tap. Only inside a shop, though — the
-            // question is half about the aisle, and with no shop picked there is no aisle.
-            val inShop = currentStoreId.value != null
-            if (toBasket && inShop && pricePrompt.value == PricePrompt.WhenAdding) {
+            // known is filled in, which makes agreeing one tap. With no shop picked the prompt
+            // offers the shops rather than skipping the ask: the scan lives in it, and a price
+            // typed in a shop should not be recorded against nothing.
+            if (toBasket && pricePrompt.value == PricePrompt.WhenAdding) {
                 _offerNoPricePrompt.value = false
                 _scannedTag.value = null
                 _priceFor.value = PricePromptTarget(item, ++pricePromptToken)
@@ -624,14 +624,16 @@ class ListViewModel(
         itemId: String,
         price: Double?,
         location: String? = null,
-        /** What the price buys, when a shelf tag printed a pack size. Null leaves the stored one. */
+        /** What the price buys: printed on the tag, or the size its price and rate imply. */
         pack: String? = null,
+        /** The shop this price was typed in, which the row moves to. Null keeps its own. */
+        storeId: String? = null,
     ) {
         priceSkipStreak = PricePromptOffer.reset()
         _priceFor.value = null
         _scannedTag.value = null
         viewModelScope.launch {
-            applyPrice(itemId, price, location, pack)
+            applyPrice(itemId, price, location, pack, storeId)
             scheduleSync()
         }
     }
@@ -641,18 +643,23 @@ class ListViewModel(
         price: Double?,
         location: String? = null,
         pack: String? = null,
+        storeId: String? = null,
     ) {
         val item = repository.byId(itemId) ?: return
         val aisle = location?.trim()?.takeIf { it.isNotEmpty() }
         val packText = pack?.trim()?.takeIf { it.isNotEmpty() }
+        // The price belongs to the shop it was read in, so a row filed elsewhere moves here: its
+        // aisles, its last price and its history are that shop's from now on.
+        val targetStore = storeId ?: item.storeId
         // A figure that did not move is already in the history: confirming it again must not read
         // as a second purchase, or last and best would drift towards whatever got swiped twice.
         val changed = price != item.price
         val repacked = packText != null && packText != item.priceUnit
-        if (aisle != item.location || repacked) {
+        val moved = targetStore != item.storeId
+        if (aisle != item.location || repacked || moved) {
             repository.setDetails(
                 item = item,
-                storeId = item.storeId,
+                storeId = targetStore,
                 location = aisle,
                 variant = item.variant,
                 amount = item.amount,
@@ -664,7 +671,7 @@ class ListViewModel(
         }
         if (price == null || !changed) return
         receipts.recordPrices(
-            storeName = storeNameFor(item),
+            storeName = storeNameFor(item, targetStore),
             currency = currency.value,
             purchases = listOf(
                 ManualPrice(
@@ -709,9 +716,9 @@ class ListViewModel(
         }
     }
 
-    /** The shop a price belongs to: the row's own, or the one picked in the header. */
-    private fun storeNameFor(item: Item): String? =
-        stores.value.firstOrNull { it.id == item.storeId }?.name
+    /** The shop a price belongs to: where it was filed, or the one picked in the header. */
+    private fun storeNameFor(item: Item, storeId: String? = item.storeId): String? =
+        stores.value.firstOrNull { it.id == storeId }?.name
             ?: stores.value.firstOrNull { it.id == currentStoreId.value }?.name
 
     fun openProduct(productKey: String) {

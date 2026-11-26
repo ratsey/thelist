@@ -55,9 +55,10 @@ keyboard-related can be verified. Say so instead of claiming a screen "works".
   inside a group (`unitGroups`), because a US shopper buys by the pound in one aisle and the kilo
   in the next.
 - **A camera read is a suggestion.** `readShelfTag` decides what a shelf label says (retail price,
-  printed pack size), but nothing it returns is saved until the price prompt has shown it and the
-  shopper has tapped Save. The label's own unit rate is displayed, never stored: it is their
-  arithmetic, and the app computes its own from the pack.
+  pack size), but nothing it returns is saved until the price prompt has shown it and the shopper
+  has tapped Save. A tag that prints no size still states one — retail price ÷ unit price — and
+  that derived pack is how the label's rate reaches the row; the prompt shows it before Save like
+  every other read.
 - **The shelf prints the rate and nothing else** (`itemMeta(rateOnly = true)`); the To buy list
   prints the pack price with the rate beside it. Money tokens are the only difference.
 

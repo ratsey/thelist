@@ -1148,14 +1148,16 @@ fun StoresSheet(
 @Composable
 fun PricePromptDialog(
     item: Item,
-    /** The shop the row lives in, so the aisle field can say whose aisles are meant. */
-    storeName: String?,
+    /** Every shop, so one can be picked when the header is not saying where you are. */
+    stores: List<Store>,
+    /** The shop picked in the header: the one this price is being typed in. */
+    currentStoreId: String?,
     /** Identifies this request, so each ask starts from what is stored at that moment. */
     promptToken: Long,
     /** What the camera read off the shelf label, if it has read one for this ask. */
     scanned: ShelfTag?,
     onScanTag: () -> Unit,
-    onSave: (price: Double, location: String, pack: String?) -> Unit,
+    onSave: (price: Double, location: String, pack: String?, storeId: String?) -> Unit,
     onSkip: () -> Unit,
 ) {
     // Seeded from the row, or from the tag just read, rather than left blank: the question is "is
@@ -1165,10 +1167,17 @@ fun PricePromptDialog(
         mutableStateOf(formatPriceField(scanned?.price ?: item.price))
     }
     var location by remember(promptToken) { mutableStateOf(item.location.orEmpty()) }
+    // Where you are now wins over where the row was filed: the figure being typed is the shelf in
+    // front of you, and the row should say so afterwards. With no shop picked anywhere there is
+    // nothing to default to, and the prompt offers the shops instead of guessing.
+    var storeId by remember(promptToken) { mutableStateOf(currentStoreId ?: item.storeId) }
+    val storeName = stores.firstOrNull { it.id == storeId }?.name
     val value = parsePriceField(price)
     // An aisle only means something inside a shop; without one it is a number that never shows.
     val askAisle = storeName != null
-    val submit: () -> Unit = { value?.let { onSave(it, location, scanned?.pack) } }
+    val submit: () -> Unit = {
+        value?.let { onSave(it, location, scanned?.pack, storeId) }
+    }
     // What the label said besides the figure, so its own arithmetic can be seen beside ours.
     val tagRate = scanned?.rate
     val rateText = if (tagRate != null) {
@@ -1233,6 +1242,35 @@ fun PricePromptDialog(
                         keyboardActions = KeyboardActions(onDone = { submit() }),
                         modifier = Modifier.fillMaxWidth(),
                     )
+                } else if (stores.isNotEmpty()) {
+                    // A price with no shop is a number nobody can compare later, so the cheapest
+                    // thing to ask for is the shop itself — one tap, before the aisle even exists.
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.price_prompt_shop),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        PillChip(
+                            selected = storeId == null,
+                            label = stringResource(R.string.placement_no_store),
+                            onClick = { storeId = null },
+                        )
+                        stores.forEach { store ->
+                            PillChip(
+                                selected = storeId == store.id,
+                                label = store.name,
+                                onClick = { storeId = store.id },
+                            )
+                        }
+                    }
                 }
                 TextButton(
                     onClick = onScanTag,

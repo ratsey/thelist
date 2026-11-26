@@ -29,7 +29,9 @@ class ShelfTagTest {
         )
 
         assertEquals(7.52, tag?.price!!, 0.0001)
-        assertNull("this label prints no pack size", tag.pack)
+        // No size is printed, so the size is the one the two figures imply: $7.52 at $7.12 a pint.
+        assertEquals("1.056 pt", tag.pack)
+        assertEquals(7.12, unitPriceOf(tag.price, tag.pack)!!.per, 0.01)
         assertEquals(7.12, tag.rate!!.per, 0.0001)
         assertEquals("pt", tag.rate!!.label)
     }
@@ -121,7 +123,7 @@ class ShelfTagTest {
         assertEquals(7.52, tag?.price!!, 0.0001)
         assertEquals(7.12, tag.rate!!.per, 0.0001)
         assertEquals("pt", tag.rate!!.label)
-        assertNull(tag.pack)
+        assertEquals("1.056 pt", tag.pack)
     }
 
     @Test
@@ -176,6 +178,25 @@ class ShelfTagTest {
     @Test
     fun `a bare pair of numbers is not a price unless the line names one`() {
         assertNull(readShelfTag(lines("PAPER TOWELS", "6 99", "SNAP")))
+    }
+
+    @Test
+    fun `a printed pack size wins over the one the rate implies`() {
+        val tag = readShelfTag(
+            lines("OLIVE OIL 500ML", "RETAIL PRICE", "$7.52", "UNIT PRICE", "$7.12", "PER PT"),
+        )
+
+        assertEquals("500 ml", tag?.pack)
+    }
+
+    @Test
+    fun `a rate counted per item states how many`() {
+        // $3.00 at 50 cents each is six of them, which is the same size said the other way round.
+        val tag = readShelfTag(lines("RETAIL PRICE", "$3.00", "UNIT PRICE", "$0.50", "PER CT"))
+
+        assertEquals(3.0, tag?.price!!, 0.0001)
+        assertEquals("6 each", tag.pack)
+        assertEquals(0.50, unitPriceOf(tag.price, tag.pack)!!.per, 0.01)
     }
 
     @Test

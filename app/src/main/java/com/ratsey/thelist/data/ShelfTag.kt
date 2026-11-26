@@ -1,5 +1,8 @@
 package com.ratsey.thelist.data
 
+import java.util.Locale
+import kotlin.math.round
+
 /**
  * What a shelf-edge label says, as far as a camera can be sure of it.
  *
@@ -12,7 +15,10 @@ data class ShelfTag(
     val price: Double?,
     /** What that price buys when the label prints it ("17 oz"); null when it does not. */
     val pack: String? = null,
-    /** The label's own rate, shown beside the figure so the two numbers can be held against each other. */
+    /**
+     * The label's own rate, shown beside the figure so the two numbers can be held against each
+     * other — and, when no pack size is printed, what states the size: see [pack].
+     */
     val rate: UnitPrice? = null,
 )
 
@@ -79,8 +85,9 @@ private val PACK = Regex(
  *   number printed largest on the shelf edge;
  * - the **pack** is only taken when the label spells out a unit the app knows, because a size it
  *   misreads would quietly change the rate on every screen;
- * - the **rate** is read but not stored: it is the label's own arithmetic, shown so a shopper can
- *   see whether it agrees with the pack size.
+ * - the **rate** is read and used: most tags print the price and the rate for it but never the
+ *   size, and dividing one by the other states the size, so the rate survives the save instead of
+ *   being shown once and lost.
  *
  * Null when there is no price at all: "nothing readable" is better than a guess.
  */
@@ -140,7 +147,7 @@ fun readShelfTag(lines: List<TagLine>): ShelfTag? {
 
     // A pack size lives beside the name, not on a price or rate line, and only counts when the app
     // can parse it: "CAP 8" is a shelf capacity, not eight of anything.
-    val pack = bare.indices.firstNotNullOfOrNull { i ->
+    val printedPack = bare.indices.firstNotNullOfOrNull { i ->
         if (MONEY.containsMatchIn(bare[i]) ||
             spacedCents(upper[i]).any() ||
             RATE_LINE.containsMatchIn(upper[i])
@@ -155,7 +162,34 @@ fun readShelfTag(lines: List<TagLine>): ShelfTag? {
         }
     }
 
+    // A tag that prints no size still states one: the photograph this parser was written from says
+    // "$7.52" and "$7.12 PER PT" and nothing about the bottle, and those two figures divide to
+    // 1.056 pt. Keeping it is what lets the row carry the label's unit price rather than only the
+    // figure on the shelf edge.
+    val pack = printedPack ?: packFromRate(best.price, rate)
+
     return ShelfTag(price = best.price, pack = pack, rate = rate)
+}
+
+/**
+ * The size a tag's two figures imply: $7.52 at $7.12 a pint is 1.056 pt of olive oil.
+ *
+ * Three decimals because that is what it takes for the rate the app derives from the pack to land
+ * back on the cents the label printed; a size that would not is a misread, and none is offered.
+ */
+private fun packFromRate(price: Double, rate: UnitPrice?): String? {
+    val per = rate?.per ?: return null
+    if (price <= 0.0 || per <= 0.0) return null
+    val size = round(price / per * 1000) / 1000
+    if (size < 0.05 || size > 1000.0) return null
+    val back = round(price / size * 100) / 100
+    if (back != round(per * 100) / 100) return null
+    val amount = if (size % 1.0 == 0.0) {
+        size.toLong().toString()
+    } else {
+        String.format(Locale.US, "%.3f", size).trimEnd('0').trimEnd('.')
+    }
+    return "$amount ${rate.label}"
 }
 
 /**

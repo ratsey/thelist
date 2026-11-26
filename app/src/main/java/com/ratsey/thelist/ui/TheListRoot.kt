@@ -419,12 +419,13 @@ fun TheListRoot(viewModel: ListViewModel) {
     priceFor?.let { target ->
         PricePromptDialog(
             item = target.item,
-            storeName = target.item.storeId?.let(storeNames::get),
+            stores = stores,
+            currentStoreId = currentStoreId,
             promptToken = target.token,
             scanned = scannedTag,
             onScanTag = viewModel::startTagScan,
-            onSave = { price, location, pack ->
-                viewModel.savePrice(target.item.id, price, location, pack)
+            onSave = { price, location, pack, storeId ->
+                viewModel.savePrice(target.item.id, price, location, pack, storeId)
             },
             onSkip = viewModel::skipPricePrompt,
         )

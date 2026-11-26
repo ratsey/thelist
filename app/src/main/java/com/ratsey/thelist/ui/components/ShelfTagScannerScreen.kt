@@ -72,6 +72,7 @@ import com.ratsey.thelist.data.ShelfTag
 import com.ratsey.thelist.ui.LocalCurrency
 import com.ratsey.thelist.ui.formatMoney
 import com.ratsey.thelist.data.TagLine
+import com.ratsey.thelist.data.priceWithUnit
 import com.ratsey.thelist.data.readShelfTag
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -183,6 +184,7 @@ fun ShelfTagScannerScreen(
         ) {
             val read = reading
             val readPrice = read?.price
+            val readRate = read?.rate
             if (read != null && readPrice != null) {
                 // One frame is enough for a shopper to look at, and waiting for a second is their
                 // choice rather than a requirement: the button takes the reading the prompt would
@@ -213,7 +215,18 @@ fun ShelfTagScannerScreen(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = if (readPrice != null) {
+                        text = if (readPrice != null && readRate != null) {
+                            // The rate is the half that used to be invisible: the label prints it
+                            // and the row keeps it, so say it while the tag is being read.
+                            stringResource(
+                                R.string.tag_scan_reading_rate,
+                                formatMoney(readPrice, LocalCurrency.current),
+                                priceWithUnit(
+                                    formatMoney(readRate.per, LocalCurrency.current),
+                                    readRate.label,
+                                ),
+                            )
+                        } else if (readPrice != null) {
                             stringResource(
                                 R.string.tag_scan_reading,
                                 formatMoney(readPrice, LocalCurrency.current),
