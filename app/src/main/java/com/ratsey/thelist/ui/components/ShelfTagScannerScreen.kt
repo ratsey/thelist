@@ -69,6 +69,8 @@ import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.ShelfTag
+import com.ratsey.thelist.ui.LocalCurrency
+import com.ratsey.thelist.ui.formatMoney
 import com.ratsey.thelist.data.TagLine
 import com.ratsey.thelist.data.readShelfTag
 import java.util.concurrent.ConcurrentHashMap
@@ -86,6 +88,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * While it works, the pill at the bottom repeats the tallest line it has read, so a label it cannot
  * price still shows whether the camera is reading the tag at all. The box in the middle is both the
  * aim and the crop: only what is inside it is read.
+ *
+ * The two decisions are announced separately. The first frame to price the label puts the figure in
+ * the pill and offers it as a button; the second frame agreeing closes the screen and lands in the
+ * prompt. Nothing is saved either way without a tap on Save there.
  */
 @Composable
 fun ShelfTagScannerScreen(
@@ -101,6 +107,7 @@ fun ShelfTagScannerScreen(
         )
     }
     var seen by remember { mutableStateOf<String?>(null) }
+    var reading by remember { mutableStateOf<ShelfTag?>(null) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted = it }
@@ -111,7 +118,12 @@ fun ShelfTagScannerScreen(
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(Color.Black)) {
         val viewAspect = if (maxHeight.value > 0f) maxWidth.value / maxHeight.value else 0.5f
         if (granted) {
-            TagCamera(onTag = onTag, onSeen = { seen = it }, viewAspect = viewAspect)
+            TagCamera(
+                onTag = onTag,
+                onSeen = { seen = it },
+                onRead = { reading = it },
+                viewAspect = viewAspect,
+            )
             TagFrame()
         } else {
             Column(
@@ -162,12 +174,29 @@ fun ShelfTagScannerScreen(
             )
         }
 
-        Box(
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .padding(bottom = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val read = reading
+            val readPrice = read?.price
+            if (read != null && readPrice != null) {
+                // One frame is enough for a shopper to look at, and waiting for a second is their
+                // choice rather than a requirement: the button takes the reading the prompt would
+                // have opened with, and Save there is still the only thing that stores it.
+                Button(onClick = { onTag(read) }) {
+                    Text(
+                        stringResource(
+                            R.string.tag_scan_use,
+                            formatMoney(readPrice, LocalCurrency.current),
+                        ),
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+            }
             Surface(
                 shape = RoundedCornerShape(50),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
@@ -184,8 +213,15 @@ fun ShelfTagScannerScreen(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = seen?.let { stringResource(R.string.tag_scan_seeing, it) }
-                            ?: stringResource(R.string.tag_scan_hint),
+                        text = if (readPrice != null) {
+                            stringResource(
+                                R.string.tag_scan_reading,
+                                formatMoney(readPrice, LocalCurrency.current),
+                            )
+                        } else {
+                            seen?.let { stringResource(R.string.tag_scan_seeing, it) }
+                                ?: stringResource(R.string.tag_scan_hint)
+                        },
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -198,7 +234,12 @@ fun ShelfTagScannerScreen(
 }
 
 @Composable
-private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit, viewAspect: Float) {
+private fun TagCamera(
+    onTag: (ShelfTag) -> Unit,
+    onSeen: (String?) -> Unit,
+    onRead: (ShelfTag) -> Unit,
+    viewAspect: Float,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context) }
@@ -213,6 +254,7 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit, view
     // read so far, so no two reads ever agreed. Read them through, and key on the lifecycle alone.
     val latestOnTag = rememberUpdatedState(onTag)
     val latestOnSeen = rememberUpdatedState(onSeen)
+    val latestOnRead = rememberUpdatedState(onRead)
     // A fold or a rotation can resize the preview without recreating the activity.
     val latestAspect = rememberUpdatedState(viewAspect)
 
@@ -278,6 +320,8 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit, view
                         if (agreed.putIfAbsent(price, tag) != null) {
                             done.set(true)
                             latestOnTag.value(tag)
+                        } else {
+                            latestOnRead.value(tag)
                         }
                     }
                     .addOnCompleteListener {

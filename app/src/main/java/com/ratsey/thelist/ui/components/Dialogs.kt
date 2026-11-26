@@ -1179,7 +1179,12 @@ fun PricePromptDialog(
     } else {
         null
     }
-    val caption = listOfNotNull(scanned?.pack, rateText).joinToString(" · ")
+    // Where the figure came from, so a number read off the shelf is checked rather than trusted.
+    val caption = listOfNotNull(
+        scanned?.let { stringResource(R.string.tag_scan_read) },
+        scanned?.pack,
+        rateText,
+    ).joinToString(" · ")
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(promptToken) { focusRequester.requestFocus() }
