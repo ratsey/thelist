@@ -2,19 +2,24 @@ package com.ratsey.thelist.ui.components
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.util.Size
+import android.graphics.Bitmap
+import android.graphics.Matrix
+import android.util.Size as CameraSize
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,7 +52,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,6 +72,7 @@ import com.ratsey.thelist.data.ShelfTag
 import com.ratsey.thelist.data.TagLine
 import com.ratsey.thelist.data.readShelfTag
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -74,7 +84,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * the second look is nearly free.
  *
  * While it works, the pill at the bottom repeats the tallest line it has read, so a label it cannot
- * price still shows whether the camera is reading the tag at all.
+ * price still shows whether the camera is reading the tag at all. The box in the middle is both the
+ * aim and the crop: only what is inside it is read.
  */
 @Composable
 fun ShelfTagScannerScreen(
@@ -97,9 +108,11 @@ fun ShelfTagScannerScreen(
         if (!granted) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize().background(Color.Black)) {
+        val viewAspect = if (maxHeight.value > 0f) maxWidth.value / maxHeight.value else 0.5f
         if (granted) {
-            TagCamera(onTag = onTag, onSeen = { seen = it })
+            TagCamera(onTag = onTag, onSeen = { seen = it }, viewAspect = viewAspect)
+            TagFrame()
         } else {
             Column(
                 modifier = Modifier
@@ -185,7 +198,7 @@ fun ShelfTagScannerScreen(
 }
 
 @Composable
-private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit) {
+private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit, viewAspect: Float) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context) }
@@ -200,12 +213,16 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit) {
     // read so far, so no two reads ever agreed. Read them through, and key on the lifecycle alone.
     val latestOnTag = rememberUpdatedState(onTag)
     val latestOnSeen = rememberUpdatedState(onSeen)
+    // A fold or a rotation can resize the preview without recreating the activity.
+    val latestAspect = rememberUpdatedState(viewAspect)
 
     DisposableEffect(lifecycleOwner) {
         val executor = ContextCompat.getMainExecutor(context)
         val providerFuture = ProcessCameraProvider.getInstance(context)
         var provider: ProcessCameraProvider? = null
         var recognizer: TextRecognizer? = null
+        // Frame decoding and cropping is too much for the thread drawing the preview.
+        val analysisExecutor = Executors.newSingleThreadExecutor()
 
         // Frame state is touched from the analyzer thread and from the listeners' main thread.
         val done = AtomicBoolean(false)
@@ -227,7 +244,7 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit) {
                     ResolutionSelector.Builder()
                         .setResolutionStrategy(
                             ResolutionStrategy(
-                                Size(1280, 720),
+                                CameraSize(1280, 720),
                                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
                             ),
                         )
@@ -238,13 +255,18 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit) {
             val reader = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
             recognizer = reader
 
-            analysis.setAnalyzer(executor) { frame ->
+            analysis.setAnalyzer(analysisExecutor) { frame ->
                 val media = frame.image
                 if (done.get() || media == null || !busy.compareAndSet(false, true)) {
                     frame.close()
                     return@setAnalyzer
                 }
-                reader.process(InputImage.fromMediaImage(media, frame.imageInfo.rotationDegrees))
+                // Only the framed part of the frame is read: fitting the label to the box puts its
+                // print in front of the model instead of a metre of shelf either side of it.
+                val framed = runCatching { framedBitmap(frame, latestAspect.value) }.getOrNull()
+                val input = framed?.let { InputImage.fromBitmap(it, 0) }
+                    ?: InputImage.fromMediaImage(media, frame.imageInfo.rotationDegrees)
+                reader.process(input)
                     .addOnSuccessListener { text ->
                         val lines = text.textBlocks.flatMap { block -> block.lines }
                             .map { line -> TagLine(line.text, line.boundingBox?.height() ?: 0) }
@@ -259,6 +281,7 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit) {
                         }
                     }
                     .addOnCompleteListener {
+                        framed?.recycle()
                         busy.set(false)
                         frame.close()
                     }
@@ -274,8 +297,75 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit) {
         }, executor)
 
         onDispose {
+            analysisExecutor.shutdown()
             recognizer?.close()
             provider?.unbindAll()
         }
     }
+}
+
+/** The box the label is fitted to: 88% of the width, 22% of the height, centred. */
+private const val FRAME_WIDTH = 0.88f
+private const val FRAME_HEIGHT = 0.22f
+
+/**
+ * The aim: a lit box with the shelf around it dimmed, so the label is held where it is read.
+ *
+ * It is drawn at fractions of the preview rather than measured pixels, because the reader maps the
+ * same fractions onto the camera frame — the box is the crop, not decoration.
+ */
+@Composable
+private fun TagFrame() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val left = size.width * (1f - FRAME_WIDTH) / 2f
+        val top = size.height * (1f - FRAME_HEIGHT) / 2f
+        val right = size.width - left
+        val bottom = size.height - top
+        val scrim = Color.Black.copy(alpha = 0.45f)
+        drawRect(scrim, size = Size(left, size.height))
+        drawRect(scrim, topLeft = Offset(right, 0f), size = Size(size.width - right, size.height))
+        drawRect(scrim, topLeft = Offset(left, 0f), size = Size(right - left, top))
+        drawRect(scrim, topLeft = Offset(left, bottom), size = Size(right - left, size.height - bottom))
+        drawRoundRect(
+            color = Color.White.copy(alpha = 0.85f),
+            topLeft = Offset(left, top),
+            size = Size(right - left, bottom - top),
+            cornerRadius = CornerRadius(16.dp.toPx()),
+            style = Stroke(width = 2.dp.toPx()),
+        )
+    }
+}
+
+/**
+ * The framed part of the camera frame, turned upright.
+ *
+ * The preview fills its view and crops whatever does not fit, so the box drawn on screen lands on a
+ * smaller rectangle inside the sensor image; this is that mapping. Null when the frame cannot be
+ * decoded, and the caller then reads the whole frame instead.
+ */
+private fun framedBitmap(frame: ImageProxy, viewAspect: Float): Bitmap? {
+    if (viewAspect <= 0f) return null
+    val source = frame.toBitmap()
+    val rotation = frame.imageInfo.rotationDegrees
+    val upright = if (rotation == 0) {
+        source
+    } else {
+        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+        Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
+            .also { if (it !== source) source.recycle() }
+    }
+    val width = upright.width
+    val height = upright.height
+    val imageAspect = width.toFloat() / height
+    // Fill-centre: the preview shows the largest centred part of the image with the view's shape.
+    val visibleWidth = minOf(1f, viewAspect / imageAspect)
+    val visibleHeight = minOf(1f, imageAspect / viewAspect)
+    val left = ((1f - visibleWidth) + (1f - FRAME_WIDTH) * visibleWidth) / 2f * width
+    val top = ((1f - visibleHeight) + (1f - FRAME_HEIGHT) * visibleHeight) / 2f * height
+    val x = left.toInt().coerceIn(0, width - 1)
+    val y = top.toInt().coerceIn(0, height - 1)
+    val w = (FRAME_WIDTH * visibleWidth * width).toInt().coerceAtMost(width - x)
+    val h = (FRAME_HEIGHT * visibleHeight * height).toInt().coerceAtMost(height - y)
+    if (w < 16 || h < 16) return upright
+    return Bitmap.createBitmap(upright, x, y, w, h).also { if (it !== upright) upright.recycle() }
 }

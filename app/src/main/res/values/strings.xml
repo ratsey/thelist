@@ -139,7 +139,7 @@
     <string name="price_prompt_aisle_at">Aisle at %1$s</string>
     <string name="tag_scan_action">Scan the shelf tag</string>
     <string name="tag_scan_title">Shelf tag</string>
-    <string name="tag_scan_hint">Point at the price label</string>
+    <string name="tag_scan_hint">Fit the price label in the box</string>
     <string name="tag_scan_seeing">Seeing %1$s</string>
     <string name="tag_scan_rate">Label says %1$s</string>
     <string name="msg_tag_unreadable">Nothing readable on that label</string>
