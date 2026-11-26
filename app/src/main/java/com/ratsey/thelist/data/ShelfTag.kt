@@ -30,12 +30,26 @@ private val MONEY_MARK = Regex("""[${'$'}S§](?=\s?[0-9])""")
 
 /**
  * The same price when the cents are printed small and raised (`$7⁵²`): recognition hands that back
- * with a space where the decimal point is, as `$7 52`.
+ * with a space where the decimal point is, as `$7 52`, and often drops the mark as well.
  *
- * The currency mark has to be there. Two numbers side by side are ordinary on a shelf label —
- * `FAC 1 CAP 8 0302` — and only the mark says the pair is money.
+ * Two numbers side by side are ordinary on a shelf label — `FAC 1 CAP 8 0302` — so a pair is money
+ * only when the mark is in front of it, or when the words on the line name a price
+ * (`RETAIL PRICE 7 52`). The mark is the first group, so the caller can tell which it was.
  */
-private val SPACED_MONEY = Regex("""[${'$'}S§]\s?([0-9]{1,4})\s+([0-9]{2})(?![0-9])""")
+private val SPACED_MONEY = Regex("""(?<![A-Z0-9])([${'$'}S§]?)\s?([0-9]{1,4})\s+([0-9]{2})(?![0-9])""")
+
+/**
+ * A price whose cents sit so far above the line that recognition put them on their own line:
+ * `RETAIL PRICE $7` and then `52`. Only a marked figure may be joined, so a modular position or a
+ * facility code under a bare number is never stitched onto it.
+ */
+private val OPEN_PRICE = Regex("""(?<![A-Z0-9])[${'$'}S§]\s?[0-9]{1,4}[.,]?$""")
+
+/** The line under an [OPEN_PRICE]: nothing but the two cents digits, and sometimes the point. */
+private val CENTS_ONLY = Regex("""[.,]?[0-9]{2}""")
+
+/** A space where the decimal point was: `7. 52`. */
+private val SPLIT_POINT = Regex("""([0-9])\.\s+(?=[0-9]{2}(?![0-9]))""")
 
 /** `UNIT PRICE`, and the `PER PT` that follows the rate on the line under it. */
 private val RATE_LINE = Regex("""\b(UNIT|PER)\b""")
@@ -72,7 +86,8 @@ private val PACK = Regex(
  */
 fun readShelfTag(lines: List<TagLine>): ShelfTag? {
     if (lines.isEmpty()) return null
-    val upper = lines.map { it.text.uppercase() }
+    val tagLines = joinSplitPrices(lines)
+    val upper = tagLines.map { it.text.uppercase() }
     val bare = upper.map { MONEY_MARK.replace(it, " ") }
 
     // Every figure on the label, and where it sits: a narrow tag can come back as one line holding
@@ -80,13 +95,13 @@ fun readShelfTag(lines: List<TagLine>): ShelfTag? {
     val figures = bare.indices.flatMap { i ->
         val withPoint = MONEY.findAll(bare[i]).mapNotNull { match ->
             val value = match.groupValues[1].replace(',', '.').toDoubleOrNull()
-            value?.let { Figure(line = i, price = it, height = lines[i].height, at = match.range.first) }
+            value?.let { Figure(line = i, price = it, height = tagLines[i].height, at = match.range.first) }
         }
         // Marks were stripped from `bare` one for one, so an offset found on `upper` is the same
-        // offset here; the spaced form needs the mark, so it is read from the line that still has it.
-        val raised = SPACED_MONEY.findAll(upper[i]).mapNotNull { match ->
-            val value = "${match.groupValues[1]}.${match.groupValues[2]}".toDoubleOrNull()
-            value?.let { Figure(line = i, price = it, height = lines[i].height, at = match.range.first) }
+        // offset here; the spaced form is read from the line that still has the marks.
+        val raised = spacedCents(upper[i]).mapNotNull { match ->
+            val value = "${match.groupValues[2]}.${match.groupValues[3]}".toDoubleOrNull()
+            value?.let { Figure(line = i, price = it, height = tagLines[i].height, at = match.range.first) }
         }
         (withPoint + raised).sortedBy { it.at }
     }
@@ -127,7 +142,7 @@ fun readShelfTag(lines: List<TagLine>): ShelfTag? {
     // can parse it: "CAP 8" is a shelf capacity, not eight of anything.
     val pack = bare.indices.firstNotNullOfOrNull { i ->
         if (MONEY.containsMatchIn(bare[i]) ||
-            SPACED_MONEY.containsMatchIn(upper[i]) ||
+            spacedCents(upper[i]).any() ||
             RATE_LINE.containsMatchIn(upper[i])
         ) {
             return@firstNotNullOfOrNull null
@@ -141,6 +156,44 @@ fun readShelfTag(lines: List<TagLine>): ShelfTag? {
     }
 
     return ShelfTag(price = best.price, pack = pack, rate = rate)
+}
+
+/**
+ * The spaced-out price on one line, when something on that line says the pair is money: either the
+ * mark in front of it, or the words (`RETAIL PRICE 7 52`) when the camera dropped the mark.
+ */
+private fun spacedCents(line: String): Sequence<MatchResult> =
+    SPACED_MONEY.findAll(line).filter { match ->
+        match.groupValues[1].isNotEmpty() || PRICE_LINE.containsMatchIn(line)
+    }
+
+/**
+ * The label joined back up where recognition split it along the price's own printing: raised cents
+ * come back as their own line (`$7`, then `52`), or with a space after the point (`7. 52`).
+ *
+ * Only a marked figure is joined, so `FAC 1 CAP 8` and the `0302` under it stay two numbers.
+ */
+private fun joinSplitPrices(lines: List<TagLine>): List<TagLine> {
+    val joined = ArrayList<TagLine>(lines.size)
+    var i = 0
+    while (i < lines.size) {
+        val text = lines[i].text.trim().uppercase()
+        val cents = lines.getOrNull(i + 1)?.text?.trim()
+        if (OPEN_PRICE.containsMatchIn(text) && cents != null && CENTS_ONLY.matches(cents)) {
+            val glue = if (cents.startsWith(".") || cents.startsWith(",")) "" else " "
+            joined += TagLine(
+                text = lines[i].text.trimEnd() + glue + cents,
+                height = maxOf(lines[i].height, lines[i + 1].height),
+            )
+            i += 2
+        } else {
+            joined += lines[i]
+            i++
+        }
+    }
+    return joined.map { line ->
+        TagLine(SPLIT_POINT.replace(line.text) { found -> found.groupValues[1] + "." }, line.height)
+    }
 }
 
 /** One figure on the label, and where on which line it was printed. */

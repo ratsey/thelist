@@ -140,6 +140,7 @@
     <string name="tag_scan_action">Scan the shelf tag</string>
     <string name="tag_scan_title">Shelf tag</string>
     <string name="tag_scan_hint">Point at the price label</string>
+    <string name="tag_scan_seeing">Seeing %1$s</string>
     <string name="tag_scan_rate">Label says %1$s</string>
     <string name="msg_tag_unreadable">Nothing readable on that label</string>
     <string name="price_prompt_stop_title">Stop asking for prices?</string>

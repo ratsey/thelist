@@ -2,11 +2,14 @@ package com.ratsey.thelist.ui.components
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
@@ -40,12 +43,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -57,8 +62,8 @@ import com.ratsey.thelist.R
 import com.ratsey.thelist.data.ShelfTag
 import com.ratsey.thelist.data.TagLine
 import com.ratsey.thelist.data.readShelfTag
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
 
 /**
  * The whole screen while a shelf label is being read.
@@ -67,6 +72,9 @@ import java.util.concurrent.atomic.AtomicReference
  * largest type on the shelf, and reading it needs nothing from the retailer or the network. It stops
  * when two frames agree on the same price, because one frame's misread digit is a wrong price and
  * the second look is nearly free.
+ *
+ * While it works, the pill at the bottom repeats the tallest line it has read, so a label it cannot
+ * price still shows whether the camera is reading the tag at all.
  */
 @Composable
 fun ShelfTagScannerScreen(
@@ -81,6 +89,7 @@ fun ShelfTagScannerScreen(
                 PackageManager.PERMISSION_GRANTED,
         )
     }
+    var seen by remember { mutableStateOf<String?>(null) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted = it }
@@ -90,7 +99,7 @@ fun ShelfTagScannerScreen(
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
         if (granted) {
-            TagCamera(onTag = onTag)
+            TagCamera(onTag = onTag, onSeen = { seen = it })
         } else {
             Column(
                 modifier = Modifier
@@ -162,9 +171,12 @@ fun ShelfTagScannerScreen(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = stringResource(R.string.tag_scan_hint),
+                        text = seen?.let { stringResource(R.string.tag_scan_seeing, it) }
+                            ?: stringResource(R.string.tag_scan_hint),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -173,7 +185,7 @@ fun ShelfTagScannerScreen(
 }
 
 @Composable
-private fun TagCamera(onTag: (ShelfTag) -> Unit) {
+private fun TagCamera(onTag: (ShelfTag) -> Unit, onSeen: (String?) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context) }
@@ -183,7 +195,13 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit) {
         modifier = Modifier.fillMaxSize(),
     )
 
-    DisposableEffect(lifecycleOwner, onTag) {
+    // The screen recomposes whenever the prompt behind it changes, and those lambdas are new objects
+    // each time; keying the effect on them tore the camera down mid-scan and threw away every frame
+    // read so far, so no two reads ever agreed. Read them through, and key on the lifecycle alone.
+    val latestOnTag = rememberUpdatedState(onTag)
+    val latestOnSeen = rememberUpdatedState(onSeen)
+
+    DisposableEffect(lifecycleOwner) {
         val executor = ContextCompat.getMainExecutor(context)
         val providerFuture = ProcessCameraProvider.getInstance(context)
         var provider: ProcessCameraProvider? = null
@@ -192,7 +210,9 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit) {
         // Frame state is touched from the analyzer thread and from the listeners' main thread.
         val done = AtomicBoolean(false)
         val busy = AtomicBoolean(false)
-        val previous = AtomicReference<Double?>(null)
+        // Every price read so far. The second frame that agrees need not be its neighbour: a frame
+        // that reads nothing is the camera moving, not a disagreement about the digits.
+        val agreed = ConcurrentHashMap<Double, ShelfTag>()
 
         providerFuture.addListener({
             val bound = providerFuture.get()
@@ -200,7 +220,19 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit) {
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
+            // A shelf label is small print read at arm's length, and the default analysis frame is
+            // 640x480: the cents end up a few pixels tall, below what the model can recognise.
             val analysis = ImageAnalysis.Builder()
+                .setResolutionSelector(
+                    ResolutionSelector.Builder()
+                        .setResolutionStrategy(
+                            ResolutionStrategy(
+                                Size(1280, 720),
+                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                            ),
+                        )
+                        .build(),
+                )
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
             val reader = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -216,12 +248,14 @@ private fun TagCamera(onTag: (ShelfTag) -> Unit) {
                     .addOnSuccessListener { text ->
                         val lines = text.textBlocks.flatMap { block -> block.lines }
                             .map { line -> TagLine(line.text, line.boundingBox?.height() ?: 0) }
+                        lines.maxByOrNull { it.height }?.text?.trim()?.take(32)
+                            ?.takeIf { it.isNotEmpty() }
+                            ?.let { latestOnSeen.value(it) }
                         val tag = readShelfTag(lines)
-                        if (tag?.price != null && tag.price == previous.get()) {
+                        val price = tag?.price ?: return@addOnSuccessListener
+                        if (agreed.putIfAbsent(price, tag) != null) {
                             done.set(true)
-                            onTag(tag)
-                        } else {
-                            previous.set(tag?.price)
+                            latestOnTag.value(tag)
                         }
                     }
                     .addOnCompleteListener {

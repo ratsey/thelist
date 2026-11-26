@@ -133,6 +133,52 @@ class ShelfTagTest {
     }
 
     @Test
+    fun `raised cents on the next line are joined to the price above`() {
+        // What the same label looks like when recognition puts the small raised cents on a line of
+        // their own instead of keeping them beside the dollar figure.
+        val tag = readShelfTag(
+            listOf(
+                TagLine("BERTOLI OO SUSTAIN", 24),
+                TagLine("RETAIL PRICE", 22),
+                TagLine("$7", 50),
+                TagLine("52", 34),
+                TagLine("UNIT PRICE", 20),
+                TagLine("$7", 30),
+                TagLine("12", 20),
+                TagLine("PER", 18),
+                TagLine("PT", 18),
+            ),
+        )
+
+        assertEquals(7.52, tag?.price!!, 0.0001)
+        assertEquals(7.12, tag.rate!!.per, 0.0001)
+        assertEquals("pt", tag.rate!!.label)
+    }
+
+    @Test
+    fun `a bare number is not joined onto the number above it`() {
+        val tag = readShelfTag(lines("BERTOLI OO SUSTAIN", "FAC 1 CAP 8", "0302", "35"))
+
+        assertNull(tag)
+    }
+
+    @Test
+    fun `spaced cents are read without a mark when the line says it is the price`() {
+        // The camera often loses the dollar sign on a dim shelf; the words still say what it is.
+        val tag = readShelfTag(
+            lines("OLIVE OIL", "RETAIL PRICE 7 52", "UNIT PRICE 7 12", "PER PT"),
+        )
+
+        assertEquals(7.52, tag?.price!!, 0.0001)
+        assertEquals(7.12, tag.rate!!.per, 0.0001)
+    }
+
+    @Test
+    fun `a bare pair of numbers is not a price unless the line names one`() {
+        assertNull(readShelfTag(lines("PAPER TOWELS", "6 99", "SNAP")))
+    }
+
+    @Test
     fun `a metric pack size is kept as the app spells it`() {
         val tag = readShelfTag(lines("OLIVE OIL 500ML", "RETAIL PRICE", "$7.52"))
 
