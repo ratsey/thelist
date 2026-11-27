@@ -136,6 +136,26 @@ class ItemRepositoryTest {
     }
 
     @Test
+    fun `the chain is shelf to buy to basket and back`() = runBlocking {
+        repository.add("Milk")
+        val item = rows().single()
+
+        // On the list, then in the basket: one row, one step forward each time.
+        repository.complete(item)
+        assertTrue(rows().single().let { it.onList && it.completedAt != null })
+
+        // Out of the basket is one step back — onto the list, not onto the shelf.
+        repository.restore(rows().single())
+        val back = rows().single()
+        assertTrue(back.onList)
+        assertEquals(null, back.completedAt)
+
+        // And off the list is the shelf.
+        repository.putAway(back)
+        assertFalse(rows().single().onList)
+    }
+
+    @Test
     fun `a version the product already has is left alone`() = runBlocking {
         repository.add("Tea / Green", onList = false)
         repository.add("Green Tea", onList = false)

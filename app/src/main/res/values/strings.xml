@@ -34,7 +34,7 @@
     <string name="empty_active_title">Your list is empty</string>
     <string name="empty_active_body">Add what you need below, or pick from the Shelf tab. Swipe right when you\'ve got something; swipe left to put it away.</string>
     <string name="empty_basket_title">Nothing in your basket yet</string>
-    <string name="empty_basket_body">Swipe an item right once you\'ve got it. Swipe it left to put it back on the shelf.</string>
+    <string name="empty_basket_body">Swipe an item right in To buy once you\'ve got it and it lands here. Swipe it left to put it back on the list.</string>
 
     <string name="swipe_hint">Swipe right when you\'ve got it — it moves to your basket. Swipe left to put it back on the shelf.</string>
     <string name="swipe_got_it">Got it</string>

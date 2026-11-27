@@ -473,7 +473,6 @@ fun BasketList(
     summaries: Map<String, PriceSummary>,
     currentStoreId: String? = null,
     onToggle: (Item) -> Unit,
-    onPutAway: (Item) -> Unit,
     onOpenDetails: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
@@ -514,14 +513,12 @@ fun BasketList(
                         summary = summaries[historyKey(ItemMatcher.productKey(item.name), item.variant)],
                         currentStoreId = currentStoreId,
                     ),
-                    // In the basket, forward is done with it: onto the shelf, as at checkout.
-                    swipeRight = SwipeAction(
-                        label = R.string.swipe_put_away,
-                        icon = Icons.Rounded.Archive,
-                        onClick = { onPutAway(item) },
-                        muted = true,
-                    ),
-                    // Back a step, for the thing you put in but did not buy.
+                    // Nothing is further forward than being in the basket, so a swipe that way
+                    // does not exist: the shelf is reached by leaving the list, not by skipping
+                    // the step back.
+                    swipeRight = null,
+                    // Back a step, for the thing you put in but did not buy — which is also how
+                    // anything leaves the basket one at a time.
                     swipeLeft = SwipeAction(
                         label = R.string.swipe_add_back,
                         icon = Icons.Rounded.Add,

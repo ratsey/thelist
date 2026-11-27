@@ -202,8 +202,13 @@ data class SwipeAction(
 @Composable
 fun ItemRow(
     item: Item,
-    swipeRight: SwipeAction,
-    swipeLeft: SwipeAction,
+    /**
+     * What swiping towards the end of the list does, or null when there is nothing further to move
+     * to: the gesture then does not exist rather than doing something out of the chain.
+     */
+    swipeRight: SwipeAction?,
+    /** As [swipeRight], for the way back a step. */
+    swipeLeft: SwipeAction?,
     onOpenPrices: () -> Unit,
     onOpenActions: () -> Unit,
     /** Opens the per-shop comparison; null on rows with no history to compare. */
@@ -222,8 +227,8 @@ fun ItemRow(
 
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> swipeRight.onClick()
-                SwipeToDismissBoxValue.EndToStart -> swipeLeft.onClick()
+                SwipeToDismissBoxValue.StartToEnd -> swipeRight?.onClick()
+                SwipeToDismissBoxValue.EndToStart -> swipeLeft?.onClick()
                 SwipeToDismissBoxValue.Settled -> Unit
             }
 
@@ -240,13 +245,17 @@ fun ItemRow(
         modifier = modifier.clip(RoundedCornerShape(14.dp)),
         backgroundContent = {
             when (dismissState.dismissDirection) {
-                SwipeToDismissBoxValue.StartToEnd -> SwipeReveal(swipeRight, alignEnd = false)
-                SwipeToDismissBoxValue.EndToStart -> SwipeReveal(swipeLeft, alignEnd = true)
+                SwipeToDismissBoxValue.StartToEnd ->
+                    if (swipeRight != null) SwipeReveal(swipeRight, alignEnd = false)
+
+                SwipeToDismissBoxValue.EndToStart ->
+                    if (swipeLeft != null) SwipeReveal(swipeLeft, alignEnd = true)
+
                 SwipeToDismissBoxValue.Settled -> Unit
             }
         },
-        enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = true,
+        enableDismissFromStartToEnd = swipeRight != null,
+        enableDismissFromEndToStart = swipeLeft != null,
     ) {
         ItemCard(
             item = item,

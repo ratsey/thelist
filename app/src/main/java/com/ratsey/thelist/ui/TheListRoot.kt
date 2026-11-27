@@ -298,7 +298,6 @@ fun TheListRoot(viewModel: ListViewModel) {
                             summaries = summaries,
                             currentStoreId = currentStoreId,
                             onToggle = viewModel::move,
-                            onPutAway = viewModel::putAway,
                             onOpenDetails = { placementItem = it },
                             onOpenActions = { actionSheetItem = it },
                         )
