@@ -55,6 +55,13 @@ interface PurchaseLineDao {
     @Query("SELECT * FROM purchase_lines WHERE listId = :listId")
     suspend fun all(listId: String): List<PurchaseLine>
 
+    /** The priced lines one row wrote, so a row that changes identity can take its prices along. */
+    @Query(
+        "SELECT * FROM purchase_lines WHERE listId = :listId AND matchedItemId = :itemId " +
+            "AND deletedAt IS NULL",
+    )
+    suspend fun forItem(listId: String, itemId: String): List<PurchaseLine>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(line: PurchaseLine)
 

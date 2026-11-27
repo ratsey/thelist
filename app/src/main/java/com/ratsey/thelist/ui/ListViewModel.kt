@@ -342,7 +342,9 @@ class ListViewModel(
         if (name.isEmpty()) return
         viewModelScope.launch {
             when (repository.add(name)) {
-                ItemRepository.AddOutcome.AlreadyListed ->
+                // Adding to the list never answers "on the shelf": that row is revived instead.
+                ItemRepository.AddOutcome.AlreadyListed,
+                ItemRepository.AddOutcome.AlreadyOnShelf ->
                     _messages.send(UiMessage(R.string.msg_already_listed))
 
                 ItemRepository.AddOutcome.Readded ->
@@ -366,16 +368,43 @@ class ListViewModel(
         if (variant.isEmpty()) return
         if (ItemNames.key(variant) == ItemNames.key(item.variant.orEmpty())) return
         val name = ItemNames.parse(item.name).name
+        // The row you acted on decides where the new version goes: a version of something you keep
+        // is kept beside it (the shelf), and a version of something you are buying is bought too.
+        val onList = item.onList
         viewModelScope.launch {
-            when (repository.add("$name / $variant", item.storeId, item.location)) {
-                ItemRepository.AddOutcome.AlreadyListed ->
+            val outcome = repository.add("$name / $variant", item.storeId, item.location, onList)
+            when (outcome) {
+                // Adding to the list never answers "on the shelf": that row is revived instead.
+                ItemRepository.AddOutcome.AlreadyListed,
+                ItemRepository.AddOutcome.AlreadyOnShelf ->
                     _messages.send(UiMessage(R.string.msg_already_listed))
+
+                ItemRepository.AddOutcome.AlreadyOnShelf ->
+                    _messages.send(UiMessage(R.string.msg_already_shelf))
 
                 ItemRepository.AddOutcome.Readded ->
                     _messages.send(UiMessage(R.string.msg_readded))
 
                 ItemRepository.AddOutcome.Added ->
                     _messages.send(UiMessage(R.string.msg_type_added))
+            }
+            scheduleSync()
+        }
+    }
+
+    /**
+     * A row that turned out to be a version of something else: the scanned tea joins the tea it
+     * belongs with, instead of standing beside it as a product of its own. The prices it has
+     * already earned travel with it, because they are its own version's prices.
+     */
+    fun makeVariant(item: Item, product: String, variant: String?) {
+        viewModelScope.launch {
+            when (repository.makeVariant(item, product, variant)) {
+                ItemRepository.VariantOutcome.AlreadyTaken ->
+                    _messages.send(UiMessage(R.string.msg_variant_taken))
+
+                ItemRepository.VariantOutcome.Moved ->
+                    _messages.send(UiMessage(R.string.msg_variant_moved))
             }
             scheduleSync()
         }
@@ -425,7 +454,9 @@ class ListViewModel(
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             when (repository.addScanned(trimmed, amount?.trim()?.takeIf { it.isNotEmpty() })) {
-                ItemRepository.AddOutcome.AlreadyListed ->
+                // Adding to the list never answers "on the shelf": that row is revived instead.
+                ItemRepository.AddOutcome.AlreadyListed,
+                ItemRepository.AddOutcome.AlreadyOnShelf ->
                     _messages.send(UiMessage(R.string.msg_already_listed))
 
                 ItemRepository.AddOutcome.Readded ->

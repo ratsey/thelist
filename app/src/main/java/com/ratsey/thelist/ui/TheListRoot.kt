@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ratsey.thelist.BuildConfig
 import com.ratsey.thelist.R
 import com.ratsey.thelist.data.Item
+import com.ratsey.thelist.data.ItemNames
 import com.ratsey.thelist.ui.components.AboutDialog
 import com.ratsey.thelist.ui.components.AddItemBar
 import com.ratsey.thelist.ui.components.BasketList
@@ -42,6 +43,7 @@ import com.ratsey.thelist.ui.components.CheckoutSheet
 import com.ratsey.thelist.ui.components.ConfirmDialog
 import com.ratsey.thelist.ui.components.HomeHeader
 import com.ratsey.thelist.ui.components.AddTypeDialog
+import com.ratsey.thelist.ui.components.MakeVariantDialog
 import com.ratsey.thelist.ui.components.ItemActionsSheet
 import com.ratsey.thelist.ui.components.PriceCompareSheet
 import com.ratsey.thelist.ui.components.PlacementDialog
@@ -90,6 +92,13 @@ fun TheListRoot(viewModel: ListViewModel) {
     val measureSystem by viewModel.measureSystem.collectAsStateWithLifecycle()
     val scanUi by viewModel.scanUi.collectAsStateWithLifecycle()
     val summaries = remember(priceSummaries) { priceSummaries.associateBy { it.key } }
+    // What a row could join: every product the app already keeps, one line each.
+    val productNames = remember(shelfItems, activeItems, basketItems) {
+        (shelfItems + activeItems + basketItems)
+            .map { ItemNames.parse(it.name).name }
+            .distinctBy { ItemNames.key(it) }
+            .sortedBy { it.lowercase() }
+    }
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -101,6 +110,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     var shelfActionItem by remember { mutableStateOf<Item?>(null) }
     var renameTarget by remember { mutableStateOf<Item?>(null) }
     var addTypeTarget by remember { mutableStateOf<Item?>(null) }
+    var makeVariantTarget by remember { mutableStateOf<Item?>(null) }
     var showCheckout by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
@@ -332,6 +342,10 @@ fun TheListRoot(viewModel: ListViewModel) {
                 actionSheetItem = null
                 addTypeTarget = item
             },
+            onMakeVariant = {
+                actionSheetItem = null
+                makeVariantTarget = item
+            },
             onPlacement = {
                 actionSheetItem = null
                 placementItem = item
@@ -367,6 +381,10 @@ fun TheListRoot(viewModel: ListViewModel) {
                 shelfActionItem = null
                 addTypeTarget = item
             },
+            onMakeVariant = {
+                shelfActionItem = null
+                makeVariantTarget = item
+            },
             onPlacement = {
                 shelfActionItem = null
                 placementItem = item
@@ -385,6 +403,20 @@ fun TheListRoot(viewModel: ListViewModel) {
             onConfirm = { name, variant ->
                 viewModel.rename(item, name, variant)
                 renameTarget = null
+            },
+        )
+    }
+
+    makeVariantTarget?.let { item ->
+        // Its own product is not a place to move it to, so it is not offered.
+        val own = ItemNames.key(ItemNames.parse(item.name).name)
+        MakeVariantDialog(
+            item = item,
+            products = productNames.filter { ItemNames.key(it) != own },
+            onDismiss = { makeVariantTarget = null },
+            onConfirm = { product, variant ->
+                viewModel.makeVariant(item, product, variant)
+                makeVariantTarget = null
             },
         )
     }

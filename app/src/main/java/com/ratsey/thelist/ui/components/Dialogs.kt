@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.MergeType
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Storefront
@@ -106,6 +107,7 @@ fun ItemActionsSheet(
     onToggle: () -> Unit,
     onRename: () -> Unit,
     onAddType: () -> Unit,
+    onMakeVariant: () -> Unit,
     onPlacement: () -> Unit,
     onOpenPrices: () -> Unit,
     onCompare: () -> Unit,
@@ -155,6 +157,13 @@ fun ItemActionsSheet(
                     onClick = onAddType,
                 )
             }
+            // The other direction: this row turns out to belong to something already kept — the
+            // scanned tea is a tea — which is a different question from "what else is this".
+            SheetAction(
+                icon = Icons.Rounded.MergeType,
+                label = stringResource(R.string.action_make_variant),
+                onClick = onMakeVariant,
+            )
             SheetAction(
                 icon = Icons.Rounded.Place,
                 label = stringResource(R.string.action_placement),
@@ -199,6 +208,7 @@ fun ShelfActionsSheet(
     onAdd: () -> Unit,
     onRename: () -> Unit,
     onAddType: () -> Unit,
+    onMakeVariant: () -> Unit,
     onPlacement: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -241,6 +251,13 @@ fun ShelfActionsSheet(
                     onClick = onAddType,
                 )
             }
+            // The other direction: this row turns out to belong to something already kept — the
+            // scanned tea is a tea — which is a different question from "what else is this".
+            SheetAction(
+                icon = Icons.Rounded.MergeType,
+                label = stringResource(R.string.action_make_variant),
+                onClick = onMakeVariant,
+            )
             SheetAction(
                 icon = Icons.Rounded.Place,
                 label = stringResource(R.string.action_placement),
@@ -383,6 +400,117 @@ fun AddTypeDialog(
             TextButton(
                 onClick = { onConfirm(variant) },
                 enabled = variant.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/**
+ * A row that turned out to be a version of something else: the scanned tea belongs with the tea,
+ * not beside it. The product is picked from what is already kept, because joining is only worth
+ * doing to something that exists, and the type is typed, because that is what makes it a
+ * different buy.
+ */
+@Composable
+fun MakeVariantDialog(
+    item: Item,
+    products: List<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (product: String, variant: String) -> Unit,
+) {
+    val own = ItemNames.parse(item.name).name
+    var product by remember { mutableStateOf(products.firstOrNull().orEmpty()) }
+    // A row of its own is most often "Earl Grey" and wants to be "Tea / Earl Grey"; a row that is
+    // already a version keeps the type it has and only changes which product it belongs to.
+    var variant by remember { mutableStateOf(item.variant?.trim().orEmpty().ifEmpty { own }) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.variant_move_title)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.variant_move_body, item.name),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+                if (products.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.variant_move_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 220.dp)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        products.forEach { name ->
+                            val selected = name == product
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable { product = name }
+                                    .padding(horizontal = 6.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(Modifier.size(22.dp)) {
+                                    if (selected) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (selected) {
+                                        MaterialTheme.colorScheme.onSurface
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = variant,
+                        onValueChange = { variant = it },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.rename_variant)) },
+                        placeholder = { Text(stringResource(R.string.rename_variant_hint)) },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                if (product.isNotBlank() && variant.isNotBlank()) {
+                                    onConfirm(product, variant)
+                                }
+                            },
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(product, variant) },
+                enabled = product.isNotBlank() && variant.isNotBlank(),
             ) {
                 Text(stringResource(R.string.action_save))
             }

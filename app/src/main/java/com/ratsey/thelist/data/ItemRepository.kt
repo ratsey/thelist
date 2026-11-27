@@ -1,6 +1,7 @@
 package com.ratsey.thelist.data
 
 import androidx.room.withTransaction
+import com.ratsey.thelist.receipt.ItemMatcher
 import com.ratsey.thelist.sync.SyncPayloads
 import kotlinx.coroutines.flow.Flow
 
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 class ItemRepository(private val db: AppDatabase) {
 
     private val dao = db.itemDao()
+    private val lines = db.purchaseLineDao()
     private val outbox = db.syncDao()
 
     fun observeActive(): Flow<List<Item>> = dao.observeActive(Item.DEFAULT_LIST_ID)
@@ -19,8 +21,11 @@ class ItemRepository(private val db: AppDatabase) {
 
     fun observeShelf(): Flow<List<Item>> = dao.observeShelf(Item.DEFAULT_LIST_ID)
 
-    /** What an add actually did, so the UI can say "already on your list" instead of nothing. */
-    enum class AddOutcome { Added, Readded, AlreadyListed }
+    /**
+     * What an add actually did, so the UI can say "already on your list" instead of nothing.
+     * [AlreadyOnShelf] is the shelf's answer: the version is kept, and asking again changes nothing.
+     */
+    enum class AddOutcome { Added, Readded, AlreadyListed, AlreadyOnShelf }
 
     /**
      * Adds a name, or revives the existing row (from the basket or a tombstone) rather than
@@ -36,10 +41,25 @@ class ItemRepository(private val db: AppDatabase) {
         /** Where the new row lives, when it is a second version of a row already placed. */
         storeId: String? = null,
         location: String? = null,
+        /**
+         * Whether a new row joins the list to buy or is kept on the shelf for next time. A version
+         * added from the shelf is a version kept, not an errand: it waits there until it is swiped.
+         */
+        onList: Boolean = true,
     ): AddOutcome {
         val parsed = ItemNames.parse(raw)
         val now = System.currentTimeMillis()
         val existing = ItemNames.findExisting(dao.live(Item.DEFAULT_LIST_ID), raw)
+
+        if (existing != null && !onList) {
+            // Adding to the shelf never moves a row that already exists, either way round: the
+            // question was "also keep this version", and the answer is that it is kept.
+            return if (existing.onList && existing.completedAt == null) {
+                AddOutcome.AlreadyListed
+            } else {
+                AddOutcome.AlreadyOnShelf
+            }
+        }
 
         // A shelf row is off the list with no completion time, so the check needs both flags.
         if (existing != null && existing.onList && existing.completedAt == null) {
@@ -58,6 +78,7 @@ class ItemRepository(private val db: AppDatabase) {
         val item = Item(
             name = parsed.name,
             variant = parsed.variant,
+            onList = onList,
             storeId = storeId,
             location = location,
             createdAt = now,
@@ -127,6 +148,59 @@ class ItemRepository(private val db: AppDatabase) {
             dao.setNameAndVariant(item.id, trimmedName, trimmedVariant, now)
             enqueue(updated)
         }
+    }
+
+    /** What making a row a version of another product did. */
+    enum class VariantOutcome { Moved, AlreadyTaken }
+
+    /**
+     * Makes a row a version of another product: the scanned tea becomes "Tea / Green" instead of a
+     * product standing beside the tea. One shelf, one product, its own prices.
+     *
+     * The prices come with it. History hangs off the product and the type, so the lines this row
+     * wrote are restated under the identity it now has — a version that lost the prices it earned
+     * would be a new product wearing an old row's shop and aisle. Nothing else moves: the
+     * product's other versions keep their own histories.
+     */
+    suspend fun makeVariant(item: Item, rawName: String, rawVariant: String?): VariantOutcome {
+        val name = rawName.trim()
+        if (name.isEmpty()) return VariantOutcome.Moved
+        val variant = rawVariant?.trim()?.takeIf { it.isNotEmpty() }
+
+        // A product already has this version: two rows with one identity would be one product
+        // counted twice, and there is nothing to merge them with here.
+        val wanted = ItemNames.productKey(name, variant)
+        val taken = dao.live(Item.DEFAULT_LIST_ID).any { other ->
+            other.id != item.id && ItemNames.productKey(other.name, other.variant) == wanted
+        }
+        if (taken) return VariantOutcome.AlreadyTaken
+
+        val now = System.currentTimeMillis()
+        val moved = item.copy(name = name, variant = variant, updatedAt = now)
+        val rekeyed = lines.forItem(Item.DEFAULT_LIST_ID, item.id).map { line ->
+            line.copy(
+                productKey = ItemMatcher.productKey(name),
+                displayName = name,
+                variant = variant,
+                updatedAt = now,
+            )
+        }
+        db.withTransaction {
+            dao.setNameAndVariant(item.id, name, variant, now)
+            rekeyed.forEach { line ->
+                lines.upsert(line)
+                outbox.enqueue(
+                    SyncOp(
+                        entity = SyncOp.ENTITY_LINE,
+                        entityId = line.id,
+                        payload = SyncPayloads.lineJson(line),
+                        updatedAt = line.updatedAt,
+                    ),
+                )
+            }
+            enqueue(moved)
+        }
+        return VariantOutcome.Moved
     }
 
     suspend fun delete(item: Item) {

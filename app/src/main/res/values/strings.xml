@@ -46,6 +46,10 @@
     <string name="action_rename">Rename</string>
     <string name="action_name_and_type">Name and type</string>
     <string name="action_add_type">Add another type</string>
+    <string name="action_make_variant">Make a version of…</string>
+    <string name="variant_move_title">Version of what?</string>
+    <string name="variant_move_body">%1$s becomes a version of a product you already keep, with its own prices. Pick the product.</string>
+    <string name="variant_move_empty">Nothing else to join yet — add another item first.</string>
     <string name="add_type_title">Another type of %1$s</string>
     <string name="add_type_body">Its own row and its own prices, in the same shop and aisle.</string>
     <string name="rename_variant">Type</string>
@@ -192,6 +196,9 @@
     <string name="msg_already_listed">Already on your list</string>
     <string name="msg_readded">Back on the list</string>
     <string name="msg_type_added">Added another type</string>
+    <string name="msg_already_shelf">Already on the shelf</string>
+    <string name="msg_variant_moved">Now a version</string>
+    <string name="msg_variant_taken">That product already has this version</string>
     <string name="msg_moved_basket">Moved to your basket</string>
     <string name="msg_moved_active">Back on the list</string>
     <string name="msg_deleted">Deleted</string>
