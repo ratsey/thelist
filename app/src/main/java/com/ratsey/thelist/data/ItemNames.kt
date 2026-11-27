@@ -109,12 +109,64 @@ fun variantChoices(shelf: List<Item>, item: Item): List<String> {
     val product = ItemNames.key(ItemNames.parse(item.name).name)
     val versions = shelf
         .filter { other -> ItemNames.key(ItemNames.parse(other.name).name) == product }
-        // A row written before types had a column keeps its type after the slash in the name, and
-        // that is still a version you can pick.
-        .mapNotNull { other ->
-            (other.variant ?: ItemNames.parse(other.name).variant)?.trim()?.takeIf { it.isNotEmpty() }
-        }
+        .mapNotNull(::versionLabel)
         .distinctBy { ItemNames.key(it) }
         .sortedBy { it.lowercase(Locale.ROOT) }
     return if (versions.size > 1) versions else emptyList()
+}
+
+/**
+ * The version a row says it is. A row written before types had a column keeps its type after the
+ * slash in the name, and that is still a version you can pick.
+ */
+fun versionLabel(item: Item): String? =
+    (item.variant ?: ItemNames.parse(item.name).variant)?.trim()?.takeIf { it.isNotEmpty() }
+
+/**
+ * A line on the shelf: one row, or every version of one product gathered onto one.
+ *
+ * Full fat and skimmed are different products to the list — each keeps its own prices — but on the
+ * shelf they are one errand, and two lines both saying "Milk" is the thing the types were meant to
+ * stop. The versions gather onto a line and the choosing happens at the swipe, when it is needed.
+ */
+data class ShelfGroup(
+    /** What the line is called: the row's own name, or the product's when it gathers versions. */
+    val label: String,
+    /** The type under the name, when the line stands for a single row. */
+    val variant: String?,
+    /** The versions gathered here, sorted; empty when the line stands for a single row. */
+    val variants: List<String>,
+    val items: List<Item>,
+) {
+    /** What the lazy list keys on: a gathered line outlives any one row it was built from. */
+    val key: String = if (items.size == 1) items.first().id else "product:" + ItemNames.key(label)
+}
+
+/**
+ * The shelf as it should be drawn. A product with one version stays the row it always was, name and
+ * type printed; a product with several becomes one line carrying the versions for [variantChoices],
+ * which is the same list the swipe's prompt offers.
+ *
+ * Rows that share a name but carry no type are not versions — there is nothing to choose between
+ * them — so they stay separate, as duplicates waiting to be pruned. Order follows the shelf: a
+ * product sits where its first row did, and its versions are sorted so the line never moves.
+ */
+fun shelfGroups(shelf: List<Item>): List<ShelfGroup> {
+    val groups = mutableListOf<ShelfGroup>()
+    shelf.groupBy { item -> ItemNames.key(ItemNames.parse(item.name).name) }.forEach { (_, rows) ->
+        val versions = variantChoices(shelf, rows.first())
+        if (versions.isEmpty()) {
+            rows.forEach { row ->
+                groups += ShelfGroup(row.name, row.variant, emptyList(), listOf(row))
+            }
+        } else {
+            groups += ShelfGroup(
+                label = ItemNames.parse(rows.first().name).name,
+                variant = null,
+                variants = versions,
+                items = rows.sortedBy { versionLabel(it)?.lowercase(Locale.ROOT) },
+            )
+        }
+    }
+    return groups
 }

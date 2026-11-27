@@ -65,6 +65,12 @@
     <string name="shelf_empty_title">Nothing on the shelf yet</string>
     <string name="shelf_empty_body">Swipe an item left to put it away, or clear your basket after a shop, and it waits here so next week\'s list takes a swipe instead of typing.</string>
     <string name="shelf_no_matches">Nothing matches that</string>
+    <string name="shelf_variants_body">Pick a version to rename, place or delete.</string>
+    <string name="shelf_no_type">No type</string>
+    <plurals name="shelf_variants_available">
+        <item quantity="one">%d variant available</item>
+        <item quantity="other">%d variants available</item>
+    </plurals>
 
     <string name="action_placement">Where and how much</string>
     <string name="action_prices">Price history</string>
