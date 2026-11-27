@@ -340,6 +340,33 @@ class ListViewModel(
         }
     }
 
+    /**
+     * A second version of something already on the list: "Milk / Skimmed" beside "Milk / Full Fat".
+     * The product name is the row's, so both rows stay one product with two versions, and the shop
+     * and aisle carry over because it is the same shelf. The amount and the price do not: they were
+     * written for the version in hand. A version already on the shelf comes back as that row, with
+     * the history it earned, instead of a second copy starting from nothing.
+     */
+    fun addType(item: Item, rawVariant: String) {
+        val variant = rawVariant.trim()
+        if (variant.isEmpty()) return
+        if (ItemNames.key(variant) == ItemNames.key(item.variant.orEmpty())) return
+        val name = ItemNames.parse(item.name).name
+        viewModelScope.launch {
+            when (repository.add("$name / $variant", item.storeId, item.location)) {
+                ItemRepository.AddOutcome.AlreadyListed ->
+                    _messages.send(UiMessage(R.string.msg_already_listed))
+
+                ItemRepository.AddOutcome.Readded ->
+                    _messages.send(UiMessage(R.string.msg_readded))
+
+                ItemRepository.AddOutcome.Added ->
+                    _messages.send(UiMessage(R.string.msg_type_added))
+            }
+            scheduleSync()
+        }
+    }
+
     // ------------------------------------------------------------------ scan to add
 
     private val _scanUi = MutableStateFlow<ScanUi?>(null)

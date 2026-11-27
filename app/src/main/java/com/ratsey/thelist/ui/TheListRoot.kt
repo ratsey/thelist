@@ -41,6 +41,7 @@ import com.ratsey.thelist.ui.components.BarcodeScannerScreen
 import com.ratsey.thelist.ui.components.CheckoutSheet
 import com.ratsey.thelist.ui.components.ConfirmDialog
 import com.ratsey.thelist.ui.components.HomeHeader
+import com.ratsey.thelist.ui.components.AddTypeDialog
 import com.ratsey.thelist.ui.components.ItemActionsSheet
 import com.ratsey.thelist.ui.components.PriceCompareSheet
 import com.ratsey.thelist.ui.components.PlacementDialog
@@ -98,6 +99,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     var actionSheetItem by remember { mutableStateOf<Item?>(null) }
     var shelfActionItem by remember { mutableStateOf<Item?>(null) }
     var renameTarget by remember { mutableStateOf<Item?>(null) }
+    var addTypeTarget by remember { mutableStateOf<Item?>(null) }
     var showCheckout by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
@@ -307,6 +309,10 @@ fun TheListRoot(viewModel: ListViewModel) {
                 actionSheetItem = null
                 renameTarget = item
             },
+            onAddType = {
+                actionSheetItem = null
+                addTypeTarget = item
+            },
             onPlacement = {
                 actionSheetItem = null
                 placementItem = item
@@ -338,6 +344,10 @@ fun TheListRoot(viewModel: ListViewModel) {
                 shelfActionItem = null
                 renameTarget = item
             },
+            onAddType = {
+                shelfActionItem = null
+                addTypeTarget = item
+            },
             onPlacement = {
                 shelfActionItem = null
                 placementItem = item
@@ -356,6 +366,17 @@ fun TheListRoot(viewModel: ListViewModel) {
             onConfirm = { name, variant ->
                 viewModel.rename(item, name, variant)
                 renameTarget = null
+            },
+        )
+    }
+
+    addTypeTarget?.let { item ->
+        AddTypeDialog(
+            item = item,
+            onDismiss = { addTypeTarget = null },
+            onConfirm = { variant ->
+                viewModel.addType(item, variant)
+                addTypeTarget = null
             },
         )
     }

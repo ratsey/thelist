@@ -46,6 +46,9 @@
     <string name="action_add_back">Add back to the list</string>
     <string name="action_rename">Rename</string>
     <string name="action_name_and_type">Name and type</string>
+    <string name="action_add_type">Add another type</string>
+    <string name="add_type_title">Another type of %1$s</string>
+    <string name="add_type_body">Its own row and its own prices, in the same shop and aisle.</string>
     <string name="rename_variant">Type</string>
     <string name="rename_variant_hint">semi skimmed, boneless skinless</string>
     <string name="action_delete">Delete</string>
@@ -181,6 +184,7 @@
     <string name="msg_added">Added to the list</string>
     <string name="msg_already_listed">Already on your list</string>
     <string name="msg_readded">Back on the list</string>
+    <string name="msg_type_added">Added another type</string>
     <string name="msg_moved_basket">Moved to your basket</string>
     <string name="msg_moved_active">Back on the list</string>
     <string name="msg_deleted">Deleted</string>

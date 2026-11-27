@@ -31,7 +31,12 @@ class ItemRepository(private val db: AppDatabase) {
      * "Milk / Full Fat" arrives as a name and a type in one typed string. They are compared
      * together, so a skimmed milk already on the list no longer answers for the full-fat one.
      */
-    suspend fun add(raw: String): AddOutcome {
+    suspend fun add(
+        raw: String,
+        /** Where the new row lives, when it is a second version of a row already placed. */
+        storeId: String? = null,
+        location: String? = null,
+    ): AddOutcome {
         val parsed = ItemNames.parse(raw)
         val now = System.currentTimeMillis()
         val existing = ItemNames.findExisting(dao.live(Item.DEFAULT_LIST_ID), raw)
@@ -53,6 +58,8 @@ class ItemRepository(private val db: AppDatabase) {
         val item = Item(
             name = parsed.name,
             variant = parsed.variant,
+            storeId = storeId,
+            location = location,
             createdAt = now,
             updatedAt = now,
         )

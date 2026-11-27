@@ -105,6 +105,7 @@ fun ItemActionsSheet(
     onDismiss: () -> Unit,
     onToggle: () -> Unit,
     onRename: () -> Unit,
+    onAddType: () -> Unit,
     onPlacement: () -> Unit,
     onOpenPrices: () -> Unit,
     onCompare: () -> Unit,
@@ -145,6 +146,15 @@ fun ItemActionsSheet(
                 label = stringResource(R.string.action_name_and_type),
                 onClick = onRename,
             )
+            // Only on a row that is already a version: "another" one of a thing with no version is
+            // a different question, and Rename's type field already answers that one.
+            if (!item.variant.isNullOrBlank()) {
+                SheetAction(
+                    icon = Icons.Rounded.Add,
+                    label = stringResource(R.string.action_add_type),
+                    onClick = onAddType,
+                )
+            }
             SheetAction(
                 icon = Icons.Rounded.Place,
                 label = stringResource(R.string.action_placement),
@@ -188,6 +198,7 @@ fun ShelfActionsSheet(
     onDismiss: () -> Unit,
     onAdd: () -> Unit,
     onRename: () -> Unit,
+    onAddType: () -> Unit,
     onPlacement: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -223,6 +234,13 @@ fun ShelfActionsSheet(
                 label = stringResource(R.string.action_name_and_type),
                 onClick = onRename,
             )
+            if (!item.variant.isNullOrBlank()) {
+                SheetAction(
+                    icon = Icons.Rounded.Add,
+                    label = stringResource(R.string.action_add_type),
+                    onClick = onAddType,
+                )
+            }
             SheetAction(
                 icon = Icons.Rounded.Place,
                 label = stringResource(R.string.action_placement),
@@ -307,6 +325,64 @@ fun RenameDialog(
             TextButton(
                 onClick = { if (text.isNotBlank()) onConfirm(text, variant) },
                 enabled = text.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/**
+ * A second version of the same product: the name is already decided, so only the version is asked
+ * for. The new row shares the product's shop and aisle — one shelf, one product — and from then on
+ * keeps its own prices, because what full fat cost says nothing about what skimmed costs.
+ */
+@Composable
+fun AddTypeDialog(
+    item: Item,
+    onDismiss: () -> Unit,
+    onConfirm: (variant: String) -> Unit,
+) {
+    var variant by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+    val product = ItemNames.parse(item.name).name
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.add_type_title, product)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.add_type_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = variant,
+                    onValueChange = { variant = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.rename_variant)) },
+                    placeholder = { Text(stringResource(R.string.rename_variant_hint)) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (variant.isNotBlank()) onConfirm(variant) },
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(variant) },
+                enabled = variant.isNotBlank(),
             ) {
                 Text(stringResource(R.string.action_save))
             }
