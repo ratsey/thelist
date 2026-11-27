@@ -24,11 +24,13 @@ import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.DropdownMenu
@@ -74,6 +76,9 @@ fun HomeHeader(
     stores: List<Store>,
     currentStoreId: String?,
     onSelectStore: (String?) -> Unit,
+    /** Whether this tab's filter field is showing; null when the tab has none to give. */
+    searchOpen: Boolean = false,
+    onToggleSearch: (() -> Unit)? = null,
     onTabSelected: (Int) -> Unit,
     onCheckForUpdates: () -> Unit,
     onFinishShop: () -> Unit,
@@ -98,27 +103,26 @@ fun HomeHeader(
         Spacer(Modifier.height(10.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.list_name),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = colors.onBackground,
-                )
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = subtitleFor(tab, activeCount, basketCount, shelfCount),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    ShopPill(
-                        stores = stores,
-                        currentStoreId = currentStoreId,
-                        onSelect = onSelectStore,
-                        onAddStore = onOpenStores,
+            Text(
+                text = stringResource(R.string.list_name),
+                style = MaterialTheme.typography.displaySmall,
+                color = colors.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+
+            // One corner for the things you press: search, when this tab has something to search,
+            // then the sync state, then the menu. The shop you are standing in is context rather
+            // than an action, so it sits with the count below instead of jostling these.
+            if (onToggleSearch != null) {
+                IconButton(onClick = onToggleSearch) {
+                    Icon(
+                        imageVector = if (searchOpen) Icons.Rounded.Close else Icons.Rounded.Search,
+                        contentDescription = stringResource(
+                            if (searchOpen) R.string.search_close else R.string.action_search,
+                        ),
+                        tint = colors.onSurfaceVariant,
                     )
                 }
             }
@@ -189,6 +193,28 @@ fun HomeHeader(
                     )
                 }
             }
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // Where you are, then what the tab holds: read left to right, the pill and the count are
+        // one line of context under the name.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ShopPill(
+                stores = stores,
+                currentStoreId = currentStoreId,
+                onSelect = onSelectStore,
+                onAddStore = onOpenStores,
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = subtitleFor(tab, activeCount, basketCount, shelfCount),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
         }
 
         Spacer(Modifier.height(14.dp))

@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
@@ -80,6 +85,11 @@ fun ShelfScreen(
     storeNames: Map<String, String>,
     summaries: Map<String, PriceSummary>,
     currentStoreId: String? = null,
+    /** Whether the filter field is showing; the header's search button owns this. */
+    searchOpen: Boolean = false,
+    hintVisible: Boolean = true,
+    onHideHint: () -> Unit = {},
+    onNeverShowHint: () -> Unit = {},
     onAdd: (Item) -> Unit,
     onOpenActions: (Item) -> Unit,
     modifier: Modifier = Modifier,
@@ -98,6 +108,12 @@ fun ShelfScreen(
     // Which gathered line's ⋮ was tapped. Its versions are chosen from here rather than printed as
     // rows, so rename, placement and delete stay one menu away on every version.
     var variantMenu by remember { mutableStateOf<ShelfGroup?>(null) }
+
+    // Closing the search gives the rows their height back, and the filter goes with the field:
+    // a hidden filter would quietly show a shorter shelf with nothing to explain it.
+    LaunchedEffect(searchOpen) {
+        if (!searchOpen) filter = ""
+    }
 
     val groups = remember(items) { shelfGroups(items) }
     val shown = remember(groups, filter, storeNames) {
@@ -121,22 +137,22 @@ fun ShelfScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = filter,
-            onValueChange = { filter = it },
-            singleLine = true,
-            placeholder = { Text(stringResource(R.string.shelf_filter)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 4.dp),
-        )
-        Text(
-            text = stringResource(R.string.shelf_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 6.dp),
-        )
-        Spacer(Modifier.height(8.dp))
+        // Asked for, not always there: a filter you are not using is a row of the list you cannot
+        // see, and the shelf is the screen where rows are the point.
+        if (searchOpen) {
+            val focusRequester = remember { FocusRequester() }
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            OutlinedTextField(
+                value = filter,
+                onValueChange = { filter = it },
+                singleLine = true,
+                placeholder = { Text(stringResource(R.string.shelf_filter)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+            )
+        }
 
         if (shown.isEmpty()) {
             Text(
@@ -148,9 +164,16 @@ fun ShelfScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 20.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // In the list rather than above it: help that has been read scrolls away with the
+                // rows instead of holding a strip of the screen for good.
+                if (hintVisible) {
+                    item(key = "shelf-hint") {
+                        ShelfHint(onDismiss = onHideHint, onDismissForever = onNeverShowHint)
+                    }
+                }
                 items(shown, key = { group -> group.key }) { group ->
                     ShelfRow(
                         name = group.label,
@@ -254,6 +277,61 @@ private fun groupMeta(
         // column of numbers to read down.
         rateOnly = true,
     )
+}
+
+/**
+ * The shelf's help, on screen until it has been read. Two ways out, because they are different
+ * answers: the × forgets it for this run of the app, "Don't show again" stores the choice.
+ */
+@Composable
+private fun ShelfHint(onDismiss: () -> Unit, onDismissForever: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.primary.copy(alpha = 0.07f))
+            .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 2.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Rounded.Info,
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = stringResource(R.string.shelf_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.update_action_dismiss),
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Text(
+                text = stringResource(R.string.shelf_hint_never),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.primary,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .clickable(onClick = onDismissForever)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)

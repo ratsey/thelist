@@ -3,6 +3,7 @@ package com.ratsey.thelist.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -42,6 +43,19 @@ class SettingsStore(private val context: Context) {
         val pricePrompt = stringPreferencesKey("price_prompt")
         val currency = stringPreferencesKey("currency")
         val measureSystem = stringPreferencesKey("measure_system")
+        val shelfHintDismissed = booleanPreferencesKey("shelf_hint_dismissed")
+    }
+
+    /**
+     * The shelf's one-line help, once it has been read for good. A dismissed hint is a choice that
+     * outlives one shopping trip; hiding it for now never reaches this.
+     */
+    val shelfHintDismissed: Flow<Boolean> = context.settingsDataStore.data.map {
+        it[Keys.shelfHintDismissed] ?: false
+    }
+
+    suspend fun setShelfHintDismissed() {
+        context.settingsDataStore.edit { it[Keys.shelfHintDismissed] = true }
     }
 
     /** Whether prices are asked for while shopping, and at which moment. */

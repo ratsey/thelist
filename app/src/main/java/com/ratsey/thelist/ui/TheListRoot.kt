@@ -75,6 +75,7 @@ fun TheListRoot(viewModel: ListViewModel) {
     val syncUi by viewModel.syncUi.collectAsStateWithLifecycle()
     val updateState by viewModel.update.collectAsStateWithLifecycle()
     val hintVisible by viewModel.hintVisible.collectAsStateWithLifecycle()
+    val shelfHintVisible by viewModel.shelfHintVisible.collectAsStateWithLifecycle()
     val pricePrompt by viewModel.pricePrompt.collectAsStateWithLifecycle()
     val priceFor by viewModel.priceFor.collectAsStateWithLifecycle()
     val variantPrompt by viewModel.variantPrompt.collectAsStateWithLifecycle()
@@ -107,6 +108,14 @@ fun TheListRoot(viewModel: ListViewModel) {
     var showStores by remember { mutableStateOf(false) }
     var placementItem by remember { mutableStateOf<Item?>(null) }
     var shelfFilterOn by rememberSaveable { mutableStateOf(false) }
+    // The shelf's filter is a field you ask for, so the rows keep its height the rest of the time.
+    var shelfSearchOpen by rememberSaveable { mutableStateOf(false) }
+
+    // A search nobody can see is a shelf that looks short: it closes with the tab, and with the
+    // last row there was to search.
+    LaunchedEffect(selectedTab, shelfItems.isEmpty()) {
+        if (selectedTab != TAB_SHELF || shelfItems.isEmpty()) shelfSearchOpen = false
+    }
 
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
@@ -230,6 +239,12 @@ fun TheListRoot(viewModel: ListViewModel) {
                     stores = stores,
                     currentStoreId = currentStoreId,
                     onSelectStore = viewModel::setCurrentStore,
+                    searchOpen = shelfSearchOpen,
+                    onToggleSearch = if (selectedTab == TAB_SHELF) {
+                        { shelfSearchOpen = !shelfSearchOpen }
+                    } else {
+                        null
+                    },
                     onTabSelected = { selectedTab = it },
                     onCheckForUpdates = { viewModel.checkForUpdates(userInitiated = true) },
                     onFinishShop = { showCheckout = true },
@@ -259,6 +274,10 @@ fun TheListRoot(viewModel: ListViewModel) {
                             storeNames = storeNames,
                             summaries = summaries,
                             currentStoreId = currentStoreId,
+                            searchOpen = shelfSearchOpen,
+                            hintVisible = shelfHintVisible,
+                            onHideHint = { viewModel.dismissShelfHint(forGood = false) },
+                            onNeverShowHint = { viewModel.dismissShelfHint(forGood = true) },
                             onAdd = viewModel::addFromShelf,
                             onOpenActions = { shelfActionItem = it },
                         )

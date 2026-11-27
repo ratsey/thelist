@@ -283,6 +283,20 @@ class ListViewModel(
     private val _hintVisible = MutableStateFlow(true)
     val hintVisible: StateFlow<Boolean> = _hintVisible.asStateFlow()
 
+    /** Hidden for this run of the app, as opposed to the choice that is stored. */
+    private val _shelfHintHidden = MutableStateFlow(false)
+
+    /** The shelf's swipe help: shown until it is dismissed, for now or for good. */
+    val shelfHintVisible: StateFlow<Boolean> =
+        combine(settings.shelfHintDismissed, _shelfHintHidden) { dismissedForGood, hidden ->
+            !dismissedForGood && !hidden
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun dismissShelfHint(forGood: Boolean) {
+        _shelfHintHidden.value = true
+        if (forGood) viewModelScope.launch { settings.setShelfHintDismissed() }
+    }
+
     private val _messages = Channel<UiMessage>(Channel.BUFFERED)
     val messages: Flow<UiMessage> = _messages.receiveAsFlow()
 
