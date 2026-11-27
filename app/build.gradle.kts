@@ -116,6 +116,12 @@ android {
     packaging {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")
     }
+
+    testOptions {
+        // Room is tested on the JVM under Robolectric, which needs the merged manifest and the
+        // resources there is no device to ask for.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 ksp {
@@ -159,4 +165,8 @@ dependencies {
     testImplementation(libs.junit)
     // The android.jar stub throws on org.json calls; unit tests need the real implementation.
     testImplementation(libs.org.json)
+    // An in-memory database on the JVM: a repository path that touches SQL is exercised, not just
+    // compiled, and the suite stays runnable where there is no emulator.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

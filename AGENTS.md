@@ -24,6 +24,10 @@ grep -h -o 'tests="[0-9]*"' app/build/test-results/testDebugUnitTest/*.xml \
   | sed 's/[^0-9]//g' | awk '{s+=$1} END {print s}'
 ```
 
+Room is exercised on the JVM: `ItemRepositoryTest` opens an in-memory `AppDatabase` under
+Robolectric, so a write can be run and read back without a device. Anything that draws, scrolls or
+types is still unverifiable.
+
 There is no emulator and no device in CI or in a cloud agent: nothing visual, gestural or
 keyboard-related can be verified. Say so instead of claiming a screen "works".
 
