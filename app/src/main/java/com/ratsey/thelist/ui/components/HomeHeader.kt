@@ -47,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -197,25 +196,14 @@ fun HomeHeader(
 
         Spacer(Modifier.height(4.dp))
 
-        // Where you are, then what the tab holds: read left to right, the pill and the count are
-        // one line of context under the name.
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ShopPill(
-                stores = stores,
-                currentStoreId = currentStoreId,
-                onSelect = onSelectStore,
-                onAddStore = onOpenStores,
-            )
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = subtitleFor(tab, activeCount, basketCount, shelfCount),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        // Where you are, and nothing about how much: the counts are already written on the tabs,
+        // and a line that repeats them is a line of the header spent saying what the header says.
+        ShopPill(
+            stores = stores,
+            currentStoreId = currentStoreId,
+            onSelect = onSelectStore,
+            onAddStore = onOpenStores,
+        )
 
         Spacer(Modifier.height(14.dp))
 
@@ -321,21 +309,6 @@ private fun ShopPill(
             )
         }
     }
-}
-
-@Composable
-private fun subtitleFor(
-    tab: Int,
-    activeCount: Int,
-    basketCount: Int,
-    shelfCount: Int,
-): String = when {
-    tab == 0 && shelfCount == 0 -> stringResource(R.string.shelf_subtitle)
-    tab == 0 -> pluralStringResource(R.plurals.shelf_count, shelfCount, shelfCount)
-    tab == 1 && activeCount == 0 -> stringResource(R.string.empty_subtitle)
-    tab == 1 -> pluralStringResource(R.plurals.active_count, activeCount, activeCount)
-    tab == 2 && basketCount == 0 -> stringResource(R.string.empty_subtitle)
-    else -> pluralStringResource(R.plurals.basket_count, basketCount, basketCount)
 }
 
 @Composable

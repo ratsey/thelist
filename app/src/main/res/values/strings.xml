@@ -35,7 +35,6 @@
     <string name="empty_active_body">Add what you need below, or pick from the Shelf tab. Swipe right when you\'ve got something; swipe left to put it away.</string>
     <string name="empty_basket_title">Nothing in your basket yet</string>
     <string name="empty_basket_body">Swipe an item right once you\'ve got it. Swipe it left to put it back on the shelf.</string>
-    <string name="empty_subtitle">Nothing to pick up</string>
 
     <string name="swipe_hint">Swipe right when you\'ve got it — it moves to your basket. Swipe left to put it back on the shelf.</string>
     <string name="swipe_got_it">Got it</string>
@@ -59,7 +58,6 @@
     <string name="action_undo">Undo</string>
     <string name="action_menu">Item actions</string>
 
-    <string name="shelf_subtitle">Off the list, kept for next time</string>
     <string name="shelf_filter">Filter</string>
     <string name="shelf_hint">Swipe right to put it back. Hold a row, or tap ⋮, to rename or delete it.</string>
     <string name="shelf_hint_never">Don\'t show again</string>
@@ -267,16 +265,4 @@
 
     <string name="variant_prompt_title">Which one?</string>
     <string name="variant_prompt_body">This one comes in more than one version — pick the one to put on the list.</string>
-    <plurals name="active_count">
-        <item quantity="one">%d item to pick up</item>
-        <item quantity="other">%d items to pick up</item>
-    </plurals>
-    <plurals name="basket_count">
-        <item quantity="one">%d item in your basket</item>
-        <item quantity="other">%d items in your basket</item>
-    </plurals>
-    <plurals name="shelf_count">
-        <item quantity="one">%d item off the list</item>
-        <item quantity="other">%d items off the list</item>
-    </plurals>
 </resources>
